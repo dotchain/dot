@@ -5,10 +5,10 @@
 // Package dot implements conflict free stateless transforms
 // that form the basis for a larger platform
 //
-// Please read http://github.com/dotchain/dot/blob/master/docs/IntroductionToOperationalTransforms.md
+// Please read http://github.com/dotchain/site/blob/master/IntroductionToOperationalTransforms.md
 // for an overview of Operational Transforms as used here.
 //
-// Please read https://github.com/dotchain/dot/blob/master/docs/Manifesto.md
+// Please read https://github.com/dotchain/site/blob/master/Manifesto.md
 // for the overall goals of the project.
 //
 // The DOT Architecture is a pub-sub system which relies on a
@@ -17,7 +17,7 @@
 //
 // This ordered sequence of untransformed operations is a "journal"
 // and can be accessed by a simple protocol defined in
-// https://github.com/dotchain/dot/blob/master/docs/Protocol.md.
+// https://github.com/dotchain/site/blob/master/Protocol.md.
 //
 // An implementation of this journal protocol is available here:
 // https://godoc.org/github.com/dotchain/dots/journal
@@ -36,7 +36,7 @@
 // operational transforms.
 //
 // This log protocol is also documented at
-// https://github.com/dotchain/dot/blob/master/docs/Protocol.md and
+// https://github.com/dotchain/site/blob/master/Protocol.md and
 // a reference implementation is available at
 // https://godoc.org/github.com/dotchain/dots/log
 //
@@ -70,7 +70,7 @@
 // In reality, most models will have a much richer mutation semantics
 // than just these three operations.  For example, Rich Text may
 // support "bolding" of a region of text. Please see
-// https://github.com/dotchain/dot/blob/master/docs/ComposableOperations.md
+// https://github.com/dotchain/site/blob/master/ComposableOperations.md
 // for a discussion of how this can be achieved in DOT.
 //
 // Most of these individual changes are weakly typed.  #SpliceInfo,

@@ -58,7 +58,7 @@ package dot
 // raw operations rather than the Rebased operations).
 //
 // Please see
-// https://github.com/dotchain/dot/blob/master/docs/Protocol.md
+// https://github.com/dotchain/site/blob/master/Protocol.md
 // for a better understanding of the use of the ParentID and
 // BasisID when sending them to the server.  #AppendClientOperation
 // expects these to be properly setup with BasisID being the

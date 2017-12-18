@@ -9,17 +9,9 @@
 
 Please see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Manifesto
-
-[Manifesto](docs/Manifesto.md)
-
 ## Documentation
 
-[DOT Protocol](docs/Protocol.md)
-
-[Composable Operations](docs/ComposableOperations.md)
-
-[Undo](docs/Undo.md)
+Please see [DOT](https://github.com/dotchain/site/blob/master/dot.md)
 
 ## Status of the project
 
@@ -31,10 +23,4 @@ bookkeeping is taken care of.
 ## Demo
 
 Please see [dotjs](https://github.com/dotchain/dotjs) for demos.
-
-## Introduction to operational transforms
-
-Please read this [introduction](docs/IntroductionToOperationalTransforms.md) to
-understand the theory behind how this package works.
-
 
