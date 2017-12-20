@@ -31,7 +31,7 @@ func NewArray(c encoding.Catalog, m map[string]interface{}) Array {
 // MarshalJSON provides the right JSON layout
 func (s Array) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
-		"dot:encoding": "Array",
+		"dot:encoding": "SparseArray",
 		"dot:encoded":  s.v,
 	})
 }
