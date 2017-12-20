@@ -5,13 +5,16 @@
 package dot
 
 import (
-	"errors"
 	"github.com/dotchain/dot/encoding"
+	"github.com/pkg/errors"
 )
 
 // ErrMergeWithSelf is used by MergeOperations if it finds two operations
 // with same ID being merged against each other
 var ErrMergeWithSelf = errors.New("cannot merge an operation with itself")
+
+// ModelBuilder represents a function that can incrementally build a model
+type ModelBuilder func(oldModel interface{}, rebased []Operation) interface{}
 
 // Transformer provides the basic functionality to transform
 // Change and Operation values.

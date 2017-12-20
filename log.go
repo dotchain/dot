@@ -4,7 +4,7 @@
 
 package dot
 
-import "errors"
+import "github.com/pkg/errors"
 
 // ErrMissingParentOrBasis error indicates an operation has a basis
 // ID or parent ID that is not present in the journal before it.
@@ -48,6 +48,7 @@ var ErrLogNeedsBackfilling = errors.New("log needs backfilling")
 type Log struct {
 	Transformer
 	MinIndex     int
+	ModelImage   interface{}
 	Rebased      []Operation
 	MergeChains  [][]Operation
 	IDToIndexMap map[string]int
