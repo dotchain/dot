@@ -411,7 +411,7 @@ func (test *clog_test) Validate() {
 	clients := test.GetClientOperations()
 	serverState := test.GetFinalServerState()
 
-	// reconcstruct client actions and through that the client state
+	// reconstruct client actions and through that the client state
 	for kk, c := range clients {
 		clientState := test.GetFinalClientState(c)
 

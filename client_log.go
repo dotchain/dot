@@ -27,35 +27,15 @@ package dot
 // operations from its previous session on the device that were
 // in flight (maybe in the journal, may not)
 //
-// The client creates an empty ClientLog, reconciles it with the
-// latest server log and proceeds to add all the client operations
-// to the client log by using AppendClientOperation.  It drops all
-// the return values but instead reconstructs its model by applying
-// Log.Rebased followed by ClientLog.Rebased.
-//
-// The client can use the amount of operations remaining in Rebased
-// to decide if it needs to re-submit any of its prior operations.
-// Note that if it decide to resubmit, it should resubmit the
-// raw client operations and not the values in Rebased.
+// In this case, the client should use #BootstrapClientLog to
+// bootstrap its model.
 //
 // 2. Client has restarted a session with a cached model at a
 // particular basis and potentially some client operations that
 // were in flight before.
 //
-// The client constructs a server log with operations only until
-// the provided basisID, reconciles the client log with that version
-// of the server log and then appends all the local client
-// operations. The client log has now effectively "caught up"
-// to the basis.
-//
-// At this point it constructs a full server log and then reconciles
-// the client log with it.  Any operations returned by the reconcile
-// method are applied to the cached model state to yield the
-// accurate starting state.  As with the previous case, the
-// remaining operations in ClientLog.Rebased provide the set
-// of raw operations that the client should resubmit to the
-// server (and as before, the client should send the corresponding
-// raw operations rather than the Rebased operations).
+// In this case, the client should use #ReconnectClientLog to continue
+// the reconciliation process
 //
 // Please see
 // https://github.com/dotchain/site/blob/master/Protocol.md
@@ -253,4 +233,74 @@ func (c *ClientLog) initialize(l *Log, op Operation, basisIndex, parentIndex int
 	c.ServerIndex = len(l.Rebased)
 
 	return c.MergeChain, nil
+}
+
+// BootstrapClientLog creates a new client log for a client that does
+// not have a model.
+//
+// Errors: It returns ErrMissingParentOrBasis if the log
+// has not advanced enough for the clientOps.  It can return
+// ErrLogNeedsBackfilling if the log is not backfilled enough for the
+// operation to complete.
+//
+// It returns the client log and a pair of operation collections. The
+// first operation collection is the set of rebased server operations
+// a client can apply to get to a good state and the second operations
+// collection is the set of rebased client operations which is meant
+// to be applied on top of the server rebased.
+func BootstrapClientLog(l *Log, clientOps []Operation) (*ClientLog, []Operation, []Operation, error) {
+	clog := &ClientLog{Transformer: l.Transformer}
+	if _, err := clog.Reconcile(l); err != nil {
+		return nil, nil, nil, err
+	}
+
+	for _, op := range clientOps {
+		if _, err := clog.AppendClientOperation(l, op); err != nil {
+			return nil, nil, nil, err
+		}
+	}
+
+	rebased := append([]Operation{}, l.Rebased...)
+	clientRebased := append([]Operation{}, clog.Rebased...)
+	return clog, rebased, clientRebased, nil
+}
+
+// ReconnectClientLog creates a new client log for a client that has
+// an existing model (with the provided parentID and basisID). Note
+// that if client operations are provided, the parentID will be
+// ignored and the last op in that list will be used.
+//
+// Errors: It returns ErrMissingParentOrBasis if the log
+// has not advanced enough for the clientOps.  It can return
+// ErrLogNeedsBackfilling if the log is not backfilled enough for the
+// operation to complete.
+//
+// It also returns a set of operations that the client can apply to
+// get it back to a mainline state
+func ReconnectClientLog(l *Log, clientOps []Operation, basisID, parentID string) (*ClientLog, []Operation, error) {
+	clog := &ClientLog{Transformer: l.Transformer}
+
+	if len(clientOps) > 0 {
+		parentID = clientOps[len(clientOps)-1].ID
+	}
+
+	if _, ok := l.IDToIndexMap[basisID]; !ok {
+		return nil, nil, ErrMissingParentOrBasis
+	}
+	clog.ClientIndex = l.IDToIndexMap[basisID] + 1
+	if _, err := clog.Reconcile(l); err != nil {
+		return nil, nil, err
+	}
+	for _, op := range clientOps {
+		if _, err := clog.AppendClientOperation(l, op); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	merge := clog.MergeChain
+	if merge == nil {
+		merge = l.Rebased[l.MinIndex:]
+	}
+	merge = l.TrimMergeChain(l.TrimMergeChain(merge, basisID), parentID)
+	return clog, merge, nil
 }
