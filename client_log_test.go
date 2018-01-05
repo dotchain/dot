@@ -146,10 +146,12 @@ func TestClientLog_AppendClientOperation_missing_parent_basis(t *testing.T) {
 }
 
 func TestClientLog_AppendClientOperation_autoreconciles(t *testing.T) {
+	fourthMergeChain := []dot.Operation{{ID: "third", Parents: []string{"two"}}}
+	fifthMergeChain := []dot.Operation{{ID: "third"}}
 	l := &dot.Log{
 		MinIndex:    2,
 		Rebased:     []dot.Operation{{}, {}, {ID: "third"}, {ID: "fourth"}, {ID: "fifth"}, {ID: "sixth"}},
-		MergeChains: [][]dot.Operation{nil, nil, nil},
+		MergeChains: [][]dot.Operation{nil, nil, nil, fourthMergeChain, fifthMergeChain, nil},
 		IDToIndexMap: map[string]int{
 			"first":  0,
 			"second": 1,
@@ -161,13 +163,12 @@ func TestClientLog_AppendClientOperation_autoreconciles(t *testing.T) {
 	}
 
 	c := &dot.ClientLog{
-		ClientIndex: 2,
 		ServerIndex: 2,
-		Rebased:     []dot.Operation{{ID: "fourth", Parents: []string{"two"}}},
-		MergeChain:  []dot.Operation{{ID: "third", Parents: []string{"two"}}},
+		Rebased:     []dot.Operation{{ID: "fourth", Parents: []string{"second"}}},
+		MergeChain:  fourthMergeChain,
 	}
 
-	op := dot.Operation{ID: "fifth", Parents: []string{"two", "fourth"}}
+	op := dot.Operation{ID: "fifth", Parents: []string{"second", "fourth"}}
 	merge, err := c.AppendClientOperation(l, op)
 
 	if err != nil {
@@ -175,9 +176,6 @@ func TestClientLog_AppendClientOperation_autoreconciles(t *testing.T) {
 	}
 	if !reflect.DeepEqual(merge, []dot.Operation{{ID: "third"}, {ID: "sixth"}}) {
 		t.Error("Unexpected AppendClientOperation merge", merge)
-	}
-	if c.ServerIndex != len(l.Rebased) || len(c.Rebased) > 0 || len(c.MergeChain) > 0 {
-		t.Error("Unexpected clog", c)
 	}
 }
 
@@ -445,7 +443,7 @@ func (test *clog_test) UpdateLogAndReconcile(slog *dot.Log, clog *dot.ClientLog,
 		merge, err := clog.AppendClientOperation(slog, *op)
 		if err != nil {
 			test.Error("Append failed", *op)
-			test.Error("clog server index", clog.ServerIndex, "client index", clog.ClientIndex)
+			test.Error("clog server index", clog.ServerIndex)
 			test.Error("clog.Rebased", clog.Rebased)
 			test.Error("clog.MergeChain", clog.MergeChain)
 			test.Error("slog.Rebased", slog.Rebased)
