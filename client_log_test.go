@@ -5,88 +5,192 @@
 package dot_test
 
 import (
+	"encoding/json"
 	"fmt"
+	datalib "github.com/dotchain/dataset/tools/lib"
 	"github.com/dotchain/dot"
+	"github.com/pkg/errors"
 	"reflect"
 	"testing"
 )
 
-func TestClientLog_simple_log(t *testing.T) {
-	insert := func(o int, s string) []dot.Change {
-		return []dot.Change{{Splice: &dot.SpliceInfo{o, "", s}}}
+type clientLogTestCase struct {
+	input, final string
+	cops, sops   []string
+}
+
+func TestClientLog_suite(t *testing.T) {
+	tests := []clientLogTestCase{
+		{
+			input: "abcd",
+			final: "axYyXd",
+			cops:  []string{"a(=x)bcd", "axb(c=y)d"},
+			sops:  []string{"abc(=X)d", "a(b=Y)cXd"},
+		},
+		{
+			input: "abcd",
+			final: "axYyXd",
+			cops:  []string{"abc(=X)d", "a(b=Y)cXd"},
+			sops:  []string{"a(=x)bcd", "axb(c=y)d"},
+		},
+		{
+			input: "abc",
+			final: "y",
+			cops:  []string{"a(b=XY)c", "aX(Yc=)"},
+			sops:  []string{"a(b=xy)c", "(ax=)yc"},
+		},
 	}
 
-	p := func(basisID, parentID string) []string {
-		return []string{basisID, parentID}
-	}
-
-	journal := []dot.Operation{
-		{ID: "initial", Changes: insert(0, "The fox jumped over the fence")},
-
-		{ID: "0-0", Parents: p("initial", ""), Changes: insert(4, "red ")},
-		{ID: "0-1", Parents: p("initial", "0-0"), Changes: insert(4, "beautiful ")},
-		{ID: "0-2", Parents: p("initial", "0-1"), Changes: insert(4, "big ")},
-
-		{ID: "1-0", Parents: p("initial", ""), Changes: insert(24, "yellow ")},
-		{ID: "1-1", Parents: p("initial", "1-0"), Changes: insert(24, "large ")},
-		{ID: "1-2", Parents: p("initial", "1-1"), Changes: insert(24, "frightening ")},
-	}
-
-	// iterate over all valid permutations of this journal
-	for _, perm := range GetPermutations(journal) {
-		test := &clog_test{T: t, journal: perm, initial: ""}
-		test.Validate()
+	c := clientLogTestSuite{}
+	for _, test := range tests {
+		c.Run(t, test)
 	}
 }
 
-func TestClientLog_staggered_basis(t *testing.T) {
-	// appending op must have basisIndex < parentIndex but greater than index of parent op.
-	// Easiest way to simulate that is have op1, op2, op3 where
-	// op3 is based and parented on op1 and then we append an op
-	// based on op2 and parented on op3. To make things interesting,
-	// we need to make op2 conflict with op3 -- so we will make both insert
-	// at the same location.  In addition, we will add an op4 based on op2
-	// so we can be sure that the new op is properly transformed afterwards.
+type clientLogTestSuite struct{}
 
-	insert := func(o int, s string) []dot.Change {
-		return []dot.Change{{Splice: &dot.SpliceInfo{o, "", s}}}
+func (c clientLogTestSuite) Run(t *testing.T, testCase clientLogTestCase) {
+	err := c.doublePairsTest(testCase.input, testCase.final, testCase.cops, testCase.sops)
+	if err != nil {
+		t.Error("Failed", err)
+	}
+}
+
+// doublePairsTest works with a pair of client ops and a pair of server ops
+//
+// The client and server both start with the initial string.  The server
+// applies sop1, sop2 followed by cop1, cop2 while the client follows
+//    cop1, cop2, sop1, sop2
+//
+// All the operations are encoded using the Compact form as defined in
+// inner compact form of http://github.com/dotchain/dataset/CompactJSON.md
+func (c clientLogTestSuite) doublePairsTest(input, final string, cx, sx []string) error {
+	sops := []dot.Operation{c.decode("s1", nil, sx[0], input)}
+	for kk := range sx {
+		if kk == 0 {
+			continue
+		}
+		id := fmt.Sprintf("s%d", kk+1)
+		prev := fmt.Sprintf("s%d", kk)
+		parents := []string{prev}
+		sops = append(sops, c.decode(id, parents, sx[kk], ""))
+	}
+	cops := []dot.Operation{c.decode("c1", nil, cx[0], input)}
+	for kk := range cx {
+		if kk == 0 {
+			continue
+		}
+		id := fmt.Sprintf("c%d", kk+1)
+		prev := fmt.Sprintf("c%d", kk)
+		parents := []string{"", prev}
+		cops = append(cops, c.decode(id, parents, cx[kk], ""))
 	}
 
-	p := func(basis, parent string) []string {
-		return []string{basis, parent}
+	copsVariations, sops1, err := c.getDoublePairOps(input, cops, sops)
+	if err != nil {
+		return err
+	}
+	for _, variation := range copsVariations {
+		if err := c.validateOps(input, final, variation); err != nil {
+			return errors.Wrap(err, "client validation")
+		}
 	}
 
-	remove := func(o int, s string) []dot.Change {
-		return []dot.Change{{Splice: &dot.SpliceInfo{o, s, ""}}}
+	if err := c.validateOps(input, final, sops1); err != nil {
+		return errors.Wrap(err, "server validation")
+	}
+	return nil
+}
+
+func (c clientLogTestSuite) getDoublePairOps(input interface{}, cops, sops []dot.Operation) ([][]dot.Operation, []dot.Operation, error) {
+	all := append(append([]dot.Operation{}, sops...), cops...)
+
+	// all client variations where the client "reconnects" at various points
+	variation, err := c.getReconnectOps(all, "", "")
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "variation empty, empty")
+	}
+	variations := [][]dot.Operation{variation}
+
+	slog := &dot.Log{}
+	clog, rx, cx, err := dot.BootstrapClientLog(slog, cops)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "bootstrap")
+	}
+	cApply := append(append([]dot.Operation{}, rx...), cx...)
+	lastParentID := cops[len(cops)-1].ID
+
+	variation, err = c.getReconnectOps(all, "", lastParentID)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "variation empty, last")
+	}
+	variations = append(variations, append(append([]dot.Operation{}, cApply...), variation...))
+
+	lastBasisID := ""
+	for _, op := range all {
+		if err := slog.AppendOperation(op); err != nil {
+			return nil, nil, errors.Wrap(err, "slog.AppendOperation")
+		}
+		xop, err := clog.Reconcile(slog)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "clog.Reconcile")
+		}
+		cApply = append(cApply, xop...)
+
+		if len(xop) > 0 {
+			lastBasisID = xop[len(xop)-1].ID
+		}
+		variation, err = c.getReconnectOps(all, lastBasisID, lastParentID)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, fmt.Sprintf("variation %s, %s", lastBasisID, lastParentID))
+		}
+		variation = append(append([]dot.Operation{}, cApply...), variation...)
+		variations = append(variations, variation)
 	}
 
-	// The actual details:
-	// Op1 = insert "hello world" at 0.  Basis/Parent = nothing.
-	// Op2 = insert "beautiful " at 6 (after "hello ", basis/parent = op1)
-	// Op3 = insert "crazy " at 6 (after "hello ") Basis/Parent = op1
-	// Op4 = insert "!" after "hello world" -- Basis/Parent = op1
-	//
-	// Append happens with basis = op2 but parent = op3.
-	// That is, we consider the client which applied op1, op3 to get
-	// "hello crazy world" and then factored in the effect of
-	// Op2 to get "hello beautiful crazy world" and now does the
-	// delete after "hello beautiful cra"
-	// Append = delete "z" from "crazy".  Basis = Op3, Parent = Op2
-	journal := []dot.Operation{
-		{ID: "0-0", Parents: p("", ""), Changes: insert(0, "hello world")},
-		{ID: "0-1", Parents: p("", "0-0"), Changes: insert(6, "beautiful ")},
-		{ID: "0-2", Parents: p("", "0-1"), Changes: insert(6+len("beautiful "), "crazy ")},
-		{ID: "1-0", Parents: p("0-0", ""), Changes: insert(11, "!")},
-		{ID: "1-1", Parents: p("0-0", "1-0"), Changes: insert(0, "This ")},
-		{ID: "1-2", Parents: p("0-0", "1-1"), Changes: insert(5, "is ")},
-		{ID: "0-3", Parents: p("1-1", "0-2"), Changes: remove(len("This hello beautiful cra"), "z")},
+	variations = append(variations, cApply)
+	return variations, slog.Rebased, nil
+}
+
+func (clientLogTestSuite) getReconnectOps(all []dot.Operation, basisID, parentID string) ([]dot.Operation, error) {
+	slog := &dot.Log{}
+	for _, op := range all {
+		if err := slog.AppendOperation(op); err != nil {
+			return nil, errors.Wrap(err, "slog.AppendOperation")
+		}
 	}
 
-	// iterate over all valid permutations of this journal
-	for _, perm := range GetPermutations(journal) {
-		test := &clog_test{T: t, journal: perm, initial: ""}
-		test.Validate()
+	_, rx, err := dot.ReconnectClientLog(slog, nil, basisID, parentID)
+	if err != nil {
+		return nil, errors.Wrap(err, "reconnect")
 	}
+
+	return rx, nil
+}
+
+func (clientLogTestSuite) decode(id string, parents []string, op, input string) dot.Operation {
+	input1, ch := datalib.Compact{}.Decode(op)
+	if input != "" && input1 != input {
+		panic(fmt.Sprintf("Expdected %v but got %v", input, input1))
+	}
+	return dot.Operation{ID: id, Parents: parents, Changes: []dot.Change{ch}}
+}
+
+func (clientLogTestSuite) toJSON(v interface{}) string {
+	b, _ := json.Marshal(v)
+	return string(b)
+}
+
+func (c clientLogTestSuite) validateOps(input, final interface{}, ops []dot.Operation) error {
+	actual := input
+	for _, op := range ops {
+		actual = applyMany(actual, op.Changes)
+	}
+
+	if !dot.Utils(dot.Transformer{}).AreSame(actual, final) {
+		return errors.Errorf("Mismatched: Expected %s, got %s", c.toJSON(final), c.toJSON(actual))
+	}
+	return nil
 }
 
 func TestClientLog_Reconcile_needs_backfilling(t *testing.T) {
@@ -256,239 +360,4 @@ func TestClientLog_AppendClientOperation_invalid_op(t *testing.T) {
 		t.Error("Unexpected AppendClientOperation result", err)
 	}
 
-}
-
-type clog_test struct {
-	*testing.T
-	journal []dot.Operation
-	initial interface{}
-}
-
-func (test *clog_test) GetClientOperations() [][]dot.Operation {
-	clients := [][]dot.Operation{}
-
-	// separate ops into different clients
-	for _, op := range test.journal {
-		if c, seq, ok := test.parseID(op.ID); ok {
-			for len(clients) <= c {
-				clients = append(clients, nil)
-			}
-			for len(clients[c]) <= seq {
-				clients[c] = append(clients[c], dot.Operation{})
-			}
-			clients[c][seq] = op
-		}
-	}
-	return clients
-}
-
-func (test *clog_test) GetFinalServerState() interface{} {
-	t := test.T
-	l := &dot.Log{}
-
-	for _, op := range test.journal {
-		if err := l.AppendOperation(op); err != nil {
-			t.Fatal("Append operation failed with error", err)
-		}
-	}
-	return test.applyOps(test.initial, l.Rebased)
-}
-
-func (test *clog_test) GetClientStateForOperation(slog *dot.Log, op dot.Operation) (*dot.ClientLog, interface{}) {
-	clog := &dot.ClientLog{}
-	basisIndex := slog.IDToIndexMap[op.BasisID()]
-	if op.BasisID() == "" {
-		basisIndex = -1
-	}
-
-	m, err := clog.AppendClientOperation(slog, op)
-
-	if err == nil {
-		client := test.applyOps(test.initial, slog.Rebased[:basisIndex+1])
-		client = test.applyOps(client, []dot.Operation{op})
-		return clog, test.applyOps(client, m)
-	}
-	test.Fatal("Could not start a new client log with an intermediate op", err)
-	return nil, nil
-}
-
-func (test *clog_test) validateFinalStateFromFullJournal(op dot.Operation) {
-	slog := &dot.Log{}
-	for _, opx := range test.journal {
-		if err := slog.AppendOperation(opx); err != nil {
-			test.Fatal("Could not append", opx)
-		}
-	}
-	serverState := test.applyOps(test.initial, slog.Rebased)
-	_, finalState := test.GetClientStateForOperation(slog, op)
-	if !reflect.DeepEqual(serverState, finalState) {
-		test.Fatal("Failed to converge for op", op, serverState, "<--->", finalState)
-	}
-}
-
-func (test *clog_test) sameIntermediateClientState(clog1, clog2 *dot.ClientLog, result1, result2 interface{}) {
-	if !reflect.DeepEqual(clog1, clog2) {
-		test.Fatal("Client logs differ", clog1, "<--->", clog2)
-	}
-	if !reflect.DeepEqual(result1, result2) {
-		test.Fatal("Client states differ", result1, "<--->", result2)
-	}
-}
-
-func (test *clog_test) createLog(ops, clientOps []dot.Operation) *dot.Log {
-	result := &dot.Log{}
-	for kk := range ops {
-		if err := result.AppendOperation(test.journal[kk]); err != nil {
-			test.Fatal("Unexpected append operation fail", err)
-		}
-	}
-
-	rawOps := []dot.Operation{}
-	for _, cop := range clientOps {
-		for _, op := range test.journal {
-			if cop.ID == op.ID {
-				rawOps = append(rawOps, op)
-				break
-			}
-		}
-	}
-
-	for _, op := range rawOps {
-		if err := result.AppendOperation(op); err != nil {
-			test.Fatal("Unexpected append operation fail", err)
-		}
-	}
-
-	return result
-}
-
-func (test *clog_test) GetFinalClientState(ops []dot.Operation) interface{} {
-	// slog and clog maintiain the client's view of its server and itself
-	slog, clog := &dot.Log{}, &dot.ClientLog{}
-
-	// client state
-	client := test.initial
-
-	// merged operations for client to execute
-	for _, op := range ops {
-		// update server log up to op.BasisID() and reconcile clog with it
-		client = test.applyOps(client, test.UpdateLogAndReconcile(slog, clog, &op))
-
-		if len(clog.Rebased) > 1 {
-			// create a copy of slog and add all but the last Rebased
-			// operation to slog
-			rebased := clog.Rebased[:len(clog.Rebased)-1]
-			dupe := test.createLog(test.journal[:len(slog.Rebased)], rebased)
-			clog2 := &dot.ClientLog{}
-			if _, err := clog2.AppendClientOperation(dupe, op); err != nil {
-				test.Fatal("Unexpected append operation error", err)
-			}
-			if !reflect.DeepEqual(rebased, dupe.Rebased[len(slog.Rebased):]) {
-				test.Fatal("Differing rebased values!", rebased, dupe.Rebased[len(slog.Rebased)+1:])
-			}
-			continue
-		}
-
-		// also create a temporary client log with this op and check
-		// if it ends up with the same state.  But we can do this only if
-		// there is exactly one operations in clog.Rebased
-
-		clog2, client2 := test.GetClientStateForOperation(slog, op)
-		test.sameIntermediateClientState(clog, clog2, client, client2)
-
-		// validate that intermeidate fetching form the op leads to same
-		// final state
-		test.validateFinalStateFromFullJournal(op)
-	}
-
-	// update server log one last time in case there is still some stuff left over
-	return test.applyOps(client, test.UpdateLogAndReconcile(slog, clog, nil))
-}
-
-func (test *clog_test) Validate() {
-	clients := test.GetClientOperations()
-	serverState := test.GetFinalServerState()
-
-	// reconstruct client actions and through that the client state
-	for kk, c := range clients {
-		clientState := test.GetFinalClientState(c)
-
-		// validate client model has converged to server
-		if !reflect.DeepEqual(clientState, serverState) {
-			test.Fatal("Client(non-greedy)", kk, "diverged.  Expected", serverState, "got", clientState)
-		}
-	}
-}
-
-func (test *clog_test) UpdateLogAndReconcile(slog *dot.Log, clog *dot.ClientLog, op *dot.Operation) []dot.Operation {
-	if op == nil {
-		// use the last op ID as basisID to effectively flush the full journal
-		test.UpdateLog(slog, test.journal[len(test.journal)-1].ID)
-	} else {
-		// use the basisID of the provided op for this
-		test.UpdateLog(slog, op.BasisID())
-	}
-
-	// reconcile
-	merge, err := clog.Reconcile(slog)
-	if err != nil {
-		test.Fatal("Client failed to reconcile op", err)
-	}
-
-	result := append([]dot.Operation{}, merge...)
-
-	// merge the op
-	if op != nil {
-		result = append(result, *op)
-		merge, err := clog.AppendClientOperation(slog, *op)
-		if err != nil {
-			test.Error("Append failed", *op)
-			test.Error("clog server index", clog.ServerIndex)
-			test.Error("clog.Rebased", clog.Rebased)
-			test.Error("clog.MergeChain", clog.MergeChain)
-			test.Error("slog.Rebased", slog.Rebased)
-			test.Error("journal", test.journal)
-			test.Fatal("Client failed to append op", err)
-		}
-		result = append(result, merge...)
-	}
-	return result
-}
-
-func (test *clog_test) UpdateLog(l *dot.Log, basisID string) {
-	t := test.T
-
-	if _, ok := l.IDToIndexMap[basisID]; ok || basisID == "" {
-		return
-	}
-
-	start := -1
-
-	if len(l.Rebased) > 0 {
-		lastID := l.Rebased[len(l.Rebased)-1].ID
-		for start = 0; test.journal[start].ID != lastID; start++ {
-		}
-	}
-
-	for kk := start + 1; kk < len(test.journal); kk++ {
-		op := test.journal[kk]
-		if err := l.AppendOperation(op); err != nil {
-			t.Fatal("Failed to append op", kk, "when updating basis to", basisID, err)
-		}
-		if op.ID == basisID {
-			return
-		}
-	}
-}
-
-func (test *clog_test) parseID(s string) (client int, seq int, ok bool) {
-	n, err := fmt.Sscanf(s, "%d-%d", &client, &seq)
-	return client, seq, (n == 2 && err == nil)
-}
-
-func (test *clog_test) applyOps(result interface{}, ops []dot.Operation) interface{} {
-	for _, op := range ops {
-		result = applyMany(result, op.Changes)
-	}
-	return result
 }
