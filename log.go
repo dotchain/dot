@@ -104,14 +104,30 @@ func (l *Log) TransformOperation(op Operation) ([]Operation, []Operation, error)
 		return nil, nil, nil
 	}
 
+	if err := l.validateOp(op); err != nil {
+		return nil, nil, err
+	}
+
+	bIndex := l.IDToIndexMap[op.BasisID()]
+	pIndex := l.IDToIndexMap[op.ParentID()]
+	against := l.getMergeTarget(op.ParentID(), op.BasisID(), pIndex, bIndex)
+
+	left, right, ok := l.TryMergeOperations(against, []Operation{op})
+	if !ok {
+		return nil, nil, ErrInvalidOperation
+	}
+	return left, right, nil
+}
+
+func (l *Log) validateOp(op Operation) error {
 	// calculate parent and basis indices
 	basisID, parentID := op.BasisID(), op.ParentID()
 	basisIndex, basisExists := l.IDToIndexMap[basisID]
-	parentIndex, parentExists := l.IDToIndexMap[parentID]
+	_, parentExists := l.IDToIndexMap[parentID]
 
 	// validate parent and basis IDs exist in the map
 	if basisID != "" && !basisExists || parentID != "" && !parentExists {
-		return nil, nil, ErrMissingParentOrBasis
+		return ErrMissingParentOrBasis
 	}
 
 	// ensure basis is loaded.
@@ -119,15 +135,10 @@ func (l *Log) TransformOperation(op Operation) ([]Operation, []Operation, error)
 	// than basis, we ignore the parent anyway and if parent is later than basis
 	// and basis is loaded, parent is effectively loaded
 	if (basisID == "" && l.MinIndex > 0) || (basisID != "" && basisIndex < l.MinIndex) {
-		return nil, nil, ErrLogNeedsBackfilling
+		return ErrLogNeedsBackfilling
 	}
 
-	against := l.getMergeTarget(parentID, basisID, parentIndex, basisIndex)
-	left, right, ok := l.TryMergeOperations(against, []Operation{op})
-	if !ok {
-		return nil, nil, ErrInvalidOperation
-	}
-	return left, right, nil
+	return nil
 }
 
 // AppendOperation takes a raw operations, transforms it appropriately

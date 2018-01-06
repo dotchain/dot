@@ -52,8 +52,6 @@ type ClientLog struct {
 	// with the 1 being there because of making it easy to
 	// initialize the log with zeroes.
 
-	// 1 + index of basis of last known client operation
-	ClientIndex int
 	// 1 + index of last known operation from server log
 	// that has been factored into the client log so far
 	ServerIndex int
@@ -107,132 +105,57 @@ func (c *ClientLog) Reconcile(l *Log) ([]Operation, error) {
 }
 
 // AppendClientOperation appends a client operation to the client log.
-// It can be used to initialize a client log or to append to a client log
-// that has already appended a few client operations before.
 //
 // It returns an error if the server log needs backfilling. The returned
 // set of compensating operations can be used by the client to update
 // its state to factor in the effect of any unaccounted ops in the log.
 func (c *ClientLog) AppendClientOperation(l *Log, op Operation) ([]Operation, error) {
-	var ok bool
+	if index, ok := l.IDToIndexMap[op.ID]; ok {
+		if index < l.MinIndex {
+			return nil, ErrLogNeedsBackfilling
+		}
 
-	if len(c.Rebased) == 0 {
-		return c.initializeFromOperation(l, op)
+		c.Rebased = nil
+		c.MergeChain = l.joinOperation(l.MergeChains[index], l.Rebased[index+1:])
+		c.ServerIndex = len(l.Rebased)
+		return c.MergeChain, nil
 	}
 
-	lastBasisID := c.Rebased[len(c.Rebased)-1].BasisID()
-	mergeChain := c.MergeChain
-	clientIndex := c.ClientIndex
-	if basisID := op.BasisID(); basisID != lastBasisID {
-		index := -1
-		for kk, m := range mergeChain {
-			if m.ID == basisID {
-				clientIndex = l.IDToIndexMap[m.ID] + 1
-				index = kk
-				break
-			}
-		}
-		if index < 0 {
+	basisID, parentID := op.BasisID(), op.ParentID()
+	bIndex, bExists := l.IDToIndexMap[basisID]
+	pIndex, pExists := l.IDToIndexMap[parentID]
+
+	if basisID != "" && !bExists {
+		return nil, ErrMissingParentOrBasis
+	}
+
+	if bIndex < l.MinIndex {
+		// TODO: real check should be
+		// !pExists && bIndex < l.MinIndex ||
+		// pExists && pIndex < l.MinIndex
+		return nil, ErrLogNeedsBackfilling
+	}
+
+	var merge []Operation
+	if len(c.Rebased) == 0 || (pExists && pIndex >= bIndex) {
+		if parentID != "" && !pExists {
 			return nil, ErrMissingParentOrBasis
+
 		}
-		mergeChain = append([]Operation{}, mergeChain[index+1:]...)
-	}
 
-	rebased, merge, ok := c.TryMergeOperations(mergeChain, []Operation{op})
+		merge = l.getMergeTarget(parentID, basisID, pIndex, bIndex)
+	} else {
+		merge = l.TrimMergeChain(c.MergeChain, basisID)
+	}
+	rebased, merged, ok := l.TryMergeOperations(merge, []Operation{op})
 	if !ok {
 		return nil, ErrInvalidOperation
 	}
 
-	c.ClientIndex = clientIndex
-	c.MergeChain = append([]Operation{}, merge...)
 	c.Rebased = append(c.Rebased, rebased...)
-
-	if c.ServerIndex < len(l.Rebased) {
-		return c.Reconcile(l)
-	}
-
-	return merge, nil
-}
-
-// initializeFromJournal initializes a client log from an operation
-// that is present in the journal.  The client can fully reconstitute
-// its state by applying all rebased operations in the server log
-// until the basis of this operation followed by this operation and
-// the return value from this function.
-func (c *ClientLog) initializeFromJournal(l *Log, id string) ([]Operation, error) {
-	index := l.IDToIndexMap[id]
-
-	if index < l.MinIndex {
-		return nil, ErrLogNeedsBackfilling
-	}
-
-	basisID := l.Rebased[index].BasisID()
-	if basisID == "" {
-		c.ClientIndex = 0
-	} else {
-		c.ClientIndex = l.IDToIndexMap[basisID] + 1
-	}
+	c.MergeChain = append([]Operation{}, merged...)
 	c.ServerIndex = len(l.Rebased)
-	c.Rebased = nil
-	c.MergeChain = nil
-	return c.joinOperation(l.MergeChains[index], l.Rebased[index+1:]), nil
-}
-
-// initializeFromOperation initializes a client log from a client
-// operation that may or may not exist yet on the server rebased log.
-//
-// A client can reconstruct a convergent model by applying the
-// operations from the rebased server log up to the basis of the
-// provided operation followed by the client operation and then
-// followed by the return value from this function
-func (c *ClientLog) initializeFromOperation(l *Log, op Operation) ([]Operation, error) {
-	if _, ok := l.IDToIndexMap[op.ID]; ok {
-		return c.initializeFromJournal(l, op.ID)
-	}
-
-	basisIndex, ok := l.IDToIndexMap[op.BasisID()]
-	if !ok && op.BasisID() != "" {
-		return nil, ErrMissingParentOrBasis
-	}
-
-	if op.BasisID() != "" && basisIndex < l.MinIndex || op.BasisID() == "" && l.MinIndex > 0 {
-		return nil, ErrLogNeedsBackfilling
-	}
-
-	parentIndex, ok := l.IDToIndexMap[op.ParentID()]
-	if op.ParentID() != "" && !ok {
-		return nil, ErrMissingParentOrBasis
-	}
-
-	if op.BasisID() == "" {
-		basisIndex = -1
-	}
-
-	return c.initialize(l, op, basisIndex, parentIndex)
-}
-
-// initialize a client log with a new operation with the provided
-// basis and parent indices (which have been error checked already)
-func (c *ClientLog) initialize(l *Log, op Operation, basisIndex, parentIndex int) ([]Operation, error) {
-	var mergeChain []Operation
-	if op.ParentID() == "" || parentIndex <= basisIndex {
-		mergeChain = l.Rebased[basisIndex+1:]
-	} else {
-		mergeChain = c.joinOperation(l.MergeChains[parentIndex], l.Rebased[parentIndex+1:])
-		mergeChain = l.TrimMergeChain(mergeChain, op.BasisID())
-	}
-
-	r, m, ok := c.TryMergeOperations(mergeChain, []Operation{op})
-	if !ok {
-		return nil, ErrInvalidOperation
-	}
-
-	c.Rebased, c.MergeChain = r, m
-	c.MergeChain = append([]Operation{}, c.MergeChain...)
-	c.ClientIndex = basisIndex + 1
-	c.ServerIndex = len(l.Rebased)
-
-	return c.MergeChain, nil
+	return merged, nil
 }
 
 // BootstrapClientLog creates a new client log for a client that does
@@ -249,20 +172,13 @@ func (c *ClientLog) initialize(l *Log, op Operation, basisIndex, parentIndex int
 // collection is the set of rebased client operations which is meant
 // to be applied on top of the server rebased.
 func BootstrapClientLog(l *Log, clientOps []Operation) (*ClientLog, []Operation, []Operation, error) {
-	clog := &ClientLog{Transformer: l.Transformer}
-	if _, err := clog.Reconcile(l); err != nil {
+	clog, _, err := newClientLog(l, clientOps, "", "")
+	if err != nil {
 		return nil, nil, nil, err
 	}
-
-	for _, op := range clientOps {
-		if _, err := clog.AppendClientOperation(l, op); err != nil {
-			return nil, nil, nil, err
-		}
-	}
-
-	rebased := append([]Operation{}, l.Rebased...)
-	clientRebased := append([]Operation{}, clog.Rebased...)
-	return clog, rebased, clientRebased, nil
+	c := append([]Operation{}, l.Rebased...)
+	r := append([]Operation{}, clog.Rebased...)
+	return clog, c, r, nil
 }
 
 // ReconnectClientLog creates a new client log for a client that has
@@ -278,29 +194,40 @@ func BootstrapClientLog(l *Log, clientOps []Operation) (*ClientLog, []Operation,
 // It also returns a set of operations that the client can apply to
 // get it back to a mainline state
 func ReconnectClientLog(l *Log, clientOps []Operation, basisID, parentID string) (*ClientLog, []Operation, error) {
+	return newClientLog(l, clientOps, basisID, parentID)
+}
+
+func newClientLog(l *Log, clientOps []Operation, basisID, parentID string) (*ClientLog, []Operation, error) {
 	clog := &ClientLog{Transformer: l.Transformer}
+
+	if _, ok := l.IDToIndexMap[basisID]; !ok && basisID != "" {
+		return nil, nil, ErrMissingParentOrBasis
+	}
 
 	if len(clientOps) > 0 {
 		parentID = clientOps[len(clientOps)-1].ID
-	}
-
-	if _, ok := l.IDToIndexMap[basisID]; !ok {
+	} else if _, ok := l.IDToIndexMap[parentID]; !ok && parentID != "" {
 		return nil, nil, ErrMissingParentOrBasis
 	}
-	clog.ClientIndex = l.IDToIndexMap[basisID] + 1
-	if _, err := clog.Reconcile(l); err != nil {
-		return nil, nil, err
-	}
+
+	var merge []Operation
 	for _, op := range clientOps {
-		if _, err := clog.AppendClientOperation(l, op); err != nil {
+		merged, err := clog.AppendClientOperation(l, op)
+		if err != nil {
 			return nil, nil, err
 		}
+		merge = merged
 	}
 
-	merge := clog.MergeChain
-	if merge == nil {
-		merge = l.Rebased[l.MinIndex:]
+	if merge != nil {
+		merge = l.TrimMergeChain(merge, basisID)
+		return clog, merge, nil
 	}
-	merge = l.TrimMergeChain(l.TrimMergeChain(merge, basisID), parentID)
+
+	// TODO: merge should be calculated based on last
+	// valid client op, not provided basis/parentID
+	bIndex := l.IDToIndexMap[basisID]
+	pIndex := l.IDToIndexMap[parentID]
+	merge = l.getMergeTarget(parentID, basisID, pIndex, bIndex)
 	return clog, merge, nil
 }
