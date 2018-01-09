@@ -265,21 +265,6 @@ func (tc journalTestCase) getEagerClientOrder(ops []dot.Operation) []dot.Operati
 	return append(result, pending...)
 }
 
-func (tc journalTestCase) getBootstrappedVariation(c string, slog *dot.Log, clog *dot.ClientLog, cops, rest []dot.Operation) []dot.Operation {
-	for _, op := range rest {
-		if strings.HasPrefix(op.ID, c) {
-			more, err := clog.AppendClientOperation(slog, op)
-			mustNotFail(err)
-			cops = append(cops, more...)
-		} else {
-			mustNotFail(slog.AppendOperation(op))
-		}
-	}
-	more, err := clog.Reconcile(slog)
-	mustNotFail(err)
-	return append(cops, more...)
-}
-
 func (tc journalTestCase) applyOperations(input string, ops []dot.Operation) string {
 	result := input
 	for _, op := range ops {
