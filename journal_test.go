@@ -10,27 +10,30 @@ import (
 	"github.com/dotchain/dot"
 	"go/build"
 	"io/ioutil"
+	"runtime/debug"
 	"strings"
 	"testing"
 )
 
+func mustNotFail(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
 func TestJournalSuite(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
-			t.Error("Failed:", r)
+			t.Error("Failed:", r, string(debug.Stack()))
 		}
 	}()
 
 	fname := build.Default.GOPATH + "/src/github.com/dotchain/dataset/json/journal_suite.json"
 	bytes, err := ioutil.ReadFile(fname)
-	if err != nil {
-		panic(err)
-	}
+	mustNotFail(err)
 
 	var data map[string]interface{}
-	if err := json.Unmarshal(bytes, &data); err != nil {
-		panic(err)
-	}
+	mustNotFail(json.Unmarshal(bytes, &data))
 
 	data = data["test"].(map[string]interface{})
 	for test := range data {
@@ -49,35 +52,37 @@ type journalTestCase struct {
 func (tc journalTestCase) Run(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
-			t.Error("Failed:", r)
+			t.Error("Failed:", r, string(debug.Stack()))
 		}
 	}()
 
 	ops := []dot.Operation{}
-	input := ""
+	inputs := []string{}
+	outputs := []string{}
 
-	for kk, elt := range tc.journal {
+	for _, elt := range tc.journal {
 		parts := elt.([]interface{})
 		id := parts[0].(string)
 		basisID := parts[1].(string)
 		parentID := parts[2].(string)
 		inp, ch := datalib.Compact{}.Decode(parts[3].(string))
-		if kk == 0 {
-			input = inp
-		}
+		inputs = append(inputs, inp)
+		outputs = append(outputs, datalib.Compact{}.Apply(inp, ch))
 		changes := []dot.Change{ch}
 		parents := []string{basisID, parentID}
 		op := dot.Operation{ID: id, Parents: parents, Changes: changes}
 		ops = append(ops, op)
 	}
 
-	log, variations := tc.getAllVariations(input, ops)
-	tc.validateLog(t, log, input)
-	final := tc.applyOperations(input, log.Rebased)
+	log, variations := tc.getAllVariations(inputs[0], ops)
+	tc.validateLog(t, log, inputs, outputs)
+	final := tc.applyOperations(inputs[0], log.Rebased)
 	for kk, variation := range variations {
-		actual := tc.applyOperations(input, variation)
+		actual := tc.applyOperations(inputs[0], variation)
 		if actual != final {
 			t.Error("Variation", kk, "produced", actual, ". Initial variation produced", final)
+			t.Error("Variation is", tc.toCompactForm(inputs[0], variation))
+			t.Error("Rebased is", tc.toCompactForm(inputs[0], log.Rebased))
 		}
 	}
 }
@@ -87,102 +92,13 @@ func (tc journalTestCase) getAllVariations(input string, ops []dot.Operation) (*
 
 	l := &dot.Log{}
 	for _, op := range ops {
-		if err := l.AppendOperation(op); err != nil {
-			panic(err)
-		}
+		mustNotFail(l.AppendOperation(op))
 	}
 
 	variations = append(variations, tc.getObserverVariations(input, ops, l)...)
-	variations = append(variations, tc.getClientVariations(input, "c", ops, l)...)
+	variations = append(variations, tc.getEagerClientVariations(input, ops, l)...)
+	variations = append(variations, tc.getReconnectVariations(input, ops, l)...)
 	return l, variations
-}
-
-func (tc journalTestCase) getReconnectVariations(input, c string, ops, cops []dot.Operation, l, slog *dot.Log, clog *dot.ClientLog) ([]dot.Operation, [][]dot.Operation) {
-	variations := [][]dot.Operation{}
-
-	for jj := 0; jj < len(ops); jj++ {
-		if !strings.HasPrefix(ops[jj].ID, c) {
-			continue
-		}
-
-		basisID := ops[jj].BasisID()
-		parentID := ops[jj].ID
-
-		// before attempting the client op, ensure all server ops
-		// up to basis have been applied
-		if basisID != "" {
-			for qq := range ops {
-				slog.AppendOperation(ops[qq])
-				if ops[qq].ID == basisID {
-					break
-				}
-			}
-		}
-		more, err := clog.Reconcile(slog)
-		if err != nil {
-			panic(err)
-		}
-		cops = append(cops, more...)
-		cops = append(cops, ops[jj])
-		more, err = clog.AppendClientOperation(slog, ops[jj])
-		if err != nil || len(more) > 0 {
-			panic(err)
-		}
-
-		_, rest, err := dot.ReconnectClientLog(l, []dot.Operation{ops[jj]}, basisID, parentID)
-		if err != nil {
-			panic(err)
-		}
-		variation := append(append([]dot.Operation{}, cops...), rest...)
-		variations = append(variations, variation)
-	}
-	return cops, variations
-}
-
-func (tc journalTestCase) getClientVariations(input, c string, ops []dot.Operation, l *dot.Log) [][]dot.Operation {
-	var own, others []dot.Operation
-
-	variations := [][]dot.Operation{}
-
-	for kk, op := range ops {
-		if !strings.HasPrefix(op.ID, c) {
-			own, others = []dot.Operation{}, ops[:kk+1]
-			continue
-		}
-
-		own = append(own, op)
-		slog := &dot.Log{}
-		basisID := ""
-		for _, oo := range others {
-			slog.AppendOperation(oo)
-			basisID = op.ID
-		}
-		clog, reb, clientreb, err := dot.BootstrapClientLog(slog, own)
-		if err != nil {
-			panic(err)
-		}
-
-		cops := append(append([]dot.Operation{}, reb...), clientreb...)
-		parentID := op.ID
-
-		// attempt a full reconnect in the current state
-		// and add it as a variation
-		_, rest, err := dot.ReconnectClientLog(l, own, basisID, parentID)
-		if err != nil {
-			panic(err)
-		}
-		variations = append(variations, append(append([]dot.Operation{}, cops...), rest...))
-		cops, inner := tc.getReconnectVariations(input, c, ops[kk+1:], cops, l, slog, clog)
-
-		variations = append(variations, inner...)
-		more, err := clog.Reconcile(l)
-		if err != nil {
-			panic(err)
-		}
-		variations = append(variations, append(cops, more...))
-	}
-
-	return variations
 }
 
 // getObserverVariations only returns the variations where a client
@@ -201,17 +117,12 @@ func (tc journalTestCase) getObserverVariations(input string, ops []dot.Operatio
 			basisID = ops[jj].ID
 		}
 		clog, rebased, clientRebased, err := dot.BootstrapClientLog(slog, nil)
-		if err != nil {
-			panic(err)
-		}
+		mustNotFail(err)
+
 		rest1, err1 := clog.Reconcile(l)
+		mustNotFail(err1)
 		_, rest2, err2 := dot.ReconnectClientLog(l, nil, basisID, "")
-		if err1 != nil {
-			panic(err1)
-		}
-		if err2 != nil {
-			panic(err2)
-		}
+		mustNotFail(err2)
 
 		var1 := append(append(append([]dot.Operation{}, rebased...), clientRebased...), rest1...)
 		var2 := append(append(append([]dot.Operation{}, rebased...), clientRebased...), rest2...)
@@ -219,6 +130,154 @@ func (tc journalTestCase) getObserverVariations(input string, ops []dot.Operatio
 	}
 
 	return variations
+}
+
+func (tc journalTestCase) getReconnectVariations(input string, ops []dot.Operation, l *dot.Log) [][]dot.Operation {
+	result := [][]dot.Operation{}
+
+	seq := tc.getEagerClientOrder(ops)
+	slog := &dot.Log{}
+
+	// for each state there is a client log
+	clog, _, _, _ := dot.BootstrapClientLog(slog, nil)
+	applied := []dot.Operation{}
+
+	// all seen client operations from the journal
+	cops := []dot.Operation{}
+
+	basisID := ""
+	parentID := ""
+	basisIndex := 0
+
+	variation := tc.getReconnectVariation(l, cops, basisID, parentID)
+	result = append(result, variation)
+	for _, op := range seq {
+		if !strings.HasPrefix(op.ID, "c") {
+			for ; basisIndex < len(ops); basisIndex++ {
+				mustNotFail(slog.AppendOperation(ops[basisIndex]))
+				more, err := clog.Reconcile(slog)
+				mustNotFail(err)
+				applied = append(applied, more...)
+				if ops[basisIndex].ID == op.ID {
+					break
+				}
+			}
+			basisID = op.ID
+		} else {
+			cops = append(cops, op)
+			applied = append(applied, op)
+			more, err := clog.AppendClientOperation(slog, op)
+			mustNotFail(err)
+			if len(more) > 0 {
+				panic("Unexpected more growth")
+			}
+			parentID = op.ID
+		}
+
+		variation := tc.getReconnectVariation(l, cops, basisID, parentID)
+		variation = append(append([]dot.Operation{}, applied...), variation...)
+		result = append(result, variation)
+	}
+	return result
+}
+
+func (tc journalTestCase) getReconnectVariation(l *dot.Log, cops []dot.Operation, basisID, parentID string) []dot.Operation {
+	_, rest, err := dot.ReconnectClientLog(l, cops, basisID, parentID)
+	mustNotFail(err)
+	return rest
+}
+
+// getEagerClientVariation attempts to execute the operations in
+// the order of a client -- for each client operation, all previous
+// operation up to the basis of the current client operation are
+// appended into server log but no more -- then the next client operation
+// is added etc with a final reconcile
+func (tc journalTestCase) getEagerClientVariations(input string, ops []dot.Operation, l *dot.Log) [][]dot.Operation {
+	seq := tc.getEagerClientOrder(ops)
+	slog := &dot.Log{}
+
+	// for each state there is a client log
+	clog, _, _, _ := dot.BootstrapClientLog(slog, nil)
+	clientLogs := []*dot.ClientLog{clog}
+	clientApplied := [][]dot.Operation{nil}
+
+	// all seen client operations from the journal
+	cops := []dot.Operation{}
+
+	for _, op := range seq {
+		if !strings.HasPrefix(op.ID, "c") {
+			for _, oo := range ops {
+				mustNotFail(slog.AppendOperation(oo))
+				if oo.ID == op.ID {
+					break
+				}
+			}
+			continue
+		}
+
+		cops = append(cops, op)
+		for jj, clog := range clientLogs {
+			catchup, err := clog.Reconcile(slog)
+			mustNotFail(err)
+			clientApplied[jj] = append(clientApplied[jj], catchup...)
+			more, err := clog.AppendClientOperation(slog, op)
+			mustNotFail(err)
+			clientApplied[jj] = append(clientApplied[jj], op)
+			clientApplied[jj] = append(clientApplied[jj], more...)
+		}
+
+		// start a new client at this point
+		clog, r, c, err := dot.BootstrapClientLog(slog, cops)
+		mustNotFail(err)
+		clientLogs = append(clientLogs, clog)
+		clientApplied = append(clientApplied, append(append([]dot.Operation{}, r...), c...))
+	}
+
+	// reconcile the rest
+	for jj, clog := range clientLogs {
+		more, err := clog.Reconcile(slog)
+		mustNotFail(err)
+		clientApplied[jj] = append(clientApplied[jj], more...)
+	}
+	return clientApplied
+}
+
+func (tc journalTestCase) getEagerClientOrder(ops []dot.Operation) []dot.Operation {
+	result, pending := []dot.Operation{}, []dot.Operation{}
+	basisID := ""
+	for _, op := range ops {
+		if !strings.HasPrefix(op.ID, "c") {
+			pending = append(pending, op)
+			continue
+		}
+		if op.BasisID() != basisID {
+			basisID = op.BasisID()
+			for _, p := range pending {
+				result = append(result, p)
+				pending = pending[1:]
+				if p.ID == basisID {
+					break
+				}
+			}
+		}
+		result = append(result, op)
+	}
+	return append(result, pending...)
+}
+
+func (tc journalTestCase) getBootstrappedVariation(c string, slog *dot.Log, clog *dot.ClientLog, cops, rest []dot.Operation) []dot.Operation {
+	for _, op := range rest {
+		if strings.HasPrefix(op.ID, c) {
+			more, err := clog.AppendClientOperation(slog, op)
+			mustNotFail(err)
+			cops = append(cops, more...)
+		} else {
+			mustNotFail(slog.AppendOperation(op))
+		}
+	}
+	more, err := clog.Reconcile(slog)
+	mustNotFail(err)
+	return append(cops, more...)
 }
 
 func (tc journalTestCase) applyOperations(input string, ops []dot.Operation) string {
@@ -241,18 +300,34 @@ func (tc journalTestCase) toCompactForm(input string, ops []dot.Operation) []str
 	return datalib.Compact{}.Encode(input, changes)
 }
 
-func (tc journalTestCase) validateLog(t *testing.T, l *dot.Log, input string) {
-	b, err := json.Marshal(tc.toCompactForm(input, l.Rebased))
-	if err != nil {
-		panic(err)
-	}
+func (tc journalTestCase) validateLog(t *testing.T, l *dot.Log, inputs, outputs []string) {
+	b, err := json.Marshal(tc.toCompactForm(inputs[0], l.Rebased))
+	mustNotFail(err)
+
 	actual := string(b)
 	b, err = json.Marshal(tc.rebased)
-	if err != nil {
-		panic(err)
-	}
+	mustNotFail(err)
+
 	expected := string(b)
 	if actual != expected {
 		t.Error("Rebased diverged. Expected", expected, "\nActual", actual)
+	}
+
+	mergeChains := [][]string{}
+	for kk, output := range outputs {
+		chain := tc.toCompactForm(output, l.MergeChains[kk])
+		mergeChains = append(mergeChains, chain)
+	}
+
+	b, err = json.Marshal(mergeChains)
+	mustNotFail(err)
+
+	actual = string(b)
+	b, err = json.Marshal(tc.mergeChains)
+	mustNotFail(err)
+
+	expected = string(b)
+	if actual != expected {
+		t.Error("MergeChains diverged. Expected", expected, "\nActual", actual)
 	}
 }
