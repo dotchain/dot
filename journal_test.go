@@ -73,15 +73,11 @@ func (tc journalTestCase) Run(t *testing.T) {
 
 	log, variations := tc.getAllVariations(input, ops)
 	tc.validateLog(t, log, input)
-	final := ""
+	final := tc.applyOperations(input, log.Rebased)
 	for kk, variation := range variations {
-		if kk == 0 {
-			final = tc.applyOperations(input, variation)
-		} else {
-			actual := tc.applyOperations(input, variation)
-			if actual != final {
-				t.Error("Variation", kk, "produced", actual, ". Initial variation produced", final)
-			}
+		actual := tc.applyOperations(input, variation)
+		if actual != final {
+			t.Error("Variation", kk, "produced", actual, ". Initial variation produced", final)
 		}
 	}
 }
@@ -97,10 +93,53 @@ func (tc journalTestCase) getAllVariations(input string, ops []dot.Operation) (*
 	}
 
 	variations = append(variations, tc.getObserverVariations(input, ops, l)...)
+	variations = append(variations, tc.getClientVariations(input, "c", ops, l)...)
 	return l, variations
 }
 
-func (tc journalTestCase) getClientVariations(input string, c string, ops []dot.Operation, l *dot.Log) [][]dot.Operation {
+func (tc journalTestCase) getReconnectVariations(input, c string, ops, cops []dot.Operation, l, slog *dot.Log, clog *dot.ClientLog) ([]dot.Operation, [][]dot.Operation) {
+	variations := [][]dot.Operation{}
+
+	for jj := 0; jj < len(ops); jj++ {
+		if !strings.HasPrefix(ops[jj].ID, c) {
+			continue
+		}
+
+		basisID := ops[jj].BasisID()
+		parentID := ops[jj].ID
+
+		// before attempting the client op, ensure all server ops
+		// up to basis have been applied
+		if basisID != "" {
+			for qq := range ops {
+				slog.AppendOperation(ops[qq])
+				if ops[qq].ID == basisID {
+					break
+				}
+			}
+		}
+		more, err := clog.Reconcile(slog)
+		if err != nil {
+			panic(err)
+		}
+		cops = append(cops, more...)
+		cops = append(cops, ops[jj])
+		more, err = clog.AppendClientOperation(slog, ops[jj])
+		if err != nil || len(more) > 0 {
+			panic(err)
+		}
+
+		_, rest, err := dot.ReconnectClientLog(l, []dot.Operation{ops[jj]}, basisID, parentID)
+		if err != nil {
+			panic(err)
+		}
+		variation := append(append([]dot.Operation{}, cops...), rest...)
+		variations = append(variations, variation)
+	}
+	return cops, variations
+}
+
+func (tc journalTestCase) getClientVariations(input, c string, ops []dot.Operation, l *dot.Log) [][]dot.Operation {
 	var own, others []dot.Operation
 
 	variations := [][]dot.Operation{}
@@ -108,72 +147,39 @@ func (tc journalTestCase) getClientVariations(input string, c string, ops []dot.
 	for kk, op := range ops {
 		if !strings.HasPrefix(op.ID, c) {
 			own, others = []dot.Operation{}, ops[:kk+1]
-		} else {
-			own = append(own, op)
-			slog := &dot.Log{}
-			basisID := ""
-			for _, oo := range others {
-				slog.AppendOperation(oo)
-				basisID = op.ID
-			}
-			clog, reb, clientreb, err := dot.BootstrapClientLog(slog, own)
-			if err != nil {
-				panic(err)
-			}
-
-			cops := append(append([]dot.Operation{}, reb...), clientreb...)
-			parentID := op.ID
-
-			for jj := kk + 1; jj < len(ops); jj++ {
-				// attempt a full reconnect in the current state
-				// and add it as a variation
-				_, rest, err := dot.ReconnectClientLog(l, own, basisID, parentID)
-				if err != nil {
-					panic(err)
-				}
-				variations = append(variations, append(append([]dot.Operation{}, cops...), rest...))
-
-				if !strings.HasPrefix(ops[jj].ID, c) {
-					basisID = ops[jj].ID
-					continue
-				}
-
-				parentID = ops[jj].ID
-
-				// before attempting the client op, ensure all server ops
-				// up to basis have been applied
-				opBasisID := ops[jj].BasisID()
-				if opBasisID != "" {
-					for qq := range ops {
-						slog.AppendOperation(ops[qq])
-						if ops[qq].ID == opBasisID {
-							break
-						}
-					}
-				}
-				more, err := clog.Reconcile(slog)
-				if err != nil {
-					panic(err)
-				}
-				cops = append(cops, more...)
-				more, err = clog.AppendClientOperation(slog, ops[jj])
-				if err != nil {
-					panic(err)
-				}
-				cops = append(cops, more...)
-			}
-
-			_, rest, err := dot.ReconnectClientLog(l, own, basisID, parentID)
-			if err != nil {
-				panic(err)
-			}
-			variations = append(variations, append(append([]dot.Operation{}, cops...), rest...))
-			more, err := clog.Reconcile(l)
-			if err != nil {
-				panic(err)
-			}
-			variations = append(variations, append(cops, more...))
+			continue
 		}
+
+		own = append(own, op)
+		slog := &dot.Log{}
+		basisID := ""
+		for _, oo := range others {
+			slog.AppendOperation(oo)
+			basisID = op.ID
+		}
+		clog, reb, clientreb, err := dot.BootstrapClientLog(slog, own)
+		if err != nil {
+			panic(err)
+		}
+
+		cops := append(append([]dot.Operation{}, reb...), clientreb...)
+		parentID := op.ID
+
+		// attempt a full reconnect in the current state
+		// and add it as a variation
+		_, rest, err := dot.ReconnectClientLog(l, own, basisID, parentID)
+		if err != nil {
+			panic(err)
+		}
+		variations = append(variations, append(append([]dot.Operation{}, cops...), rest...))
+		cops, inner := tc.getReconnectVariations(input, c, ops[kk+1:], cops, l, slog, clog)
+
+		variations = append(variations, inner...)
+		more, err := clog.Reconcile(l)
+		if err != nil {
+			panic(err)
+		}
+		variations = append(variations, append(cops, more...))
 	}
 
 	return variations
