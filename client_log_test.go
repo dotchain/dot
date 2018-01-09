@@ -143,3 +143,90 @@ func TestClientLog_AppendClientOperation_invalid_op(t *testing.T) {
 	}
 
 }
+
+func TestClientLog_AppendClientOperation_invalid_op2(t *testing.T) {
+	l := &dot.Log{}
+	c := &dot.ClientLog{}
+
+	change1 := dot.Change{Splice: &dot.SpliceInfo{1, []interface{}{5}, []interface{}{10}}}
+	change2 := dot.Change{Splice: &dot.SpliceInfo{0, "hello", "world"}}
+
+	invalidOp := dot.Operation{ID: "three", Changes: []dot.Change{change2}}
+	if _, err := c.AppendClientOperation(l, invalidOp); err != nil {
+		t.Error("Unexpected AppendClientOperation result", err)
+	}
+
+	initial := []dot.Operation{{ID: "one", Changes: []dot.Change{change1}}}
+	for _, op := range initial {
+		if err := l.AppendOperation(op); err != nil {
+			t.Fatal("AppendOperation failed", err)
+		}
+	}
+
+	if _, err := c.Reconcile(l); err != dot.ErrInvalidOperation {
+		t.Fatal("Reconcile failed", err)
+	}
+
+}
+
+func TestClientLog_bootstrap_invalid_bootstrap(t *testing.T) {
+	l := &dot.Log{}
+
+	change1 := dot.Change{Splice: &dot.SpliceInfo{1, []interface{}{5}, []interface{}{10}}}
+
+	initial := []dot.Operation{{ID: "one", Changes: []dot.Change{change1}}}
+	for _, op := range initial {
+		if err := l.AppendOperation(op); err != nil {
+			t.Fatal("AppendOperation failed", err)
+		}
+	}
+
+	change2 := dot.Change{Splice: &dot.SpliceInfo{0, "hello", "world"}}
+	invalidOp := dot.Operation{ID: "three", Changes: []dot.Change{change2}}
+	_, _, _, err := dot.BootstrapClientLog(l, []dot.Operation{invalidOp})
+	if err != dot.ErrInvalidOperation {
+		t.Fatal("Bootstrap failed to fail", err)
+	}
+}
+
+func TestClientLog_bootstrap_missing_parent_basis(t *testing.T) {
+	l := &dot.Log{}
+
+	invalidOp := dot.Operation{ID: "three", Parents: []string{"miss1", ""}}
+	_, _, err := dot.ReconnectClientLog(l, []dot.Operation{invalidOp}, "", "")
+	if err != dot.ErrMissingParentOrBasis {
+		t.Fatal("Bootstrap failed to fail", err)
+	}
+
+	invalidOp = dot.Operation{ID: "three", Parents: []string{"", "miss2"}}
+	_, _, err = dot.ReconnectClientLog(l, []dot.Operation{invalidOp}, "", "")
+	if err != dot.ErrMissingParentOrBasis {
+		t.Fatal("Bootstrap failed to fail", err)
+	}
+}
+
+func TestClientLog_reconnect_missing_parent_basis(t *testing.T) {
+	l := &dot.Log{}
+
+	invalidOp := dot.Operation{ID: "three", Parents: []string{"miss1", ""}}
+	_, _, err := dot.ReconnectClientLog(l, []dot.Operation{invalidOp}, "", "")
+	if err != dot.ErrMissingParentOrBasis {
+		t.Fatal("Bootstrap failed to fail", err)
+	}
+
+	invalidOp = dot.Operation{ID: "three", Parents: []string{"", "miss2"}}
+	_, _, err = dot.ReconnectClientLog(l, []dot.Operation{invalidOp}, "", "")
+	if err != dot.ErrMissingParentOrBasis {
+		t.Fatal("Bootstrap failed to fail", err)
+	}
+
+	_, _, err = dot.ReconnectClientLog(l, nil, "miss3", "")
+	if err != dot.ErrMissingParentOrBasis {
+		t.Fatal("Bootstrap failed to fail", err)
+	}
+
+	_, _, err = dot.ReconnectClientLog(l, nil, "", "miss4")
+	if err != dot.ErrMissingParentOrBasis {
+		t.Fatal("Bootstrap failed to fail", err)
+	}
+}
