@@ -93,7 +93,7 @@ func (c *ClientLog) Reconcile(l *Log) ([]Operation, error) {
 		merge = append(merge, m...)
 	}
 
-	c.ServerIndex = serverIndex
+	c.ServerIndex = len(l.Rebased)
 	if len(rebased) > 0 {
 		c.Rebased = append([]Operation{}, rebased...)
 		c.MergeChain = append(c.MergeChain, merge...)
@@ -219,13 +219,12 @@ func newClientLog(l *Log, clientOps []Operation, basisID, parentID string) (*Cli
 		merge = merged
 	}
 
+	clog.ServerIndex = len(l.Rebased)
 	if merge != nil {
 		merge = l.TrimMergeChain(merge, basisID)
 		return clog, merge, nil
 	}
 
-	// TODO: merge should be calculated based on last
-	// valid client op, not provided basis/parentID
 	bIndex := l.IDToIndexMap[basisID]
 	pIndex := l.IDToIndexMap[parentID]
 	merge = l.getMergeTarget(parentID, basisID, pIndex, bIndex)
