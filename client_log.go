@@ -130,9 +130,6 @@ func (c *ClientLog) AppendClientOperation(l *Log, op Operation) ([]Operation, er
 	}
 
 	if bIndex < l.MinIndex {
-		// TODO: real check should be
-		// !pExists && bIndex < l.MinIndex ||
-		// pExists && pIndex < l.MinIndex
 		return nil, ErrLogNeedsBackfilling
 	}
 
@@ -227,6 +224,11 @@ func newClientLog(l *Log, clientOps []Operation, basisID, parentID string) (*Cli
 
 	bIndex := l.IDToIndexMap[basisID]
 	pIndex := l.IDToIndexMap[parentID]
-	merge = l.getMergeTarget(parentID, basisID, pIndex, bIndex)
+
+	if len(clientOps) > 0 {
+		merge = l.getMergeTarget("", basisID, -1, bIndex)
+	} else {
+		merge = l.getMergeTarget(parentID, basisID, pIndex, bIndex)
+	}
 	return clog, merge, nil
 }
