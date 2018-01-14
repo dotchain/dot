@@ -41,11 +41,11 @@ func guessEmptyValue(ops []dot.Change) (interface{}, bool) {
 	}
 	op := ops[0]
 	u := dot.Utils(dot.Transformer{})
-	
+
 	if len(op.Path) > 0 {
 		panic("Unexpected path with empty before")
 	}
-	
+
 	if op.Splice != nil {
 		switch {
 		case op.Splice.Before != nil:
