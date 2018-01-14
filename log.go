@@ -18,6 +18,13 @@ var ErrInvalidOperation = errors.New("invalid operation")
 // by the operation that is being appended.
 var ErrLogNeedsBackfilling = errors.New("log needs backfilling")
 
+// ModelImage represents a snapshot of the model after all operations
+// including and before the BasisID have been applied
+type ModelImage struct {
+	Model   interface{}
+	BasisID string
+}
+
 // Log represents a transformed sequence of operations for a
 // model that can be applied in sequence to reconstruct the
 // model.  The transformed operations are in the Rebased field.
@@ -47,8 +54,8 @@ var ErrLogNeedsBackfilling = errors.New("log needs backfilling")
 // This struct is not thread-safe.
 type Log struct {
 	Transformer
-	MinIndex     int
-	ModelImage   interface{}
+	MinIndex int
+	*ModelImage
 	Rebased      []Operation
 	MergeChains  [][]Operation
 	IDToIndexMap map[string]int
