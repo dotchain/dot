@@ -35,6 +35,14 @@ func TestUtilsReconstruct(t *testing.T) {
 	validate(map[string]interface{}{"p": []interface{}{"a", 42.0}})
 }
 
+func TestUtilsReconstruct_error(t *testing.T) {
+	u := dot.Utils(dot.Transformer{})
+	changes := u.Reconstruct(42)
+	if changes != nil {
+		t.Error("Unexpected output trying to reconstruct invalid model")
+	}
+}
+
 func guessEmptyValue(ops []dot.Change) (interface{}, bool) {
 	if len(ops) == 0 {
 		return nil, true
