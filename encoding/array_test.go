@@ -13,6 +13,7 @@ import (
 
 type Array struct {
 	initial, empty, insert, other interface{}
+	objectInsert                  interface{}
 	offset                        string
 }
 
@@ -25,7 +26,8 @@ func ArrayTest() Array {
 			"dot:encoding": "SparseArray",
 			"dot:encoded":  []interface{}{5, "q"},
 		},
-		offset: "2",
+		objectInsert: "hello",
+		offset:       "2",
 	}
 }
 
@@ -182,7 +184,7 @@ func (s Array) TestObjectBehavior(t *testing.T) {
 	shouldPanic(t, "set(non-nil) on string", func() { initial.Set("something", initial) })
 
 	// the following shoud work
-	insert := "hello"
+	insert := s.objectInsert
 	old := initial.Get(offset)
 	updated := initial.Set(offset, insert)
 

@@ -16,9 +16,10 @@ func SparseTest() Array {
 		}
 	}
 	return Array{
-		initial: make([]interface{}{2, "a", 1, "b", 1, 42, 10, "zebra"}),
-		empty:   make([]interface{}{}),
-		insert:  make([]interface{}{3, "z"}),
-		offset:  "3",
+		initial:      make([]interface{}{2, "a", 1, "b", 1, 42, 10, "zebra"}),
+		empty:        make([]interface{}{}),
+		insert:       make([]interface{}{3, "z"}),
+		objectInsert: "hello",
+		offset:       "3",
 	}
 }
