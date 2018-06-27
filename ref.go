@@ -5,9 +5,66 @@
 package dot
 
 import (
+	"errors"
 	"github.com/dotchain/dot/encoding"
 	"strconv"
 )
+
+// ErrPathInvalidated is returned by Ref.Update if the operations
+// invalidate a particular path
+var ErrPathInvalidated = errors.New("Path has been invalidated")
+
+// ErrClientLogNeedsReconcile is returned by Ref.UpdateClient if the
+// client log  used has not been reconciled with the provided log.
+var ErrClientLogNeedsReconcile = errors.New("Client log needs reconciling")
+
+// Ref holds a reference to some node in the virtual JSON tree
+type Ref struct {
+	ParentID, BasisID string
+	Path              *RefPath
+}
+
+// Update transforms the provided ref path to its logical path in the
+// server log provided
+func (r Ref) Update(l *Log) (Ref, error) {
+	id := "something not expected to be used"
+	parents := []string{r.BasisID, r.ParentID}
+	op := Operation{ID: id, Parents: parents}
+	_, merge, err := l.TransformOperation(op)
+	if err != nil {
+		return r, err
+	}
+	path := r.Path
+	for _, m := range merge {
+		p, ok := path.Apply(m.Changes)
+		if !ok {
+			return r, ErrPathInvalidated
+		}
+		path = p
+	}
+	basisID := ""
+	if len(l.Rebased) > 0 {
+		basisID = l.Rebased[len(l.Rebased)-1].ID
+	}
+	return Ref{BasisID: basisID, Path: path}, nil
+}
+
+// UpdateClient attempts to map the provided ref into a path that
+// can be used on the current client state.  It expects that the
+// client log has been fully reconciled at this point and the ref has
+// been updated against that server log with only local operations
+// yet to  be factored in.
+func (r Ref) UpdateClient(clog *ClientLog) (*RefPath, error) {
+	path := r.Path
+	for _, op := range clog.Rebased {
+		p, ok := path.Apply(op.Changes)
+		if !ok {
+			return nil, ErrPathInvalidated
+		}
+		path = p
+	}
+	return path, nil
+}
 
 // RefIndexType defines whether the index is a pointer, cursor
 // start or cursor end type.
