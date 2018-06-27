@@ -31,7 +31,7 @@ func (t Transformer) mergeRangeRangeSamePath(c1, c2 Change) ([]Change, []Change)
 		return []Change{c2}, []Change{c1}
 	}
 
-	changes1, changes2 := c1.Range.Changes.([]Change), c2.Range.Changes.([]Change)
+	changes1, changes2 := c1.Range.Changes, c2.Range.Changes
 	merged1, merged2 := t.MergeChanges(changes1, changes2)
 	replacement1 := RangeInfo{Offset: start, Count: end - start, Changes: merged1}
 	replacement2 := RangeInfo{Offset: start, Count: end - start, Changes: merged2}
@@ -104,7 +104,7 @@ func (t Transformer) mergeRangeSpliceSamePath(c1, c2 Change) ([]Change, []Change
 		return []Change{c2}, []Change{c1}
 	}
 
-	changes := r.Changes.([]Change)
+	changes := r.Changes
 	beforeCount, afterCount := t.toArray(splice.Before).Count(), t.toArray(splice.After).Count()
 
 	// Case 2: splice is to the left, just need to update offset of range
