@@ -113,6 +113,28 @@
 // The #ClientLog component uses the Log structure and its helper methods
 // to find the set of compensating actions that a client can take to
 // merge changes from the server into the client model.
+//
+// #References
+//
+// Real world applications frequently have the need to maintain
+// references within the virtual JSON.  Any node in the virtual JSON
+// can be uniquely identified by a path of the index/key sequence --
+// similar to the path used with the Change structure.
+//
+// But the value behind a path changes as operations happen. The
+// RefPath structure provides the tools to transform the paths along
+// with the changes applied so that their logical meaning is
+// maintained.  For example, if the original path was into a
+// particular element in an array  and the array had a move operation,
+// the new path would  refer to the same element in its new position
+// within the array.
+//
+// It is tricky to store references within the virtual JSON as one
+// would need to know the exact basis to capture the meaning of the
+// reference path.  So, references should always be stored with the
+// parents similar to how Operations are defined. The Reference
+// structure captures this and the ClientLog provides the mechanism to
+// resolve references.
 package dot
 
 // TODO: replace with a smaller library so it won't explode when used with GopherJS
