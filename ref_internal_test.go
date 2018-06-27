@@ -74,3 +74,85 @@ func TestRefPath_Apply_splice(t *testing.T) {
 		t.Fatal("Failed", ok, v.Encode())
 	}
 }
+
+func TestRefPathAppendNeither(t *testing.T) {
+	r := NewRefPath([]string{"X"})
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("Expected panic")
+		}
+	}()
+	r.Append("", nil)
+}
+
+func TestRefPathAppendBoth(t *testing.T) {
+	r := NewRefPath([]string{"X"})
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("Expected panic")
+		}
+	}()
+	r.Append("q", NewRefIndex("5"))
+}
+
+func TestRefPathResolve(t *testing.T) {
+	r := NewRefPath([]string{"X"})
+	if x, ok := r.Resolve(nil); ok {
+		t.Fatal("Unexpected resolve1", x)
+	}
+
+	if x, ok := r.Resolve(map[string]interface{}{"Y": 22}); ok {
+		t.Fatal("Unexpected resolve2", x)
+	}
+
+	r = NewRefPath([]string{"5"})
+	if x, ok := r.Resolve([]interface{}{1}); ok {
+		t.Fatal("Unexpected resolve3", x)
+	}
+}
+
+func TestRefPathApplyModifyParent(t *testing.T) {
+	r := NewRefPath([]string{"root", "x"})
+	change := Change{Set: &SetInfo{Key: "root"}}
+	if x, ok := r.Apply([]Change{change}); ok {
+		t.Fatal("Unexpected successful apply", x.Encode())
+	}
+
+	c2 := Change{Set: &SetInfo{Key: "root", After: map[string]interface{}{"x": nil}}}
+	if x, ok := r.Apply([]Change{c2}); !ok || x != r {
+		t.Fatal("Unexpected failed apply", ok, x.Encode())
+	}
+
+	// do same as above but for splice  and range
+	r = NewRefPath([]string{"5", "x"})
+	change = Change{Splice: &SpliceInfo{Offset: 5, Before: []interface{}{nil}}}
+	if x, ok := r.Apply([]Change{change}); ok {
+		t.Fatal("Unexpected successful apply", x.Encode())
+	}
+
+	r = NewRefPath([]string{"5", "x", "y"})
+	inner := []Change{{Set: &SetInfo{Key: "x"}}}
+	change = Change{Range: &RangeInfo{Offset: 5, Count: 1, Changes: inner}}
+	if x, ok := r.Apply([]Change{change}); ok {
+		t.Fatal("Unexpected successful apply", x.Encode())
+	}
+}
+
+func TestRefPathApplyModifyChild(t *testing.T) {
+	r := NewRefPath([]string{"root", "x"})
+	change := Change{Set: &SetInfo{Key: "blimey"}}
+	change.Path = []string{"root", "x"}
+	if x, ok := r.Apply([]Change{change}); !ok || x != r {
+		t.Fatal("Unexpected failed apply", x.Encode())
+	}
+
+	change.Path = []string{"root", "x", "y"}
+	if x, ok := r.Apply([]Change{change}); !ok || x != r {
+		t.Fatal("Unexpected failed apply", x.Encode())
+	}
+
+	change.Path = []string{"root"}
+	if x, ok := r.Apply([]Change{change}); !ok || x != r {
+		t.Fatal("Unexpected failed apply", x.Encode())
+	}
+}

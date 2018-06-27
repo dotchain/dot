@@ -4,7 +4,10 @@
 
 package dot
 
-import "strconv"
+import (
+	"github.com/dotchain/dot/encoding"
+	"strconv"
+)
 
 // RefIndexType defines whether the index is a pointer, cursor
 // start or cursor end type.
@@ -68,9 +71,7 @@ type RefPath struct {
 // Prepend adds a new path entry before the provided path. Only one of
 // key or index must be specified
 func (r *RefPath) Prepend(key string, index *RefIndex) *RefPath {
-	if key != "" && index != nil {
-		panic("Only one of key or index must be specified")
-	}
+	r.validate(key, index)
 	return &RefPath{key: key, index: index, next: r}
 }
 
@@ -78,6 +79,7 @@ func (r *RefPath) Prepend(key string, index *RefIndex) *RefPath {
 // not modify the currrent path.  Instead it modifies a copy and
 // returns that.
 func (r *RefPath) Append(key string, index *RefIndex) *RefPath {
+	r.validate(key, index)
 	result := &RefPath{}
 	last := result
 	for r != nil {
@@ -135,7 +137,12 @@ func (r *RefPath) Resolve(o interface{}) (interface{}, bool) {
 		if r.index != nil {
 			key = strconv.Itoa(r.index.Index)
 		}
-		o, r = v.Get(key), r.next
+		updated, ok := r.safeGet(v, key)
+		if !ok {
+			return nil, false
+		}
+		o, r = updated, r.next
+
 	}
 
 	return o, true
@@ -183,7 +190,7 @@ func (r *RefPath) apply(path []string, c Change) (result *RefPath, ok bool) {
 	}
 
 	if r.key != "" {
-		if c.Set != nil || c.Set.Key != r.key {
+		if c.Set == nil || c.Set.Key != r.key {
 			return r, true
 		}
 		if _, ok = r.next.Resolve(c.Set.After); ok {
@@ -247,7 +254,7 @@ func (r *RefPath) getSpliceIndex(s *SpliceInfo) int {
 func (r *RefPath) getMoveIndex(m *MoveInfo) int {
 	offset, count, distance := m.Offset, m.Count, m.Distance
 	if distance < 0 {
-		offset, distance = offset-distance, offset
+		offset, count, distance = offset+distance, -distance, count
 	}
 
 	index := r.index.Index
@@ -290,4 +297,24 @@ func (r *RefPath) applyRange(ri *RangeInfo) (*RefPath, bool) {
 	}
 
 	return updated.Prepend("", r.index), true
+}
+
+func (r *RefPath) validate(key string, index *RefIndex) {
+	keyExists := key != ""
+	indexExists := index != nil
+	if keyExists == indexExists {
+		panic("Specifying both key and index not allowed")
+	}
+}
+
+func (r *RefPath) safeGet(u encoding.UniversalEncoding, key string) (result interface{}, ok bool) {
+	// TODO: avoid this mess by modifying UniversalEncoding
+	defer func() {
+		if r := recover(); r != nil {
+			result = nil
+			ok = false
+		}
+	}()
+
+	return u.Get(key), true
 }

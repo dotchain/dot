@@ -40,6 +40,13 @@ var refPathTable = [][]string{
 	{"-a[b]*c|-", "-a|*cb-", "-a|*cb-"},
 	{"-a[b]c*|-", "-ac|*b-", "-ac|*b-"},
 	{"-a[b]c|*-", "-acb|*-", "-acb|*-"},
+
+	// Move to left tests
+	{"-*a|b[c]-", "-|*acb-", "-|*acb-"},
+	{"-a|*b[c]-", "-ac|*b-", "-ac|*b-"},
+	{"-a|b[*c]-", "-a|*cb-", "-a|*cb-"},
+	{"-a|b[c*]-", "-ac|*b-", "-ac|*b-"},
+	{"-a|b[c]*-", "-acb|*-", "-acb|*-"},
 }
 
 func TestRefPathApply(t *testing.T) {
@@ -66,7 +73,7 @@ func TestRefPathApply(t *testing.T) {
 			ri = &dot.RefIndex{Type: ri.Type, Index: expectedIndex}
 			expected := rootPath.Append("", ri).Append("plus", nil).Encode()
 			if !reflect.DeepEqual(result.Encode(), expected) {
-				t.Fatal("Differed", result.Encode(), expected)
+				t.Fatal("Differed", input, result.Encode(), expected)
 			}
 		}
 
