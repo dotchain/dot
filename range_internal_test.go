@@ -14,7 +14,7 @@ func generateRanges(input, changes interface{}) []Change {
 	for offset := 0; offset < arraySize(input); offset++ {
 		for end := offset + 1; end < arraySize(input); end++ {
 			ops = append(ops, Change{
-				Range: &RangeInfo{Offset: offset, Count: end - offset, Changes: changes},
+				Range: &RangeInfo{Offset: offset, Count: end - offset, Changes: changes.([]Change)},
 			})
 		}
 	}

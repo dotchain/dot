@@ -244,19 +244,17 @@ type RangeInfo struct {
 	// Changes is expected to be of type []Change but not
 	// specifying the type here to avoid recursive
 	// type declarations
-	Changes interface{} `json:",omitempty"`
+	Changes []Change `json:",omitempty"`
 }
 
 // Undo returns a new change which nullifies the effect of the current change
 func (t RangeInfo) Undo() RangeInfo {
-	var output []Change
-	if input, ok := t.Changes.([]Change); ok {
-		output = make([]Change, len(input))
-		for kk, ch := range input {
-			// we reverse the order of the changes
-			// here because that is how undos work!
-			output[len(input)-kk-1] = ch.Undo()
-		}
+	input := t.Changes
+	output := make([]Change, len(input))
+	for kk, ch := range input {
+		// we reverse the order of the changes
+		// here because that is how undos work!
+		output[len(input)-kk-1] = ch.Undo()
 	}
 	return RangeInfo{Offset: t.Offset, Count: t.Count, Changes: output}
 }
