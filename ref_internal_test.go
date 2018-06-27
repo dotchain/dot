@@ -156,3 +156,54 @@ func TestRefPathApplyModifyChild(t *testing.T) {
 		t.Fatal("Unexpected failed apply", x.Encode())
 	}
 }
+
+func TestRefPathApplyModifyPeer(t *testing.T) {
+	r := NewRefPath([]string{"root", "x"})
+	change := Change{Set: &SetInfo{Key: "blimey"}}
+	change.Path = []string{"root", "y"}
+	if x, ok := r.Apply([]Change{change}); !ok || x != r {
+		t.Fatal("Unexpected failed apply", x.Encode())
+	}
+}
+
+func TestRefPathApplyRange(t *testing.T) {
+	r := NewRefPath([]string{"root", "5", "x"})
+
+	//  range is [3, 4] which should effectively skip [5]
+	inner := Change{Set: &SetInfo{Key: "z", After: 22}}
+	rangeinfo := &RangeInfo{Offset: 3, Count: 2, Changes: []Change{inner}}
+	change := Change{Range: rangeinfo}
+	change.Path = []string{"root"}
+	if x, ok := r.Apply([]Change{change}); !ok || x != r {
+		t.Fatal("Unexpected failed apply", x.Encode())
+	}
+
+	//  range is [6, 7] which should effectively skip [5]
+	rangeinfo = &RangeInfo{Offset: 6, Count: 2, Changes: []Change{inner}}
+	change = Change{Range: rangeinfo}
+	change.Path = []string{"root"}
+	if x, ok := r.Apply([]Change{change}); !ok || x != r {
+		t.Fatal("Unexpected failed apply", x.Encode())
+	}
+
+	// range is [5, 6] but it modifies "z", so no effect
+	inner = Change{Set: &SetInfo{Key: "z", After: 22}}
+	rangeinfo = &RangeInfo{Offset: 5, Count: 2, Changes: []Change{inner}}
+	change = Change{Range: rangeinfo}
+	change.Path = []string{"root"}
+	if x, ok := r.Apply([]Change{change}); !ok || x != r {
+		t.Fatal("Unexpected failed apply", x.Encode())
+	}
+
+	// range is [5, 6] and it splices in at x/0, so x/1 => x/2
+	r = NewRefPath([]string{"root", "5", "x", "1"})
+	inner = Change{Path: []string{"x"}, Splice: &SpliceInfo{After: []interface{}{nil}}}
+	rangeinfo = &RangeInfo{Offset: 5, Count: 2, Changes: []Change{inner}}
+	change = Change{Range: rangeinfo}
+	change.Path = []string{"root"}
+	expected := []string{"root", "5", "x", "2"}
+	if x, ok := r.Apply([]Change{change}); !ok || !reflect.DeepEqual(x.Encode(), expected) {
+		t.Fatal("Unexpected successful apply", x.Encode(), expected)
+	}
+
+}
