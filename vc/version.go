@@ -34,13 +34,16 @@ type version struct {
 	// the basis pointer tags this version so changes can be based
 	// and merged properly
 	*basis
+	// own is there just to provide space for the basis pointer above
+	own basis
 	// parent refers the the container this version is a part of
 	parent
 }
 
 func (v *version) UpdateSync(changes []dot.Change) Version {
 	changes = append([]dot.Change(nil), changes...)
-	result := &version{parent: v.parent, basis: &basis{}}
+	result := &version{parent: v.parent}
+	result.basis = &result.own
 	result.Lock()
 	defer result.Unlock()
 	v.Lock()
@@ -51,7 +54,8 @@ func (v *version) UpdateSync(changes []dot.Change) Version {
 
 func (v *version) UpdateAsync(changes []dot.Change) Version {
 	changes = append([]dot.Change(nil), changes...)
-	result := &version{parent: v.parent, basis: &basis{}}
+	result := &version{parent: v.parent}
+	result.basis = &result.own
 	result.Lock()
 	go func() {
 		defer result.Unlock()
@@ -93,6 +97,7 @@ func (v *version) LatestAt(startp, endp *int) (interface{}, Version, *int, *int)
 		return nil, nil, nil, nil
 	}
 	val = v.unwrap(val)
+
 	if startp != nil {
 		s := &dot.RefIndex{Index: *startp, Type: dot.RefIndexStart}
 		key := v.parent.MapPath(nilpath.Append("", s), v.basis, b)[0]
@@ -112,6 +117,10 @@ func (v *version) LatestAt(startp, endp *int) (interface{}, Version, *int, *int)
 
 // TODO: move this unwrap crap into Encoding
 func (v *version) unwrap(i interface{}) interface{} {
+	if i == nil {
+		return nil
+	}
+
 	ue, ok := utils.C.TryGet(i)
 	if !ok {
 		return i

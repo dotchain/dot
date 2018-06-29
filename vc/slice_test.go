@@ -67,3 +67,71 @@ func ExampleSliceSpliceSync_slices() {
 	// New Window, Latest [2 3 3.5 4] [1 2 3 3.5 4 5]
 	// New Window, Latest [2 2.5 3 3.5 4] [1 2 2.5 3 3.5 4 5]
 }
+
+func ExampleSliceSpliceSync_branches() {
+	initial := []interface{}{1, 2, 3, 4, 5}
+	slice := vc.Slice{Version: vc.New(initial), Value: initial}
+
+	// branch has value [1, 2, 4, 5]
+	branch := slice.SpliceSync(2, 1, nil)
+
+	// update the parent directly to: [0.5, 1, 2, 3, 4, 5, 5.5]
+	slice2 := slice.SpliceSync(0, 0, []interface{}{0.5})
+	slice2.SpliceSync(6, 0, []interface{}{5.5})
+	// now update the stale branch to [1, 1.5, 2, 4, 5]
+	branch = branch.SpliceSync(1, 0, []interface{}{1.5})
+
+	// now verify that latest is properly merged
+	latest, _ := slice.Latest()
+	fmt.Println(branch.Value, latest.Value)
+
+	// Output:
+	// [1 1.5 2 4 5] [0.5 1 1.5 2 4 5 5.5]
+}
+
+func ExampleSliceSpliceAsync() {
+	initial := []interface{}{1, 2, 3, 4, 5}
+	slice := vc.Slice{Version: vc.New(initial), Value: initial}
+
+	slice1 := slice.SpliceAsync(0, 0, []interface{}{0})
+	// There are no guarantees at this point that slice.Latest()
+	// has been updated.
+	slice1.SpliceSync(0, 0, []interface{}{0.5})
+	// But there is a guarantee that by the time sync returns
+	// the effects of its own history are reflected
+	l, ok := slice.Latest()
+	fmt.Println(len(l.Value) > len(initial), ok)
+
+	// Output:
+	// true true
+}
+
+func ExampleSliceLatest_nested() {
+	// initial is a slice of slices
+	initial := []interface{}{
+		[]interface{}{1, 2, 3, 4, 5},
+	}
+	slice := vc.Slice{Version: vc.New(initial), Value: initial}
+
+	inner := slice.Version.ChildAt(0)
+	innerSlice := vc.Slice{Version: inner, Value: initial[0].([]interface{})}
+
+	inner2 := slice.Version.ChildAt(0)
+	inner2Slice := vc.Slice{Version: inner2, Value: initial[0].([]interface{})}
+
+	// now modify inner and see it reflected on inner2's latest
+	innerSlice.SpliceSync(0, 0, []interface{}{0})
+	inner2Latest, _ := inner2Slice.Latest()
+
+	fmt.Println(innerSlice.Value, inner2Slice.Value, inner2Latest.Value)
+
+	// now delete the whole inner slice and see latest fail
+	slice.SpliceSync(0, 1, []interface{}{})
+	_, ok := inner2Slice.Latest()
+
+	fmt.Println("Latest:", ok)
+
+	// Output:
+	// [1 2 3 4 5] [1 2 3 4 5] [0 1 2 3 4 5]
+	// Latest: false
+}

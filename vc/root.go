@@ -27,6 +27,9 @@ type root struct {
 	// as the rest are immutable
 	next *root
 	sync.Mutex
+
+	// count keep tracks of number of previous versions
+	count int
 }
 
 // Bubble is called by the value with the basis the change was made on
@@ -60,6 +63,7 @@ func (r *root) Bubble(prev, now *basis, changes []dot.Change) {
 	v := utils.Apply(r.v, changes)
 	next := &root{v: v, rebased: changes, compensation: compensation, branch: now}
 
+	next.count = r.count + 1
 	// we clear the r.v so that older values are garbage collected
 	r.v, r.next = nil, next
 }
@@ -83,12 +87,13 @@ func (r *root) Latest(path *dot.RefPath, b *basis) (interface{}, parent, []strin
 	r.Lock()
 	for r.next != nil {
 		r.Unlock()
-		changes = append(changes, r.rebased...)
 		r = r.next
+		changes = append(changes, r.rebased...)
 		r.Lock()
 	}
 	v := r.v
 	r.Unlock()
+
 	if path, ok := path.Apply(changes); ok {
 		return v, r, path.Encode(), &r.own
 	}

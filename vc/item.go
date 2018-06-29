@@ -85,8 +85,8 @@ type arrayitem struct {
 // changes but this is ok because verison.Update creates a copy before
 // calling Bubble
 func (item *arrayitem) Bubble(prev, now *basis, changes []dot.Change) {
-	for _, c := range changes {
-		c.Path = append([]string{item.key}, c.Path...)
+	for kk, c := range changes {
+		changes[kk].Path = append([]string{item.key}, c.Path...)
 	}
 	item.array.Bubble(prev, now, changes)
 }
