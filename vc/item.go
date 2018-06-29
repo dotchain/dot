@@ -24,6 +24,11 @@ type parent interface {
 	// interface. It also returns the updated path and the actual
 	// basis of that new change
 	Latest(path *dot.RefPath, b *basis) (interface{}, parent, []string, *basis)
+
+	// MapPath maps the provided path at the provided basis to the
+	// new basis.   The new basis must be one of those retured by
+	// Latest.
+	MapPath(path *dot.RefPath, from, to *basis) []string
 }
 
 // dictitem is a parent of a dictionary entry. it tracks the key of the
@@ -62,6 +67,11 @@ func (item *dictitem) Latest(path *dot.RefPath, b *basis) (interface{}, parent, 
 	return child, &dictitem{key: key, dict: container}, rest, b
 }
 
+// MapPath tacks on the key to the path and removes it right after
+func (item *dictitem) MapPath(path *dot.RefPath, from, to *basis) []string {
+	return item.dict.MapPath(path.Prepend(item.key, nil), from, to)[1:]
+}
+
 // arrayitem is a parent of an array entry.  It tracks the index of
 // the child as well as the actual array container to proxy calls to.
 type arrayitem struct {
@@ -81,7 +91,7 @@ func (item *arrayitem) Bubble(prev, now *basis, changes []dot.Change) {
 	item.array.Bubble(prev, now, changes)
 }
 
-// Lateat updates the path to preend the index and then fetches the
+// Latest updates the path to preend the index and then fetches the
 // latest value of the array + updated path.   It uses the updated
 // path to figure out the new index and uses that to find the actually
 // array element value to return.
@@ -96,4 +106,10 @@ func (item *arrayitem) Latest(path *dot.RefPath, b *basis) (interface{}, parent,
 	index, _ := strconv.Atoi(key)
 	child := utils.C.Get(containerValue).Get(key)
 	return child, &arrayitem{key: key, index: index, array: container}, rest, b
+}
+
+// MapPath tacks on the index to the path and removes it right after
+func (item *arrayitem) MapPath(path *dot.RefPath, from, to *basis) []string {
+	index := &dot.RefIndex{Index: item.index}
+	return item.array.MapPath(path.Prepend("", index), from, to)[1:]
 }

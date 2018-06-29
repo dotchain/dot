@@ -51,7 +51,7 @@ func (r *root) Bubble(prev, now *basis, changes []dot.Change) {
 	for r.next != nil {
 		r.Unlock()
 		r = r.next
-		compensation = append(compensation, r.compensation...)
+		compensation = append(compensation, r.rebased...)
 		r.Lock()
 	}
 	defer r.Unlock()
@@ -93,4 +93,24 @@ func (r *root) Latest(path *dot.RefPath, b *basis) (interface{}, parent, []strin
 		return v, r, path.Encode(), &r.own
 	}
 	return nil, nil, nil, nil
+}
+
+// MapPath maps the provided path from the provided basis to the
+// final basis. The destination basis must match one returned by a
+// previous call to Latest()
+func (r *root) MapPath(path *dot.RefPath, from, to *basis) []string {
+	for from != r.branch && from != &r.own {
+		r = r.next
+	}
+
+	if from == r.branch {
+		path, _ = path.Apply(r.compensation)
+	}
+
+	for path != nil && to != &r.own {
+		r = r.next
+		path, _ = path.Apply(r.rebased)
+	}
+
+	return path.Encode()
 }
