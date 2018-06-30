@@ -39,19 +39,20 @@
 //  s := vc.String{Control: ctl, Value: initial}
 //
 // A string created like so can be treated as an immutable object
-// providing -- with the basic operation of Splice to modify the
+// with the basic operation of Splice() to modify the
 // string. The interesting effect is what happens when the initial
 // string is Spliced two different times. While each of the return
 // values will reflect the individual splice operations, the two
-// operations are also merged and the merge value can be obtained at
-// any time using the Latest() call:
+// operations are also merged together and the merge value can be
+// obtained at any time using the Latest() call (on any version):
 //
 //  s1 = s.Splice(5, 0, " world") // this will return "hello world"
 //  s2 = s.Splice(0, 1, "H") // this will return "Hello"
 //  s3 = s.Latest() // this will return "Hello world" merging both
 //
 // Without the call to Latest(), the string type acts like a regular
-// immutable string in all respects.
+// immutable string in all respects with each operation have no
+// visible effect on the others.
 //
 // Branching and merging
 //
@@ -60,7 +61,7 @@
 // default behavior is to act like a git-branch -- all changes made on
 // the branch are reflected on the branch but not propagated to the
 // parent.  Creating a branch allows the caller to control when the
-// branch can be pushed up to the main line:
+// branch can be pushed up to the main line (if at all):
 //
 //   b, s1 := s.Branch()
 //   s1.Splice(5, 0, " world")
@@ -71,18 +72,18 @@
 // Thread safety and concurrency
 //
 // All the methods are threadsafe. There is limited locking at this
-// point though much of it can be removed. When multiple concurrent
+// point though some of it can be removed. When multiple concurrent
 // changes are made or multiple changes are made on the same version,
 // there are limited guarantees made: that the merge process will not
-// break logical constraints (so if one splices  "hello" and the merge
-// may move where the insert happened but not have other parallel
-// changes be inserted within "hello" or change things  in such a way
-// that characters that were before the splice point appear after
-// hello etc).  In addition, the non-Async methods guarantee that the
-// effect of the method will get reflected in an immediate call to
-// Latest whereas even that guarantee is not provided by the Async
-// variations.  In all cases, basic causality is maintained -- if a
-// version is derived from another, the parent change is applied
+// break logical constraints (so if one splices  "hello", the merge
+// process may move where the insert happened but not have other
+// parallel changes be inserted within "hello" or change things in
+// such a way that characters that were before the splice point appear
+// after hello etc).  In addition, the non-Async methods guarantee
+// that the effect of the method will get reflected in an immediate
+// call to Latest whereas even that guarantee is not provided by the
+// Async variations.  In all cases, basic causality is maintained --
+// if a version is derived from another, the parent change is applied
 // before the child.
 //
 // Composition
@@ -141,8 +142,11 @@ import (
 // maintains a reference to the latest value (and any mutations that
 // happened though the intermediate values themselves are not held).
 //
-// This is typically done to maintain the root level state of an
-// application.  See individaul type examples for usage.
+// New is the equivalent of creating a new repository. The call itself
+// isn't expensive but it does cache the latest value for the
+// repository (exposed via Latest()).  The returned Control interface
+// is not expected to be directly used but instead wrapped with Slice
+// or Map (based on the structure of the provided initial value)
 func New(initial interface{}) Control {
 	r := &root{v: initial}
 	return &control{parent: r, basis: &r.own}
