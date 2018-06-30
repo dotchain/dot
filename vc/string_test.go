@@ -35,7 +35,7 @@ func ExampleString_Splice_strs() {
 	str := String{Control: New(initial), Value: initial}
 
 	// we can create window into this str "234" like so:
-	window := str.String(1, 4)
+	window := str.Slice(1, 4)
 	fmt.Println("Window", window.Value)
 
 	// we can edit the original str like so:
@@ -101,4 +101,33 @@ func ExampleString_SpliceAsync() {
 
 	// Output:
 	// true true
+}
+
+func ExampleString_Branch() {
+	initial := "Hello"
+	main := String{Control: New(initial), Value: initial}
+
+	// branch off "Hell"
+	b, child := main.Slice(1, 4).Branch()
+
+	// update child to H3ll
+	child.Splice(0, 1, "3")
+
+	// update parent to "Hello world!"
+	main.Splice(5, 0, " world!")
+
+	// print both to validate child changes have not been merged
+	l1, _ := main.Latest()
+	l2, _ := child.Latest()
+	fmt.Println(l1.Value, l2.Value)
+
+	// push the branch and repeat
+	b.Push()
+	l1, _ = main.Latest()
+	l2, _ = child.Latest()
+	fmt.Println(l1.Value, l2.Value)
+
+	// Output:
+	// Hello world! 3ll
+	// H3llo world! 3ll
 }

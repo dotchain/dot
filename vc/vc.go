@@ -4,59 +4,88 @@
 
 // Package vc implements  versioned datastructures.
 //
-// A basic type is any immutable type or a simple composition using
-// []interface{} or map[string]interface{} where the inner types can
-// be any basic type.
+// Versioned datastructures are similar to GIT-files -- changes can be
+// done in a multiple-writer fashion with automatic merging.
+//
+// The basic idea is to consider all versions of a value as consiting
+// of the actual raw value and a control structure which keeps track
+// of changes.  So, if multiple changes are done in parallel on top of
+// the same version, the control structure can identify as having
+// originated from the same version (and so the effects would have to
+// be merged in the "master" version).
+//
+// In this package, the control data struture is represented by  the
+// Control interface.  In practical terms, this provides a very low
+// level interface for book-keeping.  Instead, most callers will use
+// the List/Map or String implementations which keep track of both the
+// value as well as the control associated with a version. These
+// concrete types also provide more natural mechanisms for modifying.
+//
+// Example
 //
 // It is possible to create a versioned type out of this simply by
 // calling New on this:
 //
-//    ctl := vc.New(...)
+//    ctl := vc.New(initialValue)
 //
 // The returned control is an immutable structure that keeps track of
-// version derivations -- so when updates are made in a structured
-// way, it can track them and transform them in a sensible way to
-// derive the latest value.
+// version derivations as all mutations derived from this particular
+// value  are expected to pass through this ctl instance.
 //
 // Consider the concrete example of a versioned string:
 //
-//     initial := "hello"
-//     ctl := vc.New(initial)
-//     s := vc.String{Control: ctl, Value: initial}
+//  initial := "hello"
+//  ctl := vc.New(initial)
+//  s := vc.String{Control: ctl, Value: initial}
 //
-// A string created in a fashion as above can be treated as an
-// immutable object providing simple mutations -- with the additional
-// caveat that all the mutations are considered to belong to the same
-// underlying storage. So, the updates are carried over to the
-// underlying storage with the updated underlying storage available
-// via "Latest()".  So, any consumer of the type can treat it as a
-// simple immutable type and the type will be consistent with that
-// usage (with all updates only reflecting that specific variation)
-// but in addition, fetching the "latest" would effectively include a
-// Git-like merge of all applied changes.
+// A string created like so can be treated as an immutable object
+// providing -- with the basic operation of Splice to modify the
+// string. The interesting effect is what happens when the initial
+// string is Spliced two different times. While each of the return
+// values will reflect the individual splice operations, the two
+// operations are also merged and the merge value can be obtained at
+// any time using the Latest() call:
 //
-//      s1 = s.SpliceSync(5, 0, "world") // this will return "hello world"
-//      s2 = s.SpliceSync(0, 1, "H") // this will return "Hello"
-//      s3 = s.Latest() // this will return "Hello world" merging both
+//  s1 = s.Splice(5, 0, " world") // this will return "hello world"
+//  s2 = s.Splice(0, 1, "H") // this will return "Hello"
+//  s3 = s.Latest() // this will return "Hello world" merging both
 //
-// Note that the immutable feel of the API extends to thread safety.
-// Updates can happen on separate go routines and will cause no
-// problems. The order of consolidation of operations is not tightly
-// specified. In fact, all "Splice" operations provide weak ordering
-// guarantees -- if there are concurrent splices, it is  possible for
-// another item from another location to be inserted at the boundaries
-// of where changes happen but it is not possible that a change
-// happening concurrently will get inserted within the string being
-// inserted.  Splices themselves also won't make an element which
-// logically before another get merged in a fashion where it comes
-// logical after though other items may get inserted (or
-// deleted). When one uses the "Move" operation, this order guarantee
-// does not hold ofcourse.
+// Without the call to Latest(), the string type acts like a regular
+// immutable string in all respects.
 //
-// All the operations have a Sync and Async version -- the Sync
-// version guarantees that an immediate call to Latest will reflect the
-// effect of the Sync operation (and indirectly those of all mutations
-// this is dependent on).
+// Branching and merging
+//
+// The default behavior of mutations is to have them show up on the
+// Latest immediately.  It is possible to create Branches where the
+// default behavior is to act like a git-branch -- all changes made on
+// the branch are reflected on the branch but not propagated to the
+// parent.  Creating a branch allows the caller to control when the
+// branch can be pushed up to the main line:
+//
+//   b, s1 := s.Branch()
+//   s1.Splice(5, 0, " world")
+//   // s1.Latest() == "hello world" but s.Latest() == "hello" still
+//   b.Push()
+//   // now s.Latest() is also "hello world"
+//
+// Thread safety and concurrency
+//
+// All the methods are threadsafe. There is limited locking at this
+// point though much of it can be removed. When multiple concurrent
+// changes are made or multiple changes are made on the same version,
+// there are limited guarantees made: that the merge process will not
+// break logical constraints (so if one splices  "hello" and the merge
+// may move where the insert happened but not have other parallel
+// changes be inserted within "hello" or change things  in such a way
+// that characters that were before the splice point appear after
+// hello etc).  In addition, the non-Async methods guarantee that the
+// effect of the method will get reflected in an immediate call to
+// Latest whereas even that guarantee is not provided by the Async
+// variations.  In all cases, basic causality is maintained -- if a
+// version is derived from another, the parent change is applied
+// before the child.
+//
+// Composition
 //
 // It is possible to use composition of types and create richer
 // types:
@@ -67,30 +96,39 @@
 //      mapCtl := collection.ChildAt(0) // get control for first elt
 //      map := vc.Map{Control: mapCtl, Value: value[0]}
 //
+// This is a bit awkward due to the fact the container types are
+// weakly typed []interface{} and map[string]interface{}.  While it is
+// possible to implement structs and arbitrary collections using the
+// Slice and Map implementations as a reference, this is still quite a
+// bit awkward due to the lack of generics in Golang.  Some
+// code-generation tools and reflection-based approaches are in the
+// works to make this easier.
+//
+//
 // Garbage collection
 //
-// The awkward structure of the API such as separating the control
-// methods for updates from the actual value is primarily to reduce
-// the garbage collection overhead of maintaining the
-// history. Basically, the only strong references the system  holds is
-// to the latest value and any explicit values being used by the
-// application itself -- with the infrastructure only maintaining
-// references to the control structures of any values that are
-// referenced by the application (and intermediate changes).  In
-// particular, history changes and intermediate changes do not cause
-// references to those corresponding intermediate values.
+// The structure of the codebase has been deliberate to avoid leaking
+// memory. In particular, if one makes a sequence of changes, all the
+// intermediate values are not maintained. In particular, if one calls
+// Latest() and ensures no reference exists to prior versions, the
+// overhead induced by the book-keeping is minimal and fixed to the
+// number of objects used.
 //
-// Strongly typing
+// But the overhead is not trivial.  Benchmarks are in the works but
+// it is expected that the memory and CPU overhead, while being
+// acceptable, could be improved significantly.  In particular, for
+// large deeply nested structures, there is a fair amount of overhead
+// in both recalculating and in the basic collection implementations
+// that can be optimized (without actually changing the interfaces
+// presented by the package).
 //
-// The ability to support custom types (such as structs or slices to
-// arbitrary types) is possible but is a bit convoluted due to the
-// lack of generics in Go.  There is some support planned to make this
-// task easy.
+// Issues
 //
-// Fork/Merge
+// The merging and transformation uses OT which guarantees
+// conflict-free convergence but if there are application level data
+// constraints that are not captured by the datastructure itself,
+// concurrent edits can lead to voilations of such.
 //
-// It is possible to implement forking and merging like with Git. This
-// is planned for in the future.
 package vc
 
 import (

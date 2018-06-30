@@ -99,3 +99,38 @@ func ExampleMap_Latest_nested() {
 	// map[x:200] map[x:1] map[x:200]
 	// Latest: false
 }
+
+func ExampleMap_Branch() {
+	// initial is a slice of slices
+	innerval := map[string]interface{}{}
+	initial := map[string]interface{}{"inner": innerval}
+
+	m := Map{Control: New(initial), Value: initial}
+
+	inner := m.Control.Child("inner")
+	innerMap := Map{Control: inner, Value: innerval}
+
+	b, inner2Map := innerMap.Branch()
+
+	// now modify inner and inner2 and see each not reflected
+	// in  the other
+	innerMap = innerMap.SetKey("x", 10)
+	inner2Map = inner2Map.SetKey("y", 10)
+
+	inner2Latest, _ := inner2Map.Latest()
+	innerLatest, _ := innerMap.Latest()
+
+	fmt.Println(innerLatest.Value, inner2Latest.Value)
+
+	// now merge and validate that main has both fields
+	b.Push()
+	inner2Latest, _ = inner2Map.Latest()
+	innerLatest, _ = innerMap.Latest()
+	x, y := innerLatest.Value["x"], innerLatest.Value["y"]
+
+	fmt.Println(x, y, inner2Latest.Value)
+
+	// Output:
+	// map[x:10] map[y:10]
+	// 10 10 map[y:10]
+}

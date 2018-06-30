@@ -168,3 +168,32 @@ func ExampleSlice_MoveAsync_moveVsSplice() {
 	// Output:
 	// [1 5 2 3 4] [1 5 2 4] [1 5 2 4]
 }
+
+func ExampleSlice_Branch() {
+	initial := []interface{}{1, 2, 3, 4, 5}
+	main := Slice{Control: New(initial), Value: initial}
+
+	// branch off  [2, 3]
+	b, child := main.Slice(1, 3).Branch()
+
+	// update child to [2, 2.5, 3]
+	child.Splice(1, 0, []interface{}{2.5})
+
+	// update parent to [0, 1,  2, 3, 4, 5}
+	main.Splice(0, 0, []interface{}{0})
+
+	// print both to validate child changes have not been merged
+	l1, _ := main.Latest()
+	l2, _ := child.Latest()
+	fmt.Println(l1.Value, l2.Value)
+
+	// push the branch and repeat
+	b.Push()
+	l1, _ = main.Latest()
+	l2, _ = child.Latest()
+	fmt.Println(l1.Value, l2.Value)
+
+	// Output:
+	// [0 1 2 3 4 5] [2 2.5 3]
+	// [0 1 2 2.5 3 4 5] [2 2.5 3]
+}
