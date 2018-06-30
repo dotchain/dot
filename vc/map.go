@@ -60,3 +60,15 @@ func (m Map) Latest() (Map, bool) {
 	val, _ := v.(map[string]interface{})
 	return Map{Control: ctl, Value: val}, true
 }
+
+// Branch creates a new branch.  Any updates on the returned Map are
+// not reflected up on the parent branch immediately.   Instead they
+// are only reflected when the  Branch.Push call is made.  Any call to
+// Latest on the returned Map will also similarly only reflect the
+// changes made on that branch but not on the parent branch.
+func (m Map) Branch() (Branch, Map) {
+	branch, ctl := m.Control.Branch(m.Value)
+	result := m
+	result.Control = ctl
+	return branch, result
+}

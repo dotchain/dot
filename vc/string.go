@@ -6,6 +6,7 @@ package vc
 
 import (
 	"github.com/dotchain/dot"
+	"strings"
 	"unicode/utf16"
 )
 
@@ -22,7 +23,7 @@ type String struct {
 	Value string
 }
 
-// String creates a new slice from the current string.  It does not
+// Slice creates a new slice from the current string.  It does not
 // mutate the underlying value, just creates  a new value with the
 // provided window.   The start/end refer to boundaries within the
 // string being sliced rather than the underlying storage.  Unlike
@@ -31,7 +32,7 @@ type String struct {
 //
 // The version associated with the String call does not change but
 // mutations from the parent slice will not be reflected here.
-func (l String) String(start, end int) String {
+func (l String) Slice(start, end int) String {
 	value := l.Value[start:end]
 	offset := len(utf16.Encode([]rune(l.Value[:start])))
 	count := len(utf16.Encode([]rune(value)))
@@ -108,6 +109,22 @@ func (l String) Latest() (String, bool) {
 
 	val := string(utf16.Decode(value[s:e:e]))
 	return String{Value: val, Start: start, End: end, Control: ctl}, true
+}
+
+// Branch creates a new branch.  Any updates on the returned string are
+// not reflected up on the parent branch immediately.   Instead they
+// are only reflected when the  Branch.Push call is made.  Any call to
+// Latest on the returned String will also similarly only reflect the
+// changes made on that branch but not on the parent branch.
+func (l String) Branch() (Branch, String) {
+	value := l.Value
+	if l.Start != nil {
+		value = strings.Repeat(" ", *l.Start) + l.Value
+	}
+	branch, ctl := l.Control.Branch(value)
+	result := l
+	result.Control = ctl
+	return branch, result
 }
 
 func (l String) spliceOffsets(offset, removeCount, replaceCount int) (*int, *int) {

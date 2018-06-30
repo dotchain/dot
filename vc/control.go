@@ -21,6 +21,7 @@ type Control interface {
 	LatestAt(start, end *int) (interface{}, Control, *int, *int)
 	Child(key string) Control
 	ChildAt(inde int) Control
+	Branch(value interface{}) (Branch, Control)
 }
 
 // basis is simply to identify changes
@@ -40,48 +41,48 @@ type control struct {
 	parent
 }
 
-func (v *control) UpdateSync(changes []dot.Change) Control {
+func (c *control) UpdateSync(changes []dot.Change) Control {
 	changes = append([]dot.Change(nil), changes...)
-	result := &control{parent: v.parent}
+	result := &control{parent: c.parent}
 	result.basis = &result.own
 	result.Lock()
 	defer result.Unlock()
-	v.Lock()
-	defer v.Unlock()
-	v.parent.Bubble(v.basis, result.basis, changes)
+	c.Lock()
+	defer c.Unlock()
+	c.parent.Bubble(c.basis, result.basis, changes)
 	return result
 }
 
-func (v *control) UpdateAsync(changes []dot.Change) Control {
+func (c *control) UpdateAsync(changes []dot.Change) Control {
 	changes = append([]dot.Change(nil), changes...)
-	result := &control{parent: v.parent}
+	result := &control{parent: c.parent}
 	result.basis = &result.own
 	result.Lock()
 	go func() {
 		defer result.Unlock()
-		v.Lock()
-		defer v.Unlock()
-		v.parent.Bubble(v.basis, result.basis, changes)
+		c.Lock()
+		defer c.Unlock()
+		c.parent.Bubble(c.basis, result.basis, changes)
 	}()
 	return result
 }
 
-func (v *control) Child(key string) Control {
+func (c *control) Child(key string) Control {
 	// TODO: use a local map and memoize version per key so that
 	// it is properly synchronized?
-	return &control{parent: &dictitem{key, v.parent}, basis: v.basis}
+	return &control{parent: &dictitem{key, c.parent}, basis: c.basis}
 }
 
-func (v *control) ChildAt(index int) Control {
+func (c *control) ChildAt(index int) Control {
 	// TODO: use a local map and memoize version per key so that
 	// it is properly synchronized?
 	key := strconv.Itoa(index)
-	item := &arrayitem{key: key, index: index, array: v.parent}
-	return &control{parent: item, basis: v.basis}
+	item := &arrayitem{key: key, index: index, array: c.parent}
+	return &control{parent: item, basis: c.basis}
 }
 
-func (v *control) Latest() (interface{}, Control) {
-	val, parent, _, b := v.parent.Latest(nil, v.basis)
+func (c *control) Latest() (interface{}, Control) {
+	val, parent, _, b := c.parent.Latest(nil, c.basis)
 	if parent == nil {
 		return nil, nil
 	}
@@ -90,9 +91,9 @@ func (v *control) Latest() (interface{}, Control) {
 	return val, &control{parent: parent, basis: b}
 }
 
-func (v *control) LatestAt(startp, endp *int) (interface{}, Control, *int, *int) {
+func (c *control) LatestAt(startp, endp *int) (interface{}, Control, *int, *int) {
 	var nilpath *dot.RefPath
-	val, parent, _, b := v.parent.Latest(nil, v.basis)
+	val, parent, _, b := c.parent.Latest(nil, c.basis)
 	if parent == nil {
 		return nil, nil, nil, nil
 	}
@@ -100,17 +101,23 @@ func (v *control) LatestAt(startp, endp *int) (interface{}, Control, *int, *int)
 
 	if startp != nil {
 		s := &dot.RefIndex{Index: *startp, Type: dot.RefIndexStart}
-		key := v.parent.MapPath(nilpath.Append("", s), v.basis, b)[0]
+		key := c.parent.MapPath(nilpath.Append("", s), c.basis, b)[0]
 		start := dot.NewRefIndex(key).Index
 		startp = &start
 	}
 
 	if endp != nil {
 		e := &dot.RefIndex{Index: *endp, Type: dot.RefIndexEnd}
-		key := v.parent.MapPath(nilpath.Append("", e), v.basis, b)[0]
+		key := c.parent.MapPath(nilpath.Append("", e), c.basis, b)[0]
 		end := dot.NewRefIndex(key).Index
 		endp = &end
 	}
 
 	return val, &control{parent: parent, basis: b}, startp, endp
+}
+
+func (c *control) Branch(value interface{}) (Branch, Control) {
+	r := &root{v: value}
+	result := &control{parent: r, basis: &r.own}
+	return &branch{parent: c, root: r}, result
 }

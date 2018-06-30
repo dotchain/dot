@@ -123,6 +123,22 @@ func (l Slice) Latest() (Slice, bool) {
 	return Slice{Value: value[s:e:e], Start: start, End: end, Control: ctl}, true
 }
 
+// Branch creates a new branch.  Any updates on the returned slice are
+// not reflected up on the parent branch immediately.   Instead they
+// are only reflected when the  Branch.Push call is made.  Any call to
+// Latest on the returned Slice will also similarly only reflect the
+// changes made on that branch but not on the parent branch.
+func (l Slice) Branch() (Branch, Slice) {
+	value := l.Value
+	if l.Start != nil {
+		value = append(make([]interface{}, *l.Start), value...)
+	}
+	branch, ctl := l.Control.Branch(value)
+	result := l
+	result.Control = ctl
+	return branch, result
+}
+
 func (l Slice) spliceOffsets(offset, removeCount, replaceCount int) (*int, *int) {
 	var startp, endp *int
 
