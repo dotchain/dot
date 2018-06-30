@@ -23,8 +23,8 @@
 //
 // Example
 //
-// It is possible to create a versioned type out of this simply by
-// calling New on this:
+// It is possible to create a versioned type out of a value simply by
+// calling New on that value:
 //
 //    ctl := vc.New(initialValue)
 //
@@ -97,13 +97,37 @@
 //      mapCtl := collection.ChildAt(0) // get control for first elt
 //      map := vc.Map{Control: mapCtl, Value: value[0]}
 //
-// This is a bit awkward due to the fact the container types are
-// weakly typed []interface{} and map[string]interface{}.  While it is
-// possible to implement structs and arbitrary collections using the
-// Slice and Map implementations as a reference, this is still quite a
-// bit awkward due to the lack of generics in Golang.  Some
-// code-generation tools and reflection-based approaches are in the
-// works to make this easier.
+// When an object is composed, mutations on the inner elements are
+// propagated and the outer elements are modified but only reflected
+// if using the "Latest"
+//
+//      map.SetKey("x", 5)
+//      // collection.Value["x"] is not  modified
+//      latest, _ := collection.Latest()
+//      // latest.Value["x"] is now 5
+//
+// Note that the consumer of the "inner" elements have no way of
+// knowing their outer containers or if they even exist.  Calling
+// "Latest()" on the inner elements will be narrowed down to their
+// view only.
+//
+// Caveat: It is possible that a mutation higher up in the container
+// hierarchy can completely remove an element out. This will cause the
+// Latest on a stale inner version to fail.  Hence the boolean second
+// return value from Latest().
+//
+// Separation of value and control
+//
+// There is a fair degree of awkwardness because of the separation of
+// the value from the control for making changes on the value.  This
+// separation provides for a shared implementation of the control
+// behavior irrespective of the "strong type" of the structure
+// allowing  for custom types to be implemented.  This is still quite
+// awkward to do in Golang due to the lack of generics but there is a
+// plan in the works to use code generation and reflection to make
+// this work better.  At this point, the Control object should be used
+// to get the control of a child so that mutations on the children
+// can be propagated to the parent.
 //
 //
 // Garbage collection
@@ -128,8 +152,30 @@
 // The merging and transformation uses OT which guarantees
 // conflict-free convergence but if there are application level data
 // constraints that are not captured by the datastructure itself,
-// concurrent edits can lead to voilations of such.
+// concurrent edits can lead to voilations of such.  It is currently
+// not posssible to define custom changes
 //
+// There are also a few gotchas with how Slice.Slice windows and in
+// general how path invalidation happens (when a mutation higher up in
+// the container hierarchy either deletes the current value or edits
+// it in ways that make its "slice window" change)
+//
+// References
+//
+// There is no explicit support for references yet but without built
+// in support for references,  it is extremely difficult to implement
+// them outside as they need to be transformed by the operations.  For
+// example, if the overall structure is not a tree but a DAG with a
+// pointer to another element, the pointer needs to be represented as
+// a path that gets evaluated dynamically.  This requires coordination
+// with the version control mechanism.
+//
+// Distributing changes
+//
+// There is no ability to detect local changes, no notifications for
+// such etc.  It is relatively easy to add this and when added, one
+// can implement a OT client without any caller being aware of the
+// existence of this infrastructure at all.
 package vc
 
 import (
