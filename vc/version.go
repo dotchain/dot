@@ -55,7 +55,7 @@
 // does not hold ofcourse.
 //
 // All the operations have a Sync and Async version -- the Sync
-// version guarantes that an immediate call to Latest will reflect the
+// version guarantees that an immediate call to Latest will reflect the
 // effect of the Sync operation (and indirectly those of all mutations
 // this is dependent on).
 //
