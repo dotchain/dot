@@ -63,7 +63,7 @@ func (s String16) Slice(offset, count int) ArrayLike {
 }
 
 // Splice works on UTF16 offsets and only accepts UTF16 strings
-// (i.e. it interprests before/after as UTF16 arrays). This will
+// (i.e. it interprets before/after as UTF16 arrays). This will
 // yield the right result for JS clients
 func (s String16) Splice(offset int, before, after interface{}) ArrayLike {
 	deleted, a := s.fromInterface(before).Count(), s.fromInterface(after)
