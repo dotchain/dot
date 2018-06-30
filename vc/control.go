@@ -20,7 +20,7 @@ type Control interface {
 	Latest() (interface{}, Control)
 	LatestAt(start, end *int) (interface{}, Control, *int, *int)
 	Child(key string) Control
-	ChildAt(inde int) Control
+	ChildAt(index int) Control
 	Branch(value interface{}) (Branch, Control)
 }
 
