@@ -9,7 +9,7 @@ import (
 	"github.com/dotchain/dot/vc"
 )
 
-func ExampleMapWithKeySync_updateOrder() {
+func ExampleMap_WithKeySync_updateOrder() {
 	initial := map[string]interface{}{"x": 1}
 	m := vc.Map{Version: vc.New(initial), Value: initial}
 
@@ -30,7 +30,7 @@ func ExampleMapWithKeySync_updateOrder() {
 	// map[x:1] => map[x:5]
 }
 
-func ExampleMapWithKeySync_branches() {
+func ExampleMap_WithKeySync_branches() {
 	initial := map[string]interface{}{"x": 1, "y": 5}
 	m := vc.Map{Version: vc.New(initial), Value: initial}
 
@@ -53,7 +53,7 @@ func ExampleMapWithKeySync_branches() {
 	// map[y:40] 1 300 => map[y:300]
 }
 
-func ExampleMapWithKeyAsync() {
+func ExampleMap_WithKeyAsync() {
 	initial := map[string]interface{}{"x": 1, "y": 5}
 	m := vc.Map{Version: vc.New(initial), Value: initial}
 
@@ -72,7 +72,7 @@ func ExampleMapWithKeyAsync() {
 	// y 50
 }
 
-func ExampleMapLatest_nested() {
+func ExampleMap_Latest_nested() {
 	// initial is a slice of slices
 	innerval := map[string]interface{}{"x": 1}
 	outerval := map[string]interface{}{"inner": innerval}

@@ -9,7 +9,7 @@ import (
 	"github.com/dotchain/dot/vc"
 )
 
-func ExampleSliceSpliceSync_insertionOrder() {
+func ExampleSlice_SpliceSync_insertionOrder() {
 	initial := []interface{}{1, 2, 3}
 	slice := vc.Slice{Version: vc.New(initial), Value: initial}
 
@@ -33,7 +33,7 @@ func ExampleSliceSpliceSync_insertionOrder() {
 	// Latest [1 5 6 7 8 9 2 3]
 }
 
-func ExampleSliceSpliceSync_slices() {
+func ExampleSlice_SpliceSync_slices() {
 	initial := []interface{}{1, 2, 3, 4, 5}
 	slice := vc.Slice{Version: vc.New(initial), Value: initial}
 
@@ -68,7 +68,7 @@ func ExampleSliceSpliceSync_slices() {
 	// New Window, Latest [2 2.5 3 3.5 4] [1 2 2.5 3 3.5 4 5]
 }
 
-func ExampleSliceSpliceSync_branches() {
+func ExampleSlice_SpliceSync_branches() {
 	initial := []interface{}{1, 2, 3, 4, 5}
 	slice := vc.Slice{Version: vc.New(initial), Value: initial}
 
@@ -89,7 +89,7 @@ func ExampleSliceSpliceSync_branches() {
 	// [1 1.5 2 4 5] [0.5 1 1.5 2 4 5 5.5]
 }
 
-func ExampleSliceSpliceAsync() {
+func ExampleSlice_SpliceAsync() {
 	initial := []interface{}{1, 2, 3, 4, 5}
 	slice := vc.Slice{Version: vc.New(initial), Value: initial}
 
@@ -106,7 +106,7 @@ func ExampleSliceSpliceAsync() {
 	// true true
 }
 
-func ExampleSliceLatest_nested() {
+func ExampleSlice_Latest_nested() {
 	// initial is a slice of slices
 	initial := []interface{}{
 		[]interface{}{1, 2, 3, 4, 5},

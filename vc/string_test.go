@@ -9,7 +9,7 @@ import (
 	"github.com/dotchain/dot/vc"
 )
 
-func ExampleStringSpliceSync_insertionOrder() {
+func ExampleString_SpliceSync_insertionOrder() {
 	initial := "123"
 	str := vc.String{Version: vc.New(initial), Value: initial}
 
@@ -33,7 +33,7 @@ func ExampleStringSpliceSync_insertionOrder() {
 	// Latest 15678923
 }
 
-func ExampleStringSpliceSync_strs() {
+func ExampleString_SpliceSync_strs() {
 	initial := "12345"
 	str := vc.String{Version: vc.New(initial), Value: initial}
 
@@ -68,7 +68,7 @@ func ExampleStringSpliceSync_strs() {
 	// New Window, Latest 2T3E4 12T3E45
 }
 
-func ExampleStringSpliceSync_branches() {
+func ExampleString_SpliceSync_branches() {
 	initial := "12345"
 	str := vc.String{Version: vc.New(initial), Value: initial}
 
@@ -89,7 +89,7 @@ func ExampleStringSpliceSync_branches() {
 	// 1X245 01X2456
 }
 
-func ExampleStringSpliceAsync() {
+func ExampleString_SpliceAsync() {
 	initial := "12345"
 	str := vc.String{Version: vc.New(initial), Value: initial}
 
