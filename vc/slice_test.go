@@ -2,16 +2,13 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package vc_test
+package vc
 
-import (
-	"fmt"
-	"github.com/dotchain/dot/vc"
-)
+import "fmt"
 
 func ExampleSlice_SpliceSync_insertionOrder() {
 	initial := []interface{}{1, 2, 3}
-	slice := vc.Slice{Version: vc.New(initial), Value: initial}
+	slice := Slice{Version: New(initial), Value: initial}
 
 	// SpliceSync behaves like an immutable Splice
 	for kk := 5; kk < 10; kk++ {
@@ -35,7 +32,7 @@ func ExampleSlice_SpliceSync_insertionOrder() {
 
 func ExampleSlice_SpliceSync_slices() {
 	initial := []interface{}{1, 2, 3, 4, 5}
-	slice := vc.Slice{Version: vc.New(initial), Value: initial}
+	slice := Slice{Version: New(initial), Value: initial}
 
 	// we can create window into this slice ([2 3 4]) like so:
 	window := slice.Slice(1, 4)
@@ -70,7 +67,7 @@ func ExampleSlice_SpliceSync_slices() {
 
 func ExampleSlice_SpliceSync_branches() {
 	initial := []interface{}{1, 2, 3, 4, 5}
-	slice := vc.Slice{Version: vc.New(initial), Value: initial}
+	slice := Slice{Version: New(initial), Value: initial}
 
 	// branch has value [1, 2, 4, 5]
 	branch := slice.SpliceSync(2, 1, nil)
@@ -91,7 +88,7 @@ func ExampleSlice_SpliceSync_branches() {
 
 func ExampleSlice_SpliceAsync() {
 	initial := []interface{}{1, 2, 3, 4, 5}
-	slice := vc.Slice{Version: vc.New(initial), Value: initial}
+	slice := Slice{Version: New(initial), Value: initial}
 
 	slice1 := slice.SpliceAsync(0, 0, []interface{}{0})
 	// There are no guarantees at this point that slice.Latest()
@@ -111,13 +108,13 @@ func ExampleSlice_Latest_nested() {
 	initial := []interface{}{
 		[]interface{}{1, 2, 3, 4, 5},
 	}
-	slice := vc.Slice{Version: vc.New(initial), Value: initial}
+	slice := Slice{Version: New(initial), Value: initial}
 
 	inner := slice.Version.ChildAt(0)
-	innerSlice := vc.Slice{Version: inner, Value: initial[0].([]interface{})}
+	innerSlice := Slice{Version: inner, Value: initial[0].([]interface{})}
 
 	inner2 := slice.Version.ChildAt(0)
-	inner2Slice := vc.Slice{Version: inner2, Value: initial[0].([]interface{})}
+	inner2Slice := Slice{Version: inner2, Value: initial[0].([]interface{})}
 
 	// now modify inner and see it reflected on inner2's latest
 	innerSlice.SpliceSync(0, 0, []interface{}{0})

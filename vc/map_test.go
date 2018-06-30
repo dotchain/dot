@@ -2,16 +2,13 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package vc_test
+package vc
 
-import (
-	"fmt"
-	"github.com/dotchain/dot/vc"
-)
+import "fmt"
 
 func ExampleMap_WithKeySync_updateOrder() {
 	initial := map[string]interface{}{"x": 1}
-	m := vc.Map{Version: vc.New(initial), Value: initial}
+	m := Map{Version: New(initial), Value: initial}
 
 	for kk := 5; kk < 10; kk++ {
 		v := m.WithKeySync("x", kk)
@@ -32,7 +29,7 @@ func ExampleMap_WithKeySync_updateOrder() {
 
 func ExampleMap_WithKeySync_branches() {
 	initial := map[string]interface{}{"x": 1, "y": 5}
-	m := vc.Map{Version: vc.New(initial), Value: initial}
+	m := Map{Version: New(initial), Value: initial}
 
 	// branch sets y to 25
 	branch := m.WithKeySync("y", 25)
@@ -55,7 +52,7 @@ func ExampleMap_WithKeySync_branches() {
 
 func ExampleMap_WithKeyAsync() {
 	initial := map[string]interface{}{"x": 1, "y": 5}
-	m := vc.Map{Version: vc.New(initial), Value: initial}
+	m := Map{Version: New(initial), Value: initial}
 
 	m1 := m.WithKeyAsync("y", 50)
 	// There are no guarantees that at this point m.Latest()
@@ -78,13 +75,13 @@ func ExampleMap_Latest_nested() {
 	outerval := map[string]interface{}{"inner": innerval}
 	initial := map[string]interface{}{"outer": outerval}
 
-	m := vc.Map{Version: vc.New(initial), Value: initial}
+	m := Map{Version: New(initial), Value: initial}
 
 	inner := m.Version.Child("outer").Child("inner")
-	innerMap := vc.Map{Version: inner, Value: innerval}
+	innerMap := Map{Version: inner, Value: innerval}
 
 	inner2 := m.Version.Child("outer").Child("inner")
-	inner2Map := vc.Map{Version: inner2, Value: innerval}
+	inner2Map := Map{Version: inner2, Value: innerval}
 
 	// now modify inner and see it reflected on inner2's latest
 	innerMap = innerMap.WithKeySync("x", 200)
