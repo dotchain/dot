@@ -29,8 +29,8 @@ func (m Map) SetKey(key string, value interface{}) Map {
 	set := &dot.SetInfo{Key: key, Before: before, After: value}
 	changes := []dot.Change{{Set: set}}
 	result, _ := unwrap(utils.Apply(m.Value, changes)).(map[string]interface{})
-	version := m.Control.UpdateSync(changes)
-	return Map{Control: version, Value: result}
+	ctl := m.Control.UpdateSync(changes)
+	return Map{Control: ctl, Value: result}
 }
 
 // SetKeyAsync updates the Key with the new value and returns a new
@@ -46,17 +46,17 @@ func (m Map) SetKeyAsync(key string, value interface{}) Map {
 	set := &dot.SetInfo{Key: key, Before: before, After: value}
 	changes := []dot.Change{{Set: set}}
 	result, _ := unwrap(utils.Apply(m.Value, changes)).(map[string]interface{})
-	version := m.Control.UpdateAsync(changes)
-	return Map{Control: version, Value: result}
+	ctl := m.Control.UpdateAsync(changes)
+	return Map{Control: ctl, Value: result}
 }
 
 // Latest return the latest version of the current map
 func (m Map) Latest() (Map, bool) {
-	v, ver := m.Control.Latest()
-	if ver == nil {
+	v, ctl := m.Control.Latest()
+	if ctl == nil {
 		return Map{}, false
 	}
 
 	val, _ := v.(map[string]interface{})
-	return Map{Control: ver, Value: val}, true
+	return Map{Control: ctl, Value: val}, true
 }
