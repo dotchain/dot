@@ -73,7 +73,7 @@
 // methods for updates from the actual value is primarily to reduce
 // the garbage collection overhead of old values. Basically, the only
 // strong references the system  holds is to the latest  value being
-// tracked and any explict values being held onto by the application.
+// tracked and any explicit values being held onto by the application.
 // Internally, the package holds references to the metadata associated
 // with parents and such for any older values but the actual values
 // themselves (which could be large) are not maintained.  In

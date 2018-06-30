@@ -2,24 +2,21 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package vc_test
+package vc
 
-import (
-	"fmt"
-	"github.com/dotchain/dot/vc"
-)
+import "fmt"
 
 func Example_composition() {
 	inner := []interface{}{1, 2, 3}
 	outer := map[string]interface{}{"inner": inner}
 	initial := []interface{}{outer}
 
-	root := vc.Slice{Version: vc.New(initial), Value: initial}
-	innerSlice := vc.Slice{Version: root.Version.ChildAt(0).Child("inner"), Value: inner}
+	root := Slice{Version: New(initial), Value: initial}
+	innerSlice := Slice{Version: root.Version.ChildAt(0).Child("inner"), Value: inner}
 	window := innerSlice.Slice(1, 3)
 
 	// now create a second window
-	innerSlice2 := vc.Slice{Version: root.Version.ChildAt(0).Child("inner"), Value: inner}
+	innerSlice2 := Slice{Version: root.Version.ChildAt(0).Child("inner"), Value: inner}
 	window2 := innerSlice2.Slice(1, 3)
 
 	fmt.Println("Before", window.Value, window2.Value)

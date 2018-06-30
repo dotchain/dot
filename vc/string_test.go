@@ -2,16 +2,13 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package vc_test
+package vc
 
-import (
-	"fmt"
-	"github.com/dotchain/dot/vc"
-)
+import "fmt"
 
 func ExampleString_SpliceSync_insertionOrder() {
 	initial := "123"
-	str := vc.String{Version: vc.New(initial), Value: initial}
+	str := String{Version: New(initial), Value: initial}
 
 	// SpliceSync behaves like an immutable Splice
 	for kk := 5; kk < 10; kk++ {
@@ -35,7 +32,7 @@ func ExampleString_SpliceSync_insertionOrder() {
 
 func ExampleString_SpliceSync_strs() {
 	initial := "12345"
-	str := vc.String{Version: vc.New(initial), Value: initial}
+	str := String{Version: New(initial), Value: initial}
 
 	// we can create window into this str "234" like so:
 	window := str.String(1, 4)
@@ -70,7 +67,7 @@ func ExampleString_SpliceSync_strs() {
 
 func ExampleString_SpliceSync_branches() {
 	initial := "12345"
-	str := vc.String{Version: vc.New(initial), Value: initial}
+	str := String{Version: New(initial), Value: initial}
 
 	// branch has value 1245
 	branch := str.SpliceSync(2, 1, "")
@@ -91,7 +88,7 @@ func ExampleString_SpliceSync_branches() {
 
 func ExampleString_SpliceAsync() {
 	initial := "12345"
-	str := vc.String{Version: vc.New(initial), Value: initial}
+	str := String{Version: New(initial), Value: initial}
 
 	str1 := str.SpliceAsync(0, 0, "0")
 	// There are no guarantees at this point that str.Latest()
