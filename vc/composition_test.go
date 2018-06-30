@@ -11,18 +11,18 @@ func Example_composition() {
 	outer := map[string]interface{}{"inner": inner}
 	initial := []interface{}{outer}
 
-	root := Slice{Version: New(initial), Value: initial}
-	innerSlice := Slice{Version: root.Version.ChildAt(0).Child("inner"), Value: inner}
+	root := Slice{Control: New(initial), Value: initial}
+	innerSlice := Slice{Control: root.Control.ChildAt(0).Child("inner"), Value: inner}
 	window := innerSlice.Slice(1, 3)
 
 	// now create a second window
-	innerSlice2 := Slice{Version: root.Version.ChildAt(0).Child("inner"), Value: inner}
+	innerSlice2 := Slice{Control: root.Control.ChildAt(0).Child("inner"), Value: inner}
 	window2 := innerSlice2.Slice(1, 3)
 
 	fmt.Println("Before", window.Value, window2.Value)
 
 	// append in the second window and see it appear in the first
-	window2 = window2.SpliceSync(2, 0, []interface{}{4})
+	window2 = window2.Splice(2, 0, []interface{}{4})
 
 	latest, _ := window.Latest()
 	fmt.Println("After", latest.Value, window2.Value)

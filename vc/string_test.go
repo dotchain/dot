@@ -8,11 +8,11 @@ import "fmt"
 
 func ExampleString_SpliceSync_insertionOrder() {
 	initial := "123"
-	str := String{Version: New(initial), Value: initial}
+	str := String{Control: New(initial), Value: initial}
 
 	// SpliceSync behaves like an immutable Splice
 	for kk := 5; kk < 10; kk++ {
-		v := str.SpliceSync(1, 0, fmt.Sprintf("%d", kk))
+		v := str.Splice(1, 0, fmt.Sprintf("%d", kk))
 		fmt.Println("Inserted", v.Value)
 	}
 
@@ -32,14 +32,14 @@ func ExampleString_SpliceSync_insertionOrder() {
 
 func ExampleString_SpliceSync_strs() {
 	initial := "12345"
-	str := String{Version: New(initial), Value: initial}
+	str := String{Control: New(initial), Value: initial}
 
 	// we can create window into this str "234" like so:
 	window := str.String(1, 4)
 	fmt.Println("Window", window.Value)
 
 	// we can edit the original str like so:
-	str.SpliceSync(3, 0, "E")
+	str.Splice(3, 0, "E")
 
 	// and update just the window like so:
 	wlatest, _ := window.Latest()
@@ -48,7 +48,7 @@ func ExampleString_SpliceSync_strs() {
 
 	// Further more, we can edit the window separately
 	// and see things merge cleanly as well
-	window = window.SpliceSync(1, 0, "T")
+	window = window.Splice(1, 0, "T")
 	wlatest, _ = window.Latest()
 	latest, _ = str.Latest()
 
@@ -67,16 +67,16 @@ func ExampleString_SpliceSync_strs() {
 
 func ExampleString_SpliceSync_branches() {
 	initial := "12345"
-	str := String{Version: New(initial), Value: initial}
+	str := String{Control: New(initial), Value: initial}
 
 	// branch has value 1245
-	branch := str.SpliceSync(2, 1, "")
+	branch := str.Splice(2, 1, "")
 
 	// update the parent directly to: 0123456
-	str2 := str.SpliceSync(0, 0, "0")
-	str2.SpliceSync(6, 0, "6")
+	str2 := str.Splice(0, 0, "0")
+	str2.Splice(6, 0, "6")
 	// now update the stale branch to 1X245
-	branch = branch.SpliceSync(1, 0, "X")
+	branch = branch.Splice(1, 0, "X")
 
 	// now verify that latest is properly merged
 	latest, _ := str.Latest()
@@ -88,12 +88,12 @@ func ExampleString_SpliceSync_branches() {
 
 func ExampleString_SpliceAsync() {
 	initial := "12345"
-	str := String{Version: New(initial), Value: initial}
+	str := String{Control: New(initial), Value: initial}
 
 	str1 := str.SpliceAsync(0, 0, "0")
 	// There are no guarantees at this point that str.Latest()
 	// has been updated.
-	str1.SpliceSync(0, 0, "a")
+	str1.Splice(0, 0, "a")
 	// But there is a guarantee that by the time sync returns
 	// the effects of its own history are reflected
 	l, ok := str.Latest()
