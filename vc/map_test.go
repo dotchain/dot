@@ -8,10 +8,10 @@ import "fmt"
 
 func ExampleMap_WithKeySync_updateOrder() {
 	initial := map[string]interface{}{"x": 1}
-	m := Map{Version: New(initial), Value: initial}
+	m := Map{Control: New(initial), Value: initial}
 
 	for kk := 5; kk < 10; kk++ {
-		v := m.WithKeySync("x", kk)
+		v := m.SetKey("x", kk)
 		fmt.Println("Inserted", v.Value)
 	}
 
@@ -29,17 +29,17 @@ func ExampleMap_WithKeySync_updateOrder() {
 
 func ExampleMap_WithKeySync_branches() {
 	initial := map[string]interface{}{"x": 1, "y": 5}
-	m := Map{Version: New(initial), Value: initial}
+	m := Map{Control: New(initial), Value: initial}
 
 	// branch sets y to 25
-	branch := m.WithKeySync("y", 25)
+	branch := m.SetKey("y", 25)
 
 	// update m directly by deleting x and setting y to 40
-	m = m.WithKeySync("x", nil)
-	m = m.WithKeySync("y", 40)
+	m = m.SetKey("x", nil)
+	m = m.SetKey("y", 40)
 
 	// now update branch once again by setting y to 300
-	branch = branch.WithKeySync("y", 300)
+	branch = branch.SetKey("y", 300)
 
 	// now verify that latest is propery merged
 	latest, _ := m.Latest()
@@ -52,12 +52,12 @@ func ExampleMap_WithKeySync_branches() {
 
 func ExampleMap_WithKeyAsync() {
 	initial := map[string]interface{}{"x": 1, "y": 5}
-	m := Map{Version: New(initial), Value: initial}
+	m := Map{Control: New(initial), Value: initial}
 
-	m1 := m.WithKeyAsync("y", 50)
+	m1 := m.SetKeyAsync("y", 50)
 	// There are no guarantees that at this point m.Latest()
 	// would have been updated
-	m1.WithKeySync("z", 100)
+	m1.SetKey("z", 100)
 	// But there is  a guarantee that when a sync call finishes,
 	// the latest  operation and any direct parent would be
 	// reflected in laatest.
@@ -75,22 +75,22 @@ func ExampleMap_Latest_nested() {
 	outerval := map[string]interface{}{"inner": innerval}
 	initial := map[string]interface{}{"outer": outerval}
 
-	m := Map{Version: New(initial), Value: initial}
+	m := Map{Control: New(initial), Value: initial}
 
-	inner := m.Version.Child("outer").Child("inner")
-	innerMap := Map{Version: inner, Value: innerval}
+	inner := m.Control.Child("outer").Child("inner")
+	innerMap := Map{Control: inner, Value: innerval}
 
-	inner2 := m.Version.Child("outer").Child("inner")
-	inner2Map := Map{Version: inner2, Value: innerval}
+	inner2 := m.Control.Child("outer").Child("inner")
+	inner2Map := Map{Control: inner2, Value: innerval}
 
 	// now modify inner and see it reflected on inner2's latest
-	innerMap = innerMap.WithKeySync("x", 200)
+	innerMap = innerMap.SetKey("x", 200)
 	inner2Latest, _ := inner2Map.Latest()
 
 	fmt.Println(innerMap.Value, inner2Map.Value, inner2Latest.Value)
 
 	// now delete the whole inner map and see latest fail
-	m.WithKeySync("outer", nil)
+	m.SetKey("outer", nil)
 	_, ok := inner2Map.Latest()
 
 	fmt.Println("Latest:", ok)

@@ -8,8 +8,8 @@ import "github.com/dotchain/dot"
 
 // Slice represents a slice of value of any type
 type Slice struct {
-	// Version is the version control metadata
-	Version
+	// Control is the version control metadata
+	Control
 
 	// Start. End refer to the window into the original slice.
 	// If they are nil, they refer to the logical start/end
@@ -29,7 +29,7 @@ type Slice struct {
 // mutations from the parent slice will not be reflected  here.
 func (l Slice) Slice(start, end int) Slice {
 	value := l.Value[start:end:end]
-	result := Slice{Version: l.Version, Value: value}
+	result := Slice{Control: l.Control, Value: value}
 	if start != 0 || l.Start != nil {
 		result.Start = l.add(l.Start, start)
 	}
@@ -41,19 +41,19 @@ func (l Slice) Slice(start, end int) Slice {
 	return result
 }
 
-// SpliceSync synchronously splices and returns the new slice.  If
+// Splice synchronously splices and returns the new slice.  If
 // there were other changes done on the Slice before this operation,
 // that will not be reflected in the output but it will be guaranteed
 // to be reflected in the next call  to Latest.
-func (l Slice) SpliceSync(offset, removeCount int, replacement []interface{}) Slice {
+func (l Slice) Splice(offset, removeCount int, replacement []interface{}) Slice {
 	o := *l.add(l.Start, offset)
 	before := l.Value[offset : offset+removeCount]
 	splice := &dot.SpliceInfo{Offset: o, Before: before, After: replacement}
 	c := dot.Change{Splice: splice}
 	value := append(append(l.Value[:offset:offset], replacement...), l.Value[offset+removeCount:]...)
-	version := l.Version.UpdateSync([]dot.Change{c})
+	version := l.Control.UpdateSync([]dot.Change{c})
 	start, end := l.spliceOffsets(offset, removeCount, len(replacement))
-	return Slice{Version: version, Value: value, Start: start, End: end}
+	return Slice{Control: version, Value: value, Start: start, End: end}
 }
 
 // SpliceAsync asynchronously splices and returns the new slice.  If
@@ -66,23 +66,23 @@ func (l Slice) SpliceAsync(offset, removeCount int, replacement []interface{}) S
 	splice := &dot.SpliceInfo{Offset: o, Before: before, After: replacement}
 	c := dot.Change{Splice: splice}
 	value := append(append(l.Value[:offset:offset], replacement...), l.Value[offset+removeCount:]...)
-	version := l.Version.UpdateAsync([]dot.Change{c})
+	version := l.Control.UpdateAsync([]dot.Change{c})
 	start, end := l.spliceOffsets(offset, removeCount, len(replacement))
-	return Slice{Version: version, Value: value, Start: start, End: end}
+	return Slice{Control: version, Value: value, Start: start, End: end}
 }
 
-// MoveSync synchronously moves the specified elements (from offset to
+// Move synchronously moves the specified elements (from offset to
 // offset + count) by the specified distance (positive moves to the
 // right, negative moves to the left).  It returns a new slice which
 // reflects the effect of the move and the effect of the move is
 // also guaranteed to be reflected in the next Latest call.
-func (l Slice) MoveSync(offset, count, distance int) Slice {
+func (l Slice) Move(offset, count, distance int) Slice {
 	move := &dot.MoveInfo{Offset: offset, Count: count, Distance: distance}
 	changes := []dot.Change{{Move: move}}
 	value, _ := unwrap(utils.Apply(l.Value, changes)).([]interface{})
-	version := l.Version.UpdateSync(changes)
+	version := l.Control.UpdateSync(changes)
 	s, e := l.Start, l.End
-	return Slice{Version: version, Value: value, Start: s, End: e}
+	return Slice{Control: version, Value: value, Start: s, End: e}
 }
 
 // MoveAsync asynchronously moves the specified elements (from offset to
@@ -97,16 +97,16 @@ func (l Slice) MoveAsync(offset, count, distance int) Slice {
 	move := &dot.MoveInfo{Offset: offset, Count: count, Distance: distance}
 	changes := []dot.Change{{Move: move}}
 	value, _ := unwrap(utils.Apply(l.Value, changes)).([]interface{})
-	version := l.Version.UpdateAsync(changes)
+	version := l.Control.UpdateAsync(changes)
 	s, e := l.Start, l.End
-	return Slice{Version: version, Value: value, Start: s, End: e}
+	return Slice{Control: version, Value: value, Start: s, End: e}
 }
 
 // Latest returns the latest value. The current object may have been
 // deleted, in which case it returns the zero value and sets the bool
 // to false.
 func (l Slice) Latest() (Slice, bool) {
-	v, ver, start, end := l.Version.LatestAt(l.Start, l.End)
+	v, ver, start, end := l.Control.LatestAt(l.Start, l.End)
 	if ver == nil {
 		return Slice{}, false
 	}
@@ -120,7 +120,7 @@ func (l Slice) Latest() (Slice, bool) {
 		e = *end
 	}
 
-	return Slice{Value: value[s:e:e], Start: start, End: end, Version: ver}, true
+	return Slice{Value: value[s:e:e], Start: start, End: end, Control: ver}, true
 }
 
 func (l Slice) spliceOffsets(offset, removeCount, replaceCount int) (*int, *int) {

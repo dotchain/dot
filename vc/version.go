@@ -11,7 +11,7 @@
 // It is possible to create a versioned type out of this simply by
 // calling New on this:
 //
-//    version := vc.New(...)
+//    ctl := vc.New(...)
 //
 // The version metadata is an immutable structure that keeps track of
 // version derivations -- so when updates are made in a structured
@@ -21,8 +21,8 @@
 // Consider the concrete example of a versioned string:
 //
 //     initial := "hello"
-//     ver := vc.New(initial)
-//     s := vc.String{Version: ver, Value: initial}
+//     ctl := vc.New(initial)
+//     s := vc.String{Control: ctl, Value: initial}
 //
 // A string created in a fashion as above can be treated as an
 // immutable object providing simple mutations -- with the additional
@@ -63,8 +63,8 @@
 // types:
 //
 //      collection := []interface{}{1, 2, 3}
-//      ver := vc.New(collection)
-//      managedCollection := vc.Slice{Version: ver, Value: collection}
+//      ctl := vc.New(collection)
+//      managedCollection := vc.Slice{Control: ctl, Value: collection}
 //
 //
 // Garbage collection
@@ -102,23 +102,23 @@ import (
 	"sync"
 )
 
-// Version implements the methods to manage a specific version
-type Version interface {
-	UpdateSync(changes []dot.Change) Version
-	UpdateAsync(changes []dot.Change) Version
-	Latest() (interface{}, Version)
-	LatestAt(start, end *int) (interface{}, Version, *int, *int)
-	Child(key string) Version
-	ChildAt(inde int) Version
+// Control implements the methods to manage a specific version
+type Control interface {
+	UpdateSync(changes []dot.Change) Control
+	UpdateAsync(changes []dot.Change) Control
+	Latest() (interface{}, Control)
+	LatestAt(start, end *int) (interface{}, Control, *int, *int)
+	Child(key string) Control
+	ChildAt(inde int) Control
 }
 
 // basis is simply to identify changes
 type basis struct{}
 
-// version holds state about a particular version of a data-structure
+// control holds state about a particular control of a data-structure
 // It does not hold a reference to the data-structure or any event in
 // the past to make sure there are no memory leaks
-type version struct {
+type control struct {
 	sync.Mutex
 	// the basis pointer tags this version so changes can be based
 	// and merged properly
@@ -129,9 +129,9 @@ type version struct {
 	parent
 }
 
-func (v *version) UpdateSync(changes []dot.Change) Version {
+func (v *control) UpdateSync(changes []dot.Change) Control {
 	changes = append([]dot.Change(nil), changes...)
-	result := &version{parent: v.parent}
+	result := &control{parent: v.parent}
 	result.basis = &result.own
 	result.Lock()
 	defer result.Unlock()
@@ -141,9 +141,9 @@ func (v *version) UpdateSync(changes []dot.Change) Version {
 	return result
 }
 
-func (v *version) UpdateAsync(changes []dot.Change) Version {
+func (v *control) UpdateAsync(changes []dot.Change) Control {
 	changes = append([]dot.Change(nil), changes...)
-	result := &version{parent: v.parent}
+	result := &control{parent: v.parent}
 	result.basis = &result.own
 	result.Lock()
 	go func() {
@@ -155,31 +155,31 @@ func (v *version) UpdateAsync(changes []dot.Change) Version {
 	return result
 }
 
-func (v *version) Child(key string) Version {
+func (v *control) Child(key string) Control {
 	// TODO: use a local map and memoize version per key so that
 	// it is properly synchronized?
-	return &version{parent: &dictitem{key, v.parent}, basis: v.basis}
+	return &control{parent: &dictitem{key, v.parent}, basis: v.basis}
 }
 
-func (v *version) ChildAt(index int) Version {
+func (v *control) ChildAt(index int) Control {
 	// TODO: use a local map and memoize version per key so that
 	// it is properly synchronized?
 	key := strconv.Itoa(index)
 	item := &arrayitem{key: key, index: index, array: v.parent}
-	return &version{parent: item, basis: v.basis}
+	return &control{parent: item, basis: v.basis}
 }
 
-func (v *version) Latest() (interface{}, Version) {
+func (v *control) Latest() (interface{}, Control) {
 	val, parent, _, b := v.parent.Latest(nil, v.basis)
 	if parent == nil {
 		return nil, nil
 	}
 	val = unwrap(val)
 
-	return val, &version{parent: parent, basis: b}
+	return val, &control{parent: parent, basis: b}
 }
 
-func (v *version) LatestAt(startp, endp *int) (interface{}, Version, *int, *int) {
+func (v *control) LatestAt(startp, endp *int) (interface{}, Control, *int, *int) {
 	var nilpath *dot.RefPath
 	val, parent, _, b := v.parent.Latest(nil, v.basis)
 	if parent == nil {
@@ -201,7 +201,7 @@ func (v *version) LatestAt(startp, endp *int) (interface{}, Version, *int, *int)
 		endp = &end
 	}
 
-	return val, &version{parent: parent, basis: b}, startp, endp
+	return val, &control{parent: parent, basis: b}, startp, endp
 }
 
 // TODO: move this unwrap crap into Encoding
@@ -238,9 +238,9 @@ func unwrap(i interface{}) interface{} {
 }
 
 // New returns a new version
-func New(initial interface{}) Version {
+func New(initial interface{}) Control {
 	r := &root{v: initial}
-	return &version{parent: r, basis: &r.own}
+	return &control{parent: r, basis: &r.own}
 }
 
 var x = dot.Transformer{}

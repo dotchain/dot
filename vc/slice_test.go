@@ -8,11 +8,11 @@ import "fmt"
 
 func ExampleSlice_SpliceSync_insertionOrder() {
 	initial := []interface{}{1, 2, 3}
-	slice := Slice{Version: New(initial), Value: initial}
+	slice := Slice{Control: New(initial), Value: initial}
 
 	// SpliceSync behaves like an immutable Splice
 	for kk := 5; kk < 10; kk++ {
-		v := slice.SpliceSync(1, 0, []interface{}{kk})
+		v := slice.Splice(1, 0, []interface{}{kk})
 		fmt.Println("Inserted", v.Value)
 	}
 
@@ -32,14 +32,14 @@ func ExampleSlice_SpliceSync_insertionOrder() {
 
 func ExampleSlice_SpliceSync_slices() {
 	initial := []interface{}{1, 2, 3, 4, 5}
-	slice := Slice{Version: New(initial), Value: initial}
+	slice := Slice{Control: New(initial), Value: initial}
 
 	// we can create window into this slice ([2 3 4]) like so:
 	window := slice.Slice(1, 4)
 	fmt.Println("Window", window.Value)
 
 	// we can edit the original slice like so:
-	slice.SpliceSync(3, 0, []interface{}{3.5})
+	slice.Splice(3, 0, []interface{}{3.5})
 
 	// and update just the window like so:
 	wlatest, _ := window.Latest()
@@ -48,7 +48,7 @@ func ExampleSlice_SpliceSync_slices() {
 
 	// Further more, we can edit the window separately
 	// and see things merge cleanly as well
-	window = window.SpliceSync(1, 0, []interface{}{2.5})
+	window = window.Splice(1, 0, []interface{}{2.5})
 	wlatest, _ = window.Latest()
 	latest, _ = slice.Latest()
 
@@ -67,16 +67,16 @@ func ExampleSlice_SpliceSync_slices() {
 
 func ExampleSlice_SpliceSync_branches() {
 	initial := []interface{}{1, 2, 3, 4, 5}
-	slice := Slice{Version: New(initial), Value: initial}
+	slice := Slice{Control: New(initial), Value: initial}
 
 	// branch has value [1, 2, 4, 5]
-	branch := slice.SpliceSync(2, 1, nil)
+	branch := slice.Splice(2, 1, nil)
 
 	// update the parent directly to: [0.5, 1, 2, 3, 4, 5, 5.5]
-	slice2 := slice.SpliceSync(0, 0, []interface{}{0.5})
-	slice2.SpliceSync(6, 0, []interface{}{5.5})
+	slice2 := slice.Splice(0, 0, []interface{}{0.5})
+	slice2.Splice(6, 0, []interface{}{5.5})
 	// now update the stale branch to [1, 1.5, 2, 4, 5]
-	branch = branch.SpliceSync(1, 0, []interface{}{1.5})
+	branch = branch.Splice(1, 0, []interface{}{1.5})
 
 	// now verify that latest is properly merged
 	latest, _ := slice.Latest()
@@ -88,12 +88,12 @@ func ExampleSlice_SpliceSync_branches() {
 
 func ExampleSlice_SpliceAsync() {
 	initial := []interface{}{1, 2, 3, 4, 5}
-	slice := Slice{Version: New(initial), Value: initial}
+	slice := Slice{Control: New(initial), Value: initial}
 
 	slice1 := slice.SpliceAsync(0, 0, []interface{}{0})
 	// There are no guarantees at this point that slice.Latest()
 	// has been updated.
-	slice1.SpliceSync(0, 0, []interface{}{0.5})
+	slice1.Splice(0, 0, []interface{}{0.5})
 	// But there is a guarantee that by the time sync returns
 	// the effects of its own history are reflected
 	l, ok := slice.Latest()
@@ -108,22 +108,22 @@ func ExampleSlice_Latest_nested() {
 	initial := []interface{}{
 		[]interface{}{1, 2, 3, 4, 5},
 	}
-	slice := Slice{Version: New(initial), Value: initial}
+	slice := Slice{Control: New(initial), Value: initial}
 
-	inner := slice.Version.ChildAt(0)
-	innerSlice := Slice{Version: inner, Value: initial[0].([]interface{})}
+	inner := slice.Control.ChildAt(0)
+	innerSlice := Slice{Control: inner, Value: initial[0].([]interface{})}
 
-	inner2 := slice.Version.ChildAt(0)
-	inner2Slice := Slice{Version: inner2, Value: initial[0].([]interface{})}
+	inner2 := slice.Control.ChildAt(0)
+	inner2Slice := Slice{Control: inner2, Value: initial[0].([]interface{})}
 
 	// now modify inner and see it reflected on inner2's latest
-	innerSlice.SpliceSync(0, 0, []interface{}{0})
+	innerSlice.Splice(0, 0, []interface{}{0})
 	inner2Latest, _ := inner2Slice.Latest()
 
 	fmt.Println(innerSlice.Value, inner2Slice.Value, inner2Latest.Value)
 
 	// now delete the whole inner slice and see latest fail
-	slice.SpliceSync(0, 1, []interface{}{})
+	slice.Splice(0, 1, []interface{}{})
 	_, ok := inner2Slice.Latest()
 
 	fmt.Println("Latest:", ok)
@@ -135,13 +135,13 @@ func ExampleSlice_Latest_nested() {
 
 func ExampleSlice_MoveSync_moveVsSplice() {
 	initial := []interface{}{1, 2, 3, 4, 5}
-	slice := Slice{Version: New(initial), Value: initial}
+	slice := Slice{Control: New(initial), Value: initial}
 
 	// 2, 3, 4 => right : [1, 5, 2, 3, 4]
-	branch1 := slice.MoveSync(1, 3, 1)
+	branch1 := slice.Move(1, 3, 1)
 
 	// 3 => delete
-	branch2 := slice.SpliceSync(2, 1, nil)
+	branch2 := slice.Splice(2, 1, nil)
 
 	// merge it
 	latest, _ := slice.Latest()
@@ -153,13 +153,13 @@ func ExampleSlice_MoveSync_moveVsSplice() {
 
 func ExampleSlice_MoveAsync_moveVsSplice() {
 	initial := []interface{}{1, 2, 3, 4, 5}
-	slice := Slice{Version: New(initial), Value: initial}
+	slice := Slice{Control: New(initial), Value: initial}
 
 	// 2, 3, 4 => right : [1, 5, 2, 3, 4]
 	branch1 := slice.MoveAsync(1, 3, 1)
 
 	// 3 => delete
-	branch2 := branch1.SpliceSync(3, 1, nil)
+	branch2 := branch1.Splice(3, 1, nil)
 
 	// merge it
 	latest, _ := slice.Latest()

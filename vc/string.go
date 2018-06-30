@@ -11,8 +11,8 @@ import (
 
 // String represents an immutable string slice
 type String struct {
-	// Version is the version control metadata
-	Version
+	// Control is the version control metadata
+	Control
 
 	// Start. End refer to the window into the original slice.
 	// If they are nil, they refer to the logical start/end
@@ -36,7 +36,7 @@ func (l String) String(start, end int) String {
 	offset := len(utf16.Encode([]rune(l.Value[:start])))
 	count := len(utf16.Encode([]rune(value)))
 
-	result := String{Version: l.Version, Value: value}
+	result := String{Control: l.Control, Value: value}
 	if start != 0 || l.Start != nil {
 		result.Start = l.add(l.Start, offset)
 	}
@@ -48,11 +48,11 @@ func (l String) String(start, end int) String {
 	return result
 }
 
-// SpliceSync synchronously splices and returns the new slice.  If
+// Splice synchronously splices and returns the new slice.  If
 // there were other changes done on the String before this operation,
 // that will not be reflected in the output but it will be guaranteed
 // to be reflected in the next call  to Latest.
-func (l String) SpliceSync(offset, removeCount int, replacement string) String {
+func (l String) Splice(offset, removeCount int, replacement string) String {
 	before := l.Value[offset : offset+removeCount]
 	value := l.Value[:offset] + replacement + l.Value[offset+removeCount:]
 
@@ -63,9 +63,9 @@ func (l String) SpliceSync(offset, removeCount int, replacement string) String {
 	o := *l.add(l.Start, offset)
 	splice := &dot.SpliceInfo{Offset: o, Before: before, After: replacement}
 	c := dot.Change{Splice: splice}
-	version := l.Version.UpdateSync([]dot.Change{c})
+	version := l.Control.UpdateSync([]dot.Change{c})
 	start, end := l.spliceOffsets(offset, removeCount, len(utf16.Encode([]rune(replacement))))
-	return String{Version: version, Value: value, Start: start, End: end}
+	return String{Control: version, Value: value, Start: start, End: end}
 }
 
 // SpliceAsync asynchronously splices and returns the new slice.  If
@@ -83,16 +83,16 @@ func (l String) SpliceAsync(offset, removeCount int, replacement string) String 
 	o := *l.add(l.Start, offset)
 	splice := &dot.SpliceInfo{Offset: o, Before: before, After: replacement}
 	c := dot.Change{Splice: splice}
-	version := l.Version.UpdateAsync([]dot.Change{c})
+	version := l.Control.UpdateAsync([]dot.Change{c})
 	start, end := l.spliceOffsets(offset, removeCount, len(utf16.Encode([]rune(replacement))))
-	return String{Version: version, Value: value, Start: start, End: end}
+	return String{Control: version, Value: value, Start: start, End: end}
 }
 
 // Latest returns the latest value. The current object may have been
 // deleted, in which case it returns the zero value and sets the bool
 // to false.
 func (l String) Latest() (String, bool) {
-	v, ver, start, end := l.Version.LatestAt(l.Start, l.End)
+	v, ver, start, end := l.Control.LatestAt(l.Start, l.End)
 	if ver == nil {
 		return String{}, false
 	}
@@ -107,7 +107,7 @@ func (l String) Latest() (String, bool) {
 	}
 
 	val := string(utf16.Decode(value[s:e:e]))
-	return String{Value: val, Start: start, End: end, Version: ver}, true
+	return String{Value: val, Start: start, End: end, Control: ver}, true
 }
 
 func (l String) spliceOffsets(offset, removeCount, replaceCount int) (*int, *int) {
