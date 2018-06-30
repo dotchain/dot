@@ -6,7 +6,7 @@ package vc
 
 import "fmt"
 
-func ExampleString_SpliceSync_insertionOrder() {
+func ExampleString_Splice_insertionOrder() {
 	initial := "123"
 	str := String{Control: New(initial), Value: initial}
 
@@ -30,7 +30,7 @@ func ExampleString_SpliceSync_insertionOrder() {
 	// Latest 15678923
 }
 
-func ExampleString_SpliceSync_strs() {
+func ExampleString_Splice_strs() {
 	initial := "12345"
 	str := String{Control: New(initial), Value: initial}
 
@@ -65,7 +65,7 @@ func ExampleString_SpliceSync_strs() {
 	// New Window, Latest 2T3E4 12T3E45
 }
 
-func ExampleString_SpliceSync_branches() {
+func ExampleString_Splice_branches() {
 	initial := "12345"
 	str := String{Control: New(initial), Value: initial}
 

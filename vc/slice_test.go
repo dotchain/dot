@@ -6,18 +6,18 @@ package vc
 
 import "fmt"
 
-func ExampleSlice_SpliceSync_insertionOrder() {
+func ExampleSlice_Splice_insertionOrder() {
 	initial := []interface{}{1, 2, 3}
 	slice := Slice{Control: New(initial), Value: initial}
 
-	// SpliceSync behaves like an immutable Splice
+	// Splice behaves like an immutable Splice
 	for kk := 5; kk < 10; kk++ {
 		v := slice.Splice(1, 0, []interface{}{kk})
 		fmt.Println("Inserted", v.Value)
 	}
 
 	// Splice makes a weak guarantee that insertions at the same
-	// will be ordered in the order of calls to SpliceSync
+	// will be ordered in the order of calls to Splice
 	latest, _ := slice.Latest()
 	fmt.Println("Latest", latest.Value)
 
@@ -30,7 +30,7 @@ func ExampleSlice_SpliceSync_insertionOrder() {
 	// Latest [1 5 6 7 8 9 2 3]
 }
 
-func ExampleSlice_SpliceSync_slices() {
+func ExampleSlice_Splice_slices() {
 	initial := []interface{}{1, 2, 3, 4, 5}
 	slice := Slice{Control: New(initial), Value: initial}
 
@@ -65,7 +65,7 @@ func ExampleSlice_SpliceSync_slices() {
 	// New Window, Latest [2 2.5 3 3.5 4] [1 2 2.5 3 3.5 4 5]
 }
 
-func ExampleSlice_SpliceSync_branches() {
+func ExampleSlice_Splice_branches() {
 	initial := []interface{}{1, 2, 3, 4, 5}
 	slice := Slice{Control: New(initial), Value: initial}
 
@@ -133,7 +133,7 @@ func ExampleSlice_Latest_nested() {
 	// Latest: false
 }
 
-func ExampleSlice_MoveSync_moveVsSplice() {
+func ExampleSlice_Move_moveVsSplice() {
 	initial := []interface{}{1, 2, 3, 4, 5}
 	slice := Slice{Control: New(initial), Value: initial}
 

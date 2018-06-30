@@ -6,7 +6,7 @@ package vc
 
 import "fmt"
 
-func ExampleMap_WithKeySync_updateOrder() {
+func ExampleMap_SetKey() {
 	initial := map[string]interface{}{"x": 1}
 	m := Map{Control: New(initial), Value: initial}
 
@@ -27,7 +27,7 @@ func ExampleMap_WithKeySync_updateOrder() {
 	// map[x:1] => map[x:5]
 }
 
-func ExampleMap_WithKeySync_branches() {
+func ExampleMap_SetKey_branches() {
 	initial := map[string]interface{}{"x": 1, "y": 5}
 	m := Map{Control: New(initial), Value: initial}
 
@@ -50,7 +50,7 @@ func ExampleMap_WithKeySync_branches() {
 	// map[y:40] 1 300 => map[y:300]
 }
 
-func ExampleMap_WithKeyAsync() {
+func ExampleMap_SetKeyAsync() {
 	initial := map[string]interface{}{"x": 1, "y": 5}
 	m := Map{Control: New(initial), Value: initial}
 
