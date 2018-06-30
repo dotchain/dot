@@ -71,6 +71,37 @@ func (l Slice) SpliceAsync(offset, removeCount int, replacement []interface{}) S
 	return Slice{Version: version, Value: value, Start: start, End: end}
 }
 
+// MoveSync synchronously moves the specified elements (from offset to
+// offset + count) by the specified distance (positive moves to the
+// right, negative moves to the left).  It returns a new slice which
+// reflects the effect of the move and the effect of the move is
+// also guaranteed to be reflected in the next Latest call.
+func (l Slice) MoveSync(offset, count, distance int) Slice {
+	move := &dot.MoveInfo{Offset: offset, Count: count, Distance: distance}
+	changes := []dot.Change{{Move: move}}
+	value, _ := unwrap(utils.Apply(l.Value, changes)).([]interface{})
+	version := l.Version.UpdateSync(changes)
+	s, e := l.Start, l.End
+	return Slice{Version: version, Value: value, Start: s, End: e}
+}
+
+// MoveAsync asynchronously moves the specified elements (from offset to
+// offset + count) by the specified distance (positive moves to the
+// right, negative moves to the left).  It returns a new slice which
+// reflects the effect of the move but the effect is not guaranteed to
+//  be reflected into the next Latest() call (as this executes in a
+//  separate go routine). The only guarantee is that caussality is
+//  preserved with any operations on the output Slice being applied
+//  after the current operation is applied.
+func (l Slice) MoveAsync(offset, count, distance int) Slice {
+	move := &dot.MoveInfo{Offset: offset, Count: count, Distance: distance}
+	changes := []dot.Change{{Move: move}}
+	value, _ := unwrap(utils.Apply(l.Value, changes)).([]interface{})
+	version := l.Version.UpdateAsync(changes)
+	s, e := l.Start, l.End
+	return Slice{Version: version, Value: value, Start: s, End: e}
+}
+
 // Latest returns the latest value. The current object may have been
 // deleted, in which case it returns the zero value and sets the bool
 // to false.

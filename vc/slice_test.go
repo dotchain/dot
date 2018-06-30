@@ -132,3 +132,39 @@ func ExampleSlice_Latest_nested() {
 	// [1 2 3 4 5] [1 2 3 4 5] [0 1 2 3 4 5]
 	// Latest: false
 }
+
+func ExampleSlice_MoveSync_moveVsSplice() {
+	initial := []interface{}{1, 2, 3, 4, 5}
+	slice := Slice{Version: New(initial), Value: initial}
+
+	// 2, 3, 4 => right : [1, 5, 2, 3, 4]
+	branch1 := slice.MoveSync(1, 3, 1)
+
+	// 3 => delete
+	branch2 := slice.SpliceSync(2, 1, nil)
+
+	// merge it
+	latest, _ := slice.Latest()
+	fmt.Println(branch1.Value, branch2.Value, latest.Value)
+
+	// Output:
+	// [1 5 2 3 4] [1 2 4 5] [1 5 2 4]
+}
+
+func ExampleSlice_MoveAsync_moveVsSplice() {
+	initial := []interface{}{1, 2, 3, 4, 5}
+	slice := Slice{Version: New(initial), Value: initial}
+
+	// 2, 3, 4 => right : [1, 5, 2, 3, 4]
+	branch1 := slice.MoveAsync(1, 3, 1)
+
+	// 3 => delete
+	branch2 := branch1.SpliceSync(3, 1, nil)
+
+	// merge it
+	latest, _ := slice.Latest()
+	fmt.Println(branch1.Value, branch2.Value, latest.Value)
+
+	// Output:
+	// [1 5 2 3 4] [1 5 2 4] [1 5 2 4]
+}
