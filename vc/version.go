@@ -85,7 +85,7 @@ func (v *version) Latest() (interface{}, Version) {
 	if parent == nil {
 		return nil, nil
 	}
-	val = v.unwrap(val)
+	val = unwrap(val)
 
 	return val, &version{parent: parent, basis: b}
 }
@@ -96,7 +96,7 @@ func (v *version) LatestAt(startp, endp *int) (interface{}, Version, *int, *int)
 	if parent == nil {
 		return nil, nil, nil, nil
 	}
-	val = v.unwrap(val)
+	val = unwrap(val)
 
 	if startp != nil {
 		s := &dot.RefIndex{Index: *startp, Type: dot.RefIndexStart}
@@ -116,7 +116,7 @@ func (v *version) LatestAt(startp, endp *int) (interface{}, Version, *int, *int)
 }
 
 // TODO: move this unwrap crap into Encoding
-func (v *version) unwrap(i interface{}) interface{} {
+func unwrap(i interface{}) interface{} {
 	if i == nil {
 		return nil
 	}
@@ -136,14 +136,14 @@ func (v *version) unwrap(i interface{}) interface{} {
 	if ue.IsArray() {
 		result := make([]interface{}, ue.Count())
 		ue.ForEach(func(offset int, val interface{}) {
-			result[offset] = v.unwrap(val)
+			result[offset] = unwrap(val)
 		})
 		return result
 	}
 
 	result := map[string]interface{}{}
 	ue.ForKeys(func(key string, val interface{}) {
-		result[key] = v.unwrap(val)
+		result[key] = unwrap(val)
 	})
 	return result
 }

@@ -43,8 +43,8 @@ type dictitem struct {
 // path of the changes but this is ok because version.Update creates a
 // copy before calling Bubble
 func (item *dictitem) Bubble(prev, now *basis, changes []dot.Change) {
-	for _, c := range changes {
-		c.Path = append([]string{item.key}, c.Path...)
+	for key, c := range changes {
+		changes[key].Path = append([]string{item.key}, c.Path...)
 	}
 	item.dict.Bubble(prev, now, changes)
 }
