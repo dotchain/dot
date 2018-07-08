@@ -11,8 +11,19 @@
 // Please read https://github.com/dotchain/site/blob/master/Manifesto.md
 // for the overall goals of the project.
 //
+// This package is a fairly low level package.  Most clients are
+// expected to use versioned data structures built on top of this.
+// Please see https://godoc.org/github.com/dotchain/ver for more
+// details on the client solutions built on top of this package.
+//
+// A sample server implementation is available at
+// https://github.com/dotchain/dots with MySQL, Postgres, Mongo and
+// other backend support.
+//
+// The DOT Architecture
+//
 // The DOT Architecture is a pub-sub system which relies on a
-// backend service to provide a consistent order of untrasnformed
+// backend service to provide a consistent order of untransformed
 // operations submitted by multiple clients.
 //
 // This ordered sequence of untransformed operations is a "journal"

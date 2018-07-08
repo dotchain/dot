@@ -20,6 +20,12 @@ are nearing completion though. A candiate v0.9.9 release has been
 tagged. A full release after an initial demo and some related
 bookkeeping is taken care of.
 
+## Client and Server
+
+A native Golang client is available via the [Ver package](https://godoc.org/github.com/dotchain/ver).
+
+A native Golang server implementation (with a variety of backend storage options) is avilable at [dotjs](https://github.com/dotchain/dots)
+
 ## Demo
 
 Please see [dotjs](https://github.com/dotchain/dotjs) for demos.
