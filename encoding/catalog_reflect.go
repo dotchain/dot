@@ -1,4 +1,4 @@
-// +build !js !tiny
+// +build !js,!tiny
 
 // Copyright (C) 2018 Ramesh Vyaghrapuri. All rights reserved.
 // Use of this source code is governed by a MIT-style license

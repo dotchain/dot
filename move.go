@@ -4,10 +4,7 @@
 
 package dot
 
-import (
-	"sort"
-	"strconv"
-)
+import "strconv"
 
 func (t Transformer) mergeMoveMove(c1, c2 Change) ([]Change, []Change) {
 	l := commonPathLength(c1.Path, c2.Path)
@@ -118,7 +115,7 @@ func (t Transformer) splitMoveByOffsets(change Change, unsortedOffsets []int) []
 
 	path, offset, count, distance := change.Path, change.Move.Offset, change.Move.Count, change.Move.Distance
 	sortedOffsets := append([]int{}, unsortedOffsets...)
-	sort.Ints(sortedOffsets)
+	sortInts(sortedOffsets)
 
 	if distance > 0 {
 		// apply operations from the right so that we don't have to rebase offsets against prior moves
@@ -180,5 +177,14 @@ func (t Transformer) mergeMoveSubPath(move, otherSubPath Change) ([]Change, []Ch
 		return otherSubPath.withUpdatedIndex(l, index-count), []Change{move}
 	} else {
 		return []Change{otherSubPath}, []Change{move}
+	}
+}
+
+// simple insertion sort
+func sortInts(a []int) {
+	for i := 1; i < len(a); i++ {
+		for j := i; j > 0 && a[j-1] > a[j]; j-- {
+			a[j], a[j-1] = a[j-1], a[j]
+		}
 	}
 }
