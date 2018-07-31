@@ -222,6 +222,7 @@ func (u Utils) toString(i interface{}) string {
 	if i == nil {
 		return `""`
 	}
+	/* #nosec */
 	b, _ := json.Marshal(i)
 	return string(b)
 }
