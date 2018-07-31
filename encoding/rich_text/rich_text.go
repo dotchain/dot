@@ -14,7 +14,12 @@ import (
 )
 
 func init() {
-	encoding.Default.RegisterConstructor("RichText", NewArray)
+	ctor := func(c encoding.Catalog, m map[string]interface{}) encoding.UniversalEncoding {
+		return NewArray(c, m)
+	}
+
+	key := "github.com/dotchain/dot/encoding/rich_text"
+	encoding.Default.RegisterTypeConstructor("RichText", key, ctor)
 }
 
 // Array is a run length encoding of an attributed string

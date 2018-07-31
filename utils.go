@@ -7,8 +7,6 @@ package dot
 import (
 	"encoding/json"
 	"github.com/dotchain/dot/encoding"
-	"log"
-	"reflect"
 	"strconv"
 )
 
@@ -30,7 +28,7 @@ func (u Utils) AreSame(i1, i2 interface{}) bool {
 	}
 
 	if !ok1 || !ok2 {
-		return reflect.DeepEqual(i1, i2)
+		return deepEqual(i1, i2)
 	}
 
 	if x1 == nil {
@@ -85,7 +83,7 @@ func (u Utils) TryApply(obj interface{}, changes []Change) (result interface{}, 
 	// actual client bug.
 	defer func() {
 		if r := recover(); r != nil {
-			log.Println("TryApply panic'ed", r)
+			// log.Println("TryApply panic'ed", r)
 			result = nil
 			ok = false
 		}
@@ -109,7 +107,7 @@ func (u Utils) TryApply(obj interface{}, changes []Change) (result interface{}, 
 				r := change.Range
 				return u.tryApplyRange(input, r.Offset, r.Count, r.Changes)
 			}
-			log.Println("Ignoring empty", input)
+			// log.Println("Ignoring empty", input)
 			return input, true
 		})
 		if !ok {
