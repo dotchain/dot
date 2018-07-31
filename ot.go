@@ -2,150 +2,122 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-// Package dot implements conflict free stateless transforms
-// that form the basis for a larger platform
+// Package dot implements core operational transforms for composable
+// JSON arrays and objects
 //
-// Please read http://github.com/dotchain/site/blob/master/IntroductionToOperationalTransforms.md
-// for an overview of Operational Transforms as used here.
+// Clients and servers
 //
-// Please read https://github.com/dotchain/site/blob/master/Manifesto.md
-// for the overall goals of the project.
+// This package is a low level transformation library.  It does
+// not include any client or server implementations.  Please see
+// https://godoc.org/github.com/dotchain/ver for an usable client
+// library. Please ssee https://github.com/dotchain/dots for server
+// implementations.
 //
-// This package is a fairly low level package.  Most clients are
-// expected to use versioned data structures built on top of this.
-// Please see https://godoc.org/github.com/dotchain/ver for more
-// details on the client solutions built on top of this package.
+// Quick Introduction to Operational Transforms
 //
-// A sample server implementation is available at
-// https://github.com/dotchain/dots with MySQL, Postgres, Mongo and
-// other backend support.
+// Operational transformation is a technique for conflict-free
+// synchronization of data that bears similarity to git. Each change
+// of the data is represented as a compact data structure that is
+// streamed to all other clients.  A transformation procedure is used
+// to "reconcile" two changes made on the same initial state on
+// separate clients, to bring them both into convergence.
 //
-// The DOT Architecture
+// For example, if the intial data is the string "!hello world" and
+// two independent changes were made: move the exclamation mark to the
+// end and insert a comma after the "hello".  These can be encoded as
+// changes like so:
 //
-// The DOT Architecture is a pub-sub system which relies on a
-// backend service to provide a consistent order of untransformed
-// operations submitted by multiple clients.
+//     move from offset 0 count 1 to the right by 11
+//     insert at offset 6 ","
 //
-// This ordered sequence of untransformed operations is a "journal"
-// and can be accessed by a simple protocol defined in
-// https://github.com/dotchain/site/blob/master/Protocol.md.
+// Now if each of those client directly applied the change from the
+// other client, the results would not converge: "hello ,world!" and
+// "hello, worl!d".  The trick with operational transformation is to
+// transform the two operations against each other such that applying
+// the transformed operations converges:
 //
-// An implementation of this journal protocol is available here:
-// https://godoc.org/github.com/dotchain/dots/journal
+//     move from offset 0 count 1 to the right by 11
+//        + insert at offset 5 ","
 //
-// The raw sequence of operations in the journal can be transformed
-// using the #Log struct.  If the client has local changes, it can
-// calculate the "compensating actions" that can be safely applied
-// to get the converged state.  The #ClientLog struct helps with
-// this.
+//     insert at offset 5 ","//
+//        + move from offset 0 count 1 to the right by 12
 //
-// It is more practical for clients to simply use the "log" protocol
-// which implements the reconciliation procedure transforming all
-// the operations internally and providing the client with the
-// sequence of "compensating actions".  This makes it easy to implement
-// clients as the clients no longer even need to understand or implement
-// operational transforms.
 //
-// This log protocol is also documented at
-// https://github.com/dotchain/site/blob/master/Protocol.md and
-// a reference implementation is available at
-// https://godoc.org/github.com/dotchain/dots/log
+// Stateless transforms and chaining
 //
-// Note that reconcilers can also be implemented on the client side
-// for added responsiveness in situations where clients are almost
-// constantly editing collaboratively.
+// As described above, the individual changes can be represented in a
+// compac way without reference to the actual data structure. In
+// addition, by careful choice, one can set up the changes so that the
+// changes can be transformed against one another without reference to
+// the current state of the data.  All changes and transformations in
+// this package are stateless.
 //
-// This package implements the core transformation engine via:
-// the Transformer (which implements the actual Merge actions),
-// the Log (which implements the mechanism which converts journal
-// operations to rebased operations clients can apply) and the ClientLog
-// (which implements the reconciliation mechanisms and provides the
-// compensating actions for clients to apply to their local models)
+// Note that it is only legal to transform two changes if they were
+// both based on the same initial state. If there are multiple
+// operations off the same initial state, one can recursively
+// transform the list and this is the central premise.
 //
-// Virtual JSON model
+// Changes and operations
 //
-// The unit of granularity for syncing is a Model. The DOT engine
-// interprets each Model as a logical JSON entity (i.e. a tree of
-// JSON objects and arrays). The real representation can be anything
-// but the changes operate on the logical model.  When clients actually
-// apply the operations they would need to figure out the right
-// way to apply them based on the real type/schema of the model.
+// This package defines four Change types: Set, Splice, Move and
+// Range. Set is used to set (and delete) a key in a dictionary while
+// the other three operations apply to collections. It is possible to
+// implement quite a few interesting types on top of these
+// operations. For example, a simple integer counter can be
+// implemented as an array of integers -- each increment simply an
+// insertion into this array.  This might seem like a wasteful
+// approach as the array would keep growing in size -- but note that
+// only the change needs to be represented in such fashion.  The
+// actual client can choose to implement the underlying data structure
+// as an integer.
 //
-// The smallest granularity mutation is represented via a #Change
-// struct.  This struct has the path where the mutation is happening.
-// The actual Change structure is a union of #SpliceInfo, #MoveInfo,
-// #RangeInfo or #SetInfo types.  Since Go does not have native
-// union types, this is modeled with a struct where only one of the
-// four values are set.
+// The change also includes a Path to deal with composition.  For
+// example, if the core data structure was an array of arrays, editing
+// the inner array would cause the path to be set to the index in the
+// outer array.  Similarly, for objects, the path is set to the key of
+// the item.
 //
-// In reality, most models will have a much richer mutation semantics
-// than just these three operations.  For example, Rich Text may
-// support "bolding" of a region of text. Please see
-// https://github.com/dotchain/site/blob/master/ComposableOperations.md
-// for a discussion of how this can be achieved in DOT.
+// Operations are collections of changes with an ID to uniquely
+// identify the operation.  In addition, each operation contains a
+// Parent field where the first element represents the **BasisID** and
+// the second represents the **ParentID**.  The core model of this
+// package is the assumption that there is a central server where the
+// operations are persisted in a consistent order.  The BasisID refers
+// to the ID of the last operation that a client has applied locally
+// (after transformations) that it received from this persisted
+// log. In addition, the client may have done a sequence of local
+// operation.  Each such local operation would set the ParentID to be
+// the last local operation.  See the DOT protocol documentation for
+// further details on these IDs
+// (https://github.com/dotchain/site/blob/master/Protocol.md).
 //
-// Most of these individual changes are weakly typed.  #SpliceInfo,
-// for instance, can represent the splice action on a string or an array
-// or a run length encoded array. #SetInfo similarly works
-// with string keys but arbitrary interface types for the value.
-// This makes it convenient when working with a JSON schema but does not
-// preclude applying the operations to a strongly typed state object.
+// Transformer, Log and ClientLog
 //
-// #Transformer
+// The main export of this package is the Transformer type which
+// provides the functionality to transform any set of changes or
+// operations based on the same initial state.
 //
-// For those not familar with OT, please read
-// https://github.com/dotchain/dot/blob/master/IntroductionToOperationalTransforms
-// for a gentle introduction to the topic as it pertains to DOT
+// The Log type provides additional support for taking a raw sequence
+// of operations in the order that they are persisted (with their
+// varying BasisID and ParentID) and transforming them into version
+// that can be applied to derive the model needed.
 //
-// The heart of the logic of OT is a set of low-level merge functions
-// that can take any two primitive #Change mutations (that were applied
-// to the same initial model independently) and find equivalent
-// "compensating" Change values, which when applied on top of
-// the corresponding initial mutations will converge to the exact same state.
-// These standard functions are implemented by the #Transformer struct.
+// References
 //
-// This provides the backbone for implementing a richer construct -- if
-// two different clients have independently made a sequence of mutations
-// (not just single changes), can we "converge" these two clients
-// to the same state reliably?
+// A particularly useful construct is the idea of a reference within
+// the JSON object.  A path into the JSON object would need to change
+// as operations are applied because an item within an array may
+// change index due to an insertion before that item.  The Ref type
+// helps manage this process.
 //
-// The #Transformer.MergeChanges method does exactly that by using the
-// single mutation merge function as the basis to repeatedly transform
-// operations. The return value is a matching pair of "compensating"
-// mutations that converge the two states.
+// Undos
 //
-// An advanced version of the transformation is the #Log.AppendOperation
-// function which transforms an operation with arbitrary basis (i.e. does
-// not have to be directly on top of the last operation) against the
-// journal (which is the authoritative ordered sequence of operations)
-// into a "rebased" operation.  The rebased operation can be applied on
-// top of the journal safely to construct the cumulative model state.
-//
-// The #ClientLog component uses the Log structure and its helper methods
-// to find the set of compensating actions that a client can take to
-// merge changes from the server into the client model.
-//
-// #References
-//
-// Real world applications frequently have the need to maintain
-// references within the virtual JSON.  Any node in the virtual JSON
-// can be uniquely identified by a path of the index/key sequence --
-// similar to the path used with the Change structure.
-//
-// But the value behind a path changes as operations happen. The
-// RefPath structure provides the tools to transform the paths along
-// with the changes applied so that their logical meaning is
-// maintained.  For example, if the original path was into a
-// particular element in an array  and the array had a move operation,
-// the new path would  refer to the same element in its new position
-// within the array.
-//
-// It is tricky to store references within the virtual JSON as one
-// would need to know the exact basis to capture the meaning of the
-// reference path.  So, references should always be stored with the
-// parents similar to how Operations are defined. The Reference
-// structure captures this and the ClientLog provides the mechanism to
-// resolve references.
+// Each change is represented in a way that its undo can be calculated
+// without reference to the original state. There are some
+// complications with undos when remote changes can intervene local
+// changes. While the transforms in this package guarantee
+// convergence, there will be some unexpected effects if remote
+// operations intervene that affect the same region.
 package dot
 
 // TODO: replace with a smaller library so it won't explode when used with GopherJS
