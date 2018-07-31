@@ -4,11 +4,7 @@
 
 package encoding
 
-import (
-	"encoding/json"
-	"reflect"
-	"sync"
-)
+import "encoding/json"
 
 // Default is the default catalog that encodings register with.
 var Default = NewCatalog()
@@ -28,8 +24,7 @@ type constructor func(Catalog, map[string]interface{}) UniversalEncoding
 
 type catalog struct {
 	names map[string]constructor
-	types map[reflect.Type]constructor
-	sync.Mutex
+	types map[interface{}]constructor
 }
 
 // Catalog is a copyable thread-safe collection of encodings.
@@ -45,7 +40,7 @@ type Catalog struct {
 func NewCatalog() Catalog {
 	c := &catalog{
 		names: map[string]constructor{},
-		types: map[reflect.Type]constructor{},
+		types: map[interface{}]constructor{},
 	}
 	return Catalog{catalog: c}
 }
@@ -125,78 +120,39 @@ func (c Catalog) getConstructor(name string) constructor {
 		return Default.getConstructor(name)
 	}
 
-	c.Lock()
-	defer c.Unlock()
 	ctor := c.names[name]
 	if ctor != nil || c.catalog == Default.catalog {
 		return ctor
 	}
-	Default.Lock()
-	defer Default.Unlock()
 	return Default.names[name]
 }
 
 // RegisterTypeConstructor associates a name (such as "dot:utf16")
 // with a type and a constructor (which returns that type).
 //
-// The return type from the constructor must implement either
-// ObjectLike or ArrayLike (or both).  The returned
-// value from the constructor should also properly deal with JSON
-// formatting by implementing MarshalJSON as defined in encoding/json.
-func (c Catalog) RegisterTypeConstructor(name string, t reflect.Type, fn func(Catalog, map[string]interface{}) UniversalEncoding) {
-	c.Lock()
-	defer c.Unlock()
-
+// To avaid importing the reflect package unnecessarily, the
+// returnType arg is weakly typed.
+func (c Catalog) RegisterTypeConstructor(name string, returnType interface{}, fn func(Catalog, map[string]interface{}) UniversalEncoding) {
 	c.names[name] = fn
-	c.types[t] = fn
+	c.types[returnType] = fn
 }
 
-// RegisterConstructor registers the constructor of an encoding, typically
-// called during init of an encoding package
-func (c Catalog) RegisterConstructor(name string, fn interface{}) {
-	fType := reflect.TypeOf(fn)
-	if fType.Kind() != reflect.Func {
-		panic(errNotFunction)
+// RegisterArrayConstructor is a minor variation on
+// RegisterTypeConstrutor where the constructor function returns an
+// ArrayLike type instead of UniversalEncoding
+func (c Catalog) RegisterArrayConstructor(name string, returnType interface{}, fn func(Catalog, map[string]interface{}) ArrayLike) {
+	f := func(c Catalog, m map[string]interface{}) UniversalEncoding {
+		return enrichArrayIfNeeded(fn(c, m))
 	}
+	c.RegisterTypeConstructor(name, returnType, f)
+}
 
-	if fType.NumIn() != 2 {
-		panic(errNumArgs)
+// RegisterObjectConstructor is a minor variation on
+// RegisterTypeConstrutor where the constructor function returns an
+// ObjectLike type instead of UniversalEncoding
+func (c Catalog) RegisterObjectConstructor(name string, returnType interface{}, fn func(c Catalog, m map[string]interface{}) ObjectLike) {
+	f := func(c Catalog, m map[string]interface{}) UniversalEncoding {
+		return enrichObjectIfNeeded(fn(c, m))
 	}
-
-	if fType.In(0) != reflect.TypeOf(c) {
-		panic(errFirstArgMustBeCatalog)
-	}
-
-	var dummy map[string]interface{}
-	if fType.In(1) != reflect.TypeOf(dummy) {
-		panic(errSecondArgMustBeMap)
-	}
-
-	if fType.NumOut() != 1 {
-		panic(errSingleReturnValue)
-	}
-
-	resultType := fType.Out(0)
-	zero := reflect.Zero(resultType).Interface()
-	if _, ok := zero.(ArrayLike); ok {
-		ctor := func(cat Catalog, m map[string]interface{}) UniversalEncoding {
-			args := []reflect.Value{reflect.ValueOf(cat), reflect.ValueOf(m)}
-			val := reflect.ValueOf(fn).Call(args)[0].Interface()
-			return enrichArrayIfNeeded(val.(ArrayLike))
-		}
-		c.RegisterTypeConstructor(name, resultType, ctor)
-		return
-	}
-
-	if _, ok := zero.(ObjectLike); ok {
-		ctor := func(cat Catalog, m map[string]interface{}) UniversalEncoding {
-			args := []reflect.Value{reflect.ValueOf(cat), reflect.ValueOf(m)}
-			val := reflect.ValueOf(fn).Call(args)[0].Interface()
-			return enrichObjectIfNeeded(val.(ObjectLike))
-		}
-		c.RegisterTypeConstructor(name, resultType, ctor)
-		return
-	}
-
-	panic(errUnexpectedType)
+	c.RegisterTypeConstructor(name, returnType, f)
 }
