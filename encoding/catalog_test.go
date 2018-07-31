@@ -6,6 +6,7 @@ package encoding_test
 
 import (
 	"github.com/dotchain/dot/encoding"
+	"reflect"
 	"testing"
 )
 
@@ -34,4 +35,24 @@ func TestCatalogRegistration(t *testing.T) {
 	shouldPanic(t, "invalid return type", func() {
 		register("ok", func(encoding.Catalog, map[string]interface{}) int { return 0 })
 	})
+}
+
+func TestCatalogUnget(t *testing.T) {
+	validate := func(i interface{}, message string) {
+		result := encoding.Unget(encoding.Get(i))
+		if !reflect.DeepEqual(i, result) {
+			t.Error("Failed to unget", message, i, result)
+		}
+	}
+
+	validate(nil, "")
+	validate("hello", "string")
+	validate([]interface{}{1, "5"}, "array")
+	validate(map[string]interface{}{"hello": 5}, "map")
+	validate(map[string]interface{}{"hello": []interface{}{1, 2}}, "map of arrays")
+	validate([]interface{}{[]interface{}{1, 2}}, "array of arrays")
+
+	if !reflect.DeepEqual(encoding.Unget(1), 1) {
+		t.Error("Failed to unget 1", encoding.Unget(1))
+	}
 }
