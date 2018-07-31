@@ -20,6 +20,17 @@ func (s String16) TestAll(t *testing.T) {
 	t.Run("End", s.TestEnd)
 	t.Run("ArrayInserts", s.TestArrayInserts)
 	t.Run("DictionaryInserts", s.TestDictionaryInserts)
+	t.Run("ToString", s.TestToString)
+}
+
+func (String16) TestToString(t *testing.T) {
+	ensureEqual(t, "", encoding.ToString(""))
+	ensureEqual(t, "", encoding.ToString(nil))
+	ensureEqual(t, "", encoding.ToString(encoding.Get("")))
+	ensureEqual(t, "", encoding.ToString(22))
+	ensureEqual(t, "hello", encoding.ToString("hello"))
+	ensureEqual(t, "hello", encoding.ToString(encoding.Get("hello")))
+	ensureEqual(t, "hello", encoding.ToString(encoding.NewString16("hello")))
 }
 
 func (String16) TestEmpty(t *testing.T) {

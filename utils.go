@@ -5,7 +5,6 @@
 package dot
 
 import (
-	"encoding/json"
 	"github.com/dotchain/dot/encoding"
 	"strconv"
 )
@@ -17,7 +16,7 @@ type Utils Transformer
 // equivalent.
 func (u Utils) AreSame(i1, i2 interface{}) bool {
 	if encoding.IsString(i1) && encoding.IsString(i2) {
-		return u.toString(i1) == u.toString(i2)
+		return encoding.ToString(i1) == encoding.ToString(i2)
 	}
 
 	x1, ok1 := u.C.TryGet(i1)
@@ -214,15 +213,6 @@ func (u Utils) isEmpty(e encoding.UniversalEncoding) bool {
 	count := 0
 	e.ForKeys(func(string, interface{}) { count++ })
 	return count == 0
-}
-
-func (u Utils) toString(i interface{}) string {
-	if i == nil {
-		return `""`
-	}
-	/* #nosec */
-	b, _ := json.Marshal(i)
-	return string(b)
 }
 
 func (u Utils) check(i interface{}, ok bool) interface{} {
