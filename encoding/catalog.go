@@ -5,6 +5,7 @@
 package encoding
 
 import (
+	"encoding/json"
 	"github.com/pkg/errors"
 	"reflect"
 	"sync"
@@ -17,6 +18,11 @@ var Default = NewCatalog()
 // type that DOT can work with
 func Get(i interface{}) UniversalEncoding {
 	return Default.Get(i)
+}
+
+// Unget does the reverse of Get
+func Unget(i interface{}) interface{} {
+	return Default.Unget(i)
 }
 
 type constructor func(Catalog, map[string]interface{}) UniversalEncoding
@@ -83,6 +89,36 @@ func (c Catalog) Get(i interface{}) UniversalEncoding {
 		return result
 	}
 	panic(errors.Errorf("Unknown encoding %#v", i))
+}
+
+// Unget reverses any wrapping done by Get but does not do this recursively.
+func (c Catalog) Unget(i interface{}) interface{} {
+	if i == nil {
+		return nil
+	}
+
+	switch i := i.(type) {
+	case enrichArray:
+		return c.Unget(i.ArrayLike)
+	case Array:
+		return c.Unget(i.v)
+	case enrichObject:
+		return c.Unget(i.ObjectLike)
+	case Dict:
+		return map[string]interface{}(i)
+	case UniversalEncoding, String16:
+		b, err := json.Marshal(i)
+		if err != nil {
+			panic(err)
+		}
+		var result interface{}
+		if err = json.Unmarshal(b, &result); err != nil {
+			panic(err)
+		}
+		return result
+	default:
+		return i
+	}
 }
 
 func (c Catalog) getConstructor(name string) constructor {

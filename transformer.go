@@ -5,8 +5,8 @@
 package dot
 
 import (
+	"errors"
 	"github.com/dotchain/dot/encoding"
-	"github.com/pkg/errors"
 )
 
 // ErrMergeWithSelf is used by MergeOperations if it finds two operations

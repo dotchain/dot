@@ -4,7 +4,7 @@
 
 package dot
 
-import "github.com/pkg/errors"
+import "errors"
 
 // ErrMissingParentOrBasis error indicates an operation has a basis
 // ID or parent ID that is not present in the journal before it.
