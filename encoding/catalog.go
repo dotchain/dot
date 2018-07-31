@@ -6,7 +6,6 @@ package encoding
 
 import (
 	"encoding/json"
-	"github.com/pkg/errors"
 	"reflect"
 	"sync"
 )
@@ -88,7 +87,7 @@ func (c Catalog) Get(i interface{}) UniversalEncoding {
 	if result, ok := c.TryGet(i); ok {
 		return result
 	}
-	panic(errors.Errorf("Unknown encoding %#v", i))
+	panic(errUnknownEncoding)
 }
 
 // Unget reverses any wrapping done by Get but does not do this recursively.
@@ -157,24 +156,24 @@ func (c Catalog) RegisterTypeConstructor(name string, t reflect.Type, fn func(Ca
 func (c Catalog) RegisterConstructor(name string, fn interface{}) {
 	fType := reflect.TypeOf(fn)
 	if fType.Kind() != reflect.Func {
-		panic(errors.Errorf(`Type "%s" is not a function`, fType.Name()))
+		panic(errNotFunction)
 	}
 
 	if fType.NumIn() != 2 {
-		panic(errors.Errorf(`Ctor "%s" is not of the form func (Catalog, map[string]interface{}) ResultType`, fType.Name()))
+		panic(errNumArgs)
 	}
 
 	if fType.In(0) != reflect.TypeOf(c) {
-		panic(errors.Errorf(`Ctor "%s" first arg type msut be Catalog`, fType.Name()))
+		panic(errFirstArgMustBeCatalog)
 	}
 
 	var dummy map[string]interface{}
 	if fType.In(1) != reflect.TypeOf(dummy) {
-		panic(errors.Errorf(`Ctor "%s" second arg type must be  map[string]interface{}`, fType.Name()))
+		panic(errSecondArgMustBeMap)
 	}
 
 	if fType.NumOut() != 1 {
-		panic(errors.Errorf(`Ctor "%s" is not of the form func (Catalog, map[string]interface{}) ResultType`, fType.Name()))
+		panic(errSingleReturnValue)
 	}
 
 	resultType := fType.Out(0)
@@ -199,5 +198,5 @@ func (c Catalog) RegisterConstructor(name string, fn interface{}) {
 		return
 	}
 
-	panic(errors.Errorf(`Ctor "%s" does not return ArrayLike or ObjectLike`, fType.Name()))
+	panic(errUnexpectedType)
 }

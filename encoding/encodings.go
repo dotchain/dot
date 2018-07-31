@@ -19,7 +19,6 @@ package encoding
 
 import (
 	"encoding/json"
-	"github.com/pkg/errors"
 	"strconv"
 )
 
@@ -53,7 +52,7 @@ type enrichArray struct{ ArrayLike }
 func (e enrichArray) Get(key string) interface{} {
 	i, err := strconv.Atoi(key)
 	if err != nil {
-		panic(errors.Wrapf(err, `array key "%s" is not a number`, key))
+		panic(errArrayKeyIsNotNumber)
 	}
 
 	var result interface{}
@@ -66,7 +65,7 @@ func (e enrichArray) Get(key string) interface{} {
 func (e enrichArray) Set(key string, value interface{}) ObjectLike {
 	i, err := strconv.Atoi(key)
 	if err != nil {
-		panic(errors.Wrapf(err, `array key "%s" is not a number`, key))
+		panic(errArrayKeyIsNotNumber)
 	}
 
 	r := e.RangeApply(i, 1, func(_ interface{}) interface{} {
@@ -92,23 +91,23 @@ func (e enrichArray) IsArray() bool {
 type enrichObject struct{ ObjectLike }
 
 func (enrichObject) Count() int {
-	panic(errors.New("Count() cannot be called on objects"))
+	panic(errMethodNotSupported)
 }
 
 func (enrichObject) Slice(offset, count int) ArrayLike {
-	panic(errors.New("Slice() cannot be called on objects"))
+	panic(errMethodNotSupported)
 }
 
 func (enrichObject) Splice(offset int, before, after interface{}) ArrayLike {
-	panic(errors.New("Splice() cannot be called on objects"))
+	panic(errMethodNotSupported)
 }
 
 func (enrichObject) RangeApply(offset, count int, fn func(interface{}) interface{}) ArrayLike {
-	panic(errors.New("RangeApply() cannot be called on objects"))
+	panic(errMethodNotSupported)
 }
 
 func (enrichObject) ForEach(func(offset int, val interface{})) {
-	panic(errors.New("ForEach() cannot be called on objects"))
+	panic(errMethodNotSupported)
 }
 
 func (o enrichObject) MarshalJSON() ([]byte, error) {
