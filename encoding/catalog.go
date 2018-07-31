@@ -4,7 +4,7 @@
 
 package encoding
 
-import "encoding/json"
+import "unicode/utf16"
 
 // Default is the default catalog that encodings register with.
 var Default = NewCatalog()
@@ -100,16 +100,8 @@ func (c Catalog) Unget(i interface{}) interface{} {
 		return c.Unget(i.ObjectLike)
 	case Dict:
 		return map[string]interface{}(i)
-	case UniversalEncoding, String16:
-		b, err := json.Marshal(i)
-		if err != nil {
-			panic(err)
-		}
-		var result interface{}
-		if err = json.Unmarshal(b, &result); err != nil {
-			panic(err)
-		}
-		return result
+	case String16:
+		return string(utf16.Decode(i))
 	default:
 		return i
 	}

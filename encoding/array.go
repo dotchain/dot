@@ -4,19 +4,11 @@
 
 package encoding
 
-import "encoding/json"
-
 // Array implements a JSON array. Please take a look at encoding/sparse
 // for a better example of how to implement custom array-like encodings
 type Array struct {
 	c Catalog
 	v []interface{}
-}
-
-// MarshalJSON is a custom json marshaler, needed because Array wraps
-// the regular array.
-func (s Array) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.v)
 }
 
 // NewArray is the internal constructor. Note that this is
