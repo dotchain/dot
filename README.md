@@ -12,21 +12,27 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md).
 ## Documentation
 
 Please see [DOT](https://github.com/dotchain/site/blob/master/dot.md)
+for details.  This package is provides the core stateless
+conflict-free transformations for a few composition-friendly
+operations on a virtual JSON type (i.e. the type can be composed using
+arrays and maps).
 
 ## Status of the project
 
-The project is still in active development.  The core set of feature
-are nearing completion though. A candiate v0.9.9 release has been
-tagged. A full release after an initial demo and some related
-bookkeeping is taken care of.
+The project is mostly in active development but all of the core
+transformations are quite stable with only minor tweaks to the API
+expected going forward.  The support types of Log and ClientLog are a
+bit less stable in how they deal with error conditions.
 
 ## Client and Server
 
-A native Golang client is available via the [Ver package](https://godoc.org/github.com/dotchain/ver).
+A native Golang client is available via the [Ver
+package](https://godoc.org/github.com/dotchain/ver). 
 
-A native Golang server implementation (with a variety of backend storage options) is avilable at [dotjs](https://github.com/dotchain/dots)
+A native Golang server implementation (with a variety of backend
+storage options) is avilable at
+[dotjs](https://github.com/dotchain/dots) 
 
-## Demo
-
-Please see [dotjs](https://github.com/dotchain/dotjs) for demos.
-
+Please see the [stress
+test](https://github.com/dotchain/dots/blob/master/tests/journal_stress.go)
+for sample end-to-end usage.
