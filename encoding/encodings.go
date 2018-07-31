@@ -20,6 +20,7 @@ package encoding
 import (
 	"encoding/json"
 	"strconv"
+	"unicode/utf16"
 )
 
 // ArrayLike is the default interface to be implemented by
@@ -146,4 +147,20 @@ func IsString(i interface{}) bool {
 		return IsString(i.ArrayLike)
 	}
 	return false
+}
+
+// ToString converts a potentially encoded string into an actual string
+func ToString(i interface{}) string {
+	if i == nil {
+		return ""
+	}
+	switch i := i.(type) {
+	case string:
+		return i
+	case String16:
+		return string(utf16.Decode(i))
+	case enrichArray:
+		return ToString(i.ArrayLike)
+	}
+	return ""
 }
