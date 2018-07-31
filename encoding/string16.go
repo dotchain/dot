@@ -6,7 +6,6 @@ package encoding
 
 import (
 	"encoding/json"
-	"github.com/pkg/errors"
 	"unicode/utf16"
 )
 
@@ -46,7 +45,7 @@ func (s String16) fromInterface(i interface{}) String16 {
 		return s.fromInterface(i.ArrayLike)
 	}
 
-	panic(errors.Errorf("Unknown type %#v", i))
+	panic(errNotStringType)
 }
 
 // Count returns the size of the string in UTF16 characters
@@ -57,7 +56,7 @@ func (s String16) Count() int {
 // Slice works on UTF16 offsets in the string
 func (s String16) Slice(offset, count int) ArrayLike {
 	if offset+count > s.Count() {
-		panic(errors.Errorf("Out of bounds slice(%d, %d) on string of len %d", offset, count, s.Count()))
+		panic(errStringIndexOutOfBounds)
 	}
 	return s[offset : offset+count]
 }
@@ -74,10 +73,10 @@ func (s String16) Splice(offset int, before, after interface{}) ArrayLike {
 
 // RangeApply should not really be called for strings
 func (s String16) RangeApply(offset, count int, fn func(interface{}) interface{}) ArrayLike {
-	panic(errors.New("string does not support RangeApply"))
+	panic(errMethodNotSupported)
 }
 
 // ForEach should not really be called for strings
 func (s String16) ForEach(func(offset int, val interface{})) {
-	panic(errors.New("string does not support ForEach"))
+	panic(errMethodNotSupported)
 }

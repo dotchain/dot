@@ -20,8 +20,6 @@
 // the DOT internal merge code.
 package encoding
 
-import "github.com/pkg/errors"
-
 // Dict represents a simple interface for manipulation of JSON objects.
 // This is installed by default and so any DOT-based code can
 // use actual map[string]interface{} types and DOT will transform
@@ -33,7 +31,7 @@ func (s Dict) Get(key string) interface{} {
 	if v, ok := s[key]; ok {
 		return v
 	}
-	panic(errors.Errorf("cannot access field %s", key))
+	panic(errNoSuchField)
 }
 
 // Set returns a new map with the key updated to the provided  value

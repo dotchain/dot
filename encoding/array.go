@@ -4,10 +4,7 @@
 
 package encoding
 
-import (
-	"encoding/json"
-	"github.com/pkg/errors"
-)
+import "encoding/json"
 
 // Array implements a JSON array. Please take a look at encoding/sparse
 // for a better example of how to implement custom array-like encodings
@@ -57,7 +54,7 @@ func (s Array) Count() int {
 // Slice returns a new array which represents a slice of the contents
 func (s Array) Slice(offset, count int) ArrayLike {
 	if offset+count > s.Count() {
-		panic(errors.Errorf("Out of bounds slice(%d, %d) on string of len %d", offset, count, s.Count()))
+		panic(errIndexOutOfBounds)
 	}
 	return Array{s.c, s.v[offset : offset+count]}
 }
