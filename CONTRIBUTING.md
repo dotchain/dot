@@ -6,11 +6,10 @@ implementation.
 
 The code is mostly idiomatic go.  In addtion, there is a tendency to
 write functional code (i.e very low side-effects -- preferring to
-return new slices instead of mutating input arg, for example). This is
-because of a philsophy of correctness before performance or premature
-optimizations.
+return new slices instead of mutating input arg, for example). There
+is a lot of immutable types used.
 
-The core library is quite criticial -- the whole DOT system will
+The core library is quite critical -- the whole DOT system will
 require upgrades if code here changes in some backwards incomptabile
 way. So, this code is intentionally likely to grow slowly or only grow
 in an additive process (where backwards compatiblity is not an
@@ -32,7 +31,9 @@ transformations.
 * Log.go and client_log.go are mainly stateful structs to manage
 client reconciliation (either actually on the client or on the
 server). Please see [dots](https://github.com/dotchain/dots) for how
-these are used.
+these are used on the server and
+[ver](https://github.com/dotchain/ver) for how it is used on the
+client.
 
 ## Building, testing, linting
 
@@ -47,8 +48,6 @@ go tool cover --html=cover.out
 
 Linting is done using [gometalinter](https://github.com/alecthomas/gometalinter) but with
 a very specific set of lint rules.  Please run `./lint.sh` to lint the project.
-
-Please note that `go fmt` is also required but linting is more about style guidelines and static checks.
 
 
 ```
@@ -70,7 +69,3 @@ report.
 ## Developing
 
 Pull requests are welcome and appreciated.
-
-
-
-
