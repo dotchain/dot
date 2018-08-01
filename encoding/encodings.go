@@ -18,7 +18,6 @@
 package encoding
 
 import (
-	"encoding/json"
 	"strconv"
 	"unicode/utf16"
 )
@@ -81,10 +80,6 @@ func (e enrichArray) ForKeys(fn func(key string, val interface{})) {
 	})
 }
 
-func (e enrichArray) MarshalJSON() ([]byte, error) {
-	return json.Marshal(e.ArrayLike)
-}
-
 func (e enrichArray) IsArray() bool {
 	return true
 }
@@ -109,10 +104,6 @@ func (enrichObject) RangeApply(offset, count int, fn func(interface{}) interface
 
 func (enrichObject) ForEach(func(offset int, val interface{})) {
 	panic(errMethodNotSupported)
-}
-
-func (o enrichObject) MarshalJSON() ([]byte, error) {
-	return json.Marshal(o.ObjectLike)
 }
 
 func (o enrichObject) IsArray() bool {

@@ -4,10 +4,7 @@
 
 package encoding
 
-import (
-	"encoding/json"
-	"unicode/utf16"
-)
+import "unicode/utf16"
 
 // String16 implements a UTF16 string.  This is important
 // because Javascript clients use this representation by default
@@ -19,16 +16,6 @@ type String16 []uint16
 // NewString16 is the constructor as used by catalog.Catalog
 func NewString16(s string) String16 {
 	return String16(utf16.Encode([]rune(s)))
-}
-
-// MarshalJSON is implemented to convert back to the required
-// string format
-func (s String16) MarshalJSON() ([]byte, error) {
-	if s == nil {
-		return json.Marshal("")
-	}
-
-	return json.Marshal(string(utf16.Decode(s)))
 }
 
 func (s String16) fromInterface(i interface{}) String16 {
