@@ -286,7 +286,7 @@ func TestMergeDuplicateOperations(t *testing.T) {
 
 func TestInvalidMoveMoveMerge(t *testing.T) {
 	defer func() {
-		expected := `strconv.Atoi: parsing "non-integer": invalid syntax`
+		expected := `invalid array key, not a number`
 		if r := recover(); r != nil {
 			if err, ok := r.(error); ok && err.Error() == expected {
 				return
@@ -308,7 +308,7 @@ func TestInvalidMoveMoveMerge(t *testing.T) {
 
 func TestInvalidRangeSubPathMerge1(t *testing.T) {
 	defer func() {
-		expected := `strconv.Atoi: parsing "non-integer": invalid syntax`
+		expected := `invalid array key, not a number`
 		if r := recover(); r != nil {
 			if err, ok := r.(error); ok && err.Error() == expected {
 				return
@@ -330,7 +330,7 @@ func TestInvalidRangeSubPathMerge1(t *testing.T) {
 
 func TestInvalidRangeSubPathMerge2(t *testing.T) {
 	defer func() {
-		expected := `strconv.Atoi: parsing "non-integer": invalid syntax`
+		expected := `invalid array key, not a number`
 		if r := recover(); r != nil {
 			if err, ok := r.(error); ok && err.Error() == expected {
 				return

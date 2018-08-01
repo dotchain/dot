@@ -18,7 +18,7 @@
 package encoding
 
 import (
-	"strconv"
+	"github.com/dotchain/dot/conv"
 	"unicode/utf16"
 )
 
@@ -50,10 +50,10 @@ type UniversalEncoding interface {
 type enrichArray struct{ ArrayLike }
 
 func (e enrichArray) Get(key string) interface{} {
-	i, err := strconv.Atoi(key)
-	if err != nil {
+	if !conv.IsIndex(key) {
 		panic(errArrayKeyIsNotNumber)
 	}
+	i := conv.ToIndex(key)
 
 	var result interface{}
 	e.Slice(i, 1).ForEach(func(_ int, v interface{}) {
@@ -63,10 +63,10 @@ func (e enrichArray) Get(key string) interface{} {
 }
 
 func (e enrichArray) Set(key string, value interface{}) ObjectLike {
-	i, err := strconv.Atoi(key)
-	if err != nil {
+	if !conv.IsIndex(key) {
 		panic(errArrayKeyIsNotNumber)
 	}
+	i := conv.ToIndex(key)
 
 	r := e.RangeApply(i, 1, func(_ interface{}) interface{} {
 		return value
@@ -76,7 +76,7 @@ func (e enrichArray) Set(key string, value interface{}) ObjectLike {
 
 func (e enrichArray) ForKeys(fn func(key string, val interface{})) {
 	e.ArrayLike.ForEach(func(offset int, val interface{}) {
-		fn(strconv.Itoa(offset), val)
+		fn(conv.FromIndex(offset), val)
 	})
 }
 

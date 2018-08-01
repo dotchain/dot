@@ -6,8 +6,8 @@ package dot
 
 import (
 	"errors"
+	"github.com/dotchain/dot/conv"
 	"github.com/dotchain/dot/encoding"
-	"strconv"
 )
 
 // ErrPathInvalidated is returned by Ref.Update if the operations
@@ -94,7 +94,7 @@ func (r *RefIndex) String() string {
 	case RefIndexEnd:
 		suffix = "-"
 	}
-	return strconv.Itoa(r.Index) + suffix
+	return conv.FromIndex(r.Index) + suffix
 }
 
 var m = map[string]RefIndexType{
@@ -110,8 +110,8 @@ func NewRefIndex(s string) *RefIndex {
 		if t != RefIndexPointer {
 			s = s[:len(s)-1]
 		}
-		if index, err := strconv.Atoi(s); err == nil {
-			return &RefIndex{Index: index, Type: t}
+		if conv.IsIndex(s) {
+			return &RefIndex{Index: conv.ToIndex(s), Type: t}
 		}
 	}
 
@@ -192,7 +192,7 @@ func (r *RefPath) Resolve(o interface{}) (interface{}, bool) {
 		}
 		key := r.key
 		if r.index != nil {
-			key = strconv.Itoa(r.index.Index)
+			key = conv.FromIndex(r.index.Index)
 		}
 		updated, ok := r.safeGet(v, key)
 		if !ok {
@@ -221,8 +221,7 @@ func (r *RefPath) matches(s string) bool {
 	if r.key == s || r.index == nil {
 		return r.key == s
 	}
-	i, err := strconv.Atoi(s)
-	return err == nil && r.index.Index == i
+	return conv.FromIndex(r.index.Index) == s
 }
 
 func (r *RefPath) apply(path []string, c Change) (result *RefPath, ok bool) {

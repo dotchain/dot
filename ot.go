@@ -120,8 +120,7 @@
 // operations intervene that affect the same region.
 package dot
 
-// TODO: replace with a smaller library so it won't explode when used with GopherJS
-import "strconv"
+import "github.com/dotchain/dot/conv"
 
 // SpliceInfo represents mutating a sequence by replacing a contiguous
 // sub-sequence with the provided alternate value.  If the Before value
@@ -296,7 +295,7 @@ func (change Change) Undo() Change {
 func (change Change) withUpdatedIndex(offset, index int) []Change {
 	path := change.Path
 	prefix, suffix := append([]string{}, path[:offset]...), path[offset+1:]
-	updated := append(append(prefix, strconv.Itoa(index)), suffix...)
+	updated := append(append(prefix, conv.FromIndex(index)), suffix...)
 	newChange := change
 	newChange.Path = updated
 	return []Change{newChange}
