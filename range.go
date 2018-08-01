@@ -4,7 +4,10 @@
 
 package dot
 
-import "strconv"
+import (
+	"errors"
+	"github.com/dotchain/dot/conv"
+)
 
 func (t Transformer) mergeRangeRange(c1, c2 Change) ([]Change, []Change) {
 	l := commonPathLength(c1.Path, c2.Path)
@@ -62,10 +65,10 @@ func (t Transformer) replaceConflictingRange(c1 Change, r RangeInfo) []Change {
 // the path referring to within an element in the array that c1 is working on.
 // in particular, c2 does not have to be a range mutation
 func (t Transformer) mergeRangeSubPath(c1, c2 Change) ([]Change, []Change) {
-	index, err := strconv.Atoi(c2.Path[len(c1.Path)])
-	if err != nil {
-		panic(err)
+	if !conv.IsIndex(c2.Path[len(c1.Path)]) {
+		panic(errors.New("invalid array key, not a number"))
 	}
+	index := conv.ToIndex(c2.Path[len(c1.Path)])
 
 	if index < c1.Range.Offset || index >= c1.Range.Offset+c1.Range.Count {
 		return []Change{c2}, []Change{c1}

@@ -4,7 +4,10 @@
 
 package dot
 
-import "strconv"
+import (
+	"errors"
+	"github.com/dotchain/dot/conv"
+)
 
 func (t Transformer) mergeMoveMove(c1, c2 Change) ([]Change, []Change) {
 	l := commonPathLength(c1.Path, c2.Path)
@@ -149,15 +152,13 @@ func (t Transformer) splitMoveByOffsets(change Change, unsortedOffsets []int) []
 // mergeMoveSubPath is called with a move operation and any other operation.  The move operation
 // must have a path that is a prefix of the other operation
 func (t Transformer) mergeMoveSubPath(move, otherSubPath Change) ([]Change, []Change) {
-	var index int
-	var err error
-
 	l := len(move.Path)
 	offset, count, dest := move.Move.Offset, move.Move.Count, move.Move.Dest()
 
-	if index, err = strconv.Atoi(otherSubPath.Path[l]); err != nil {
-		panic(err)
+	if !conv.IsIndex(otherSubPath.Path[l]) {
+		panic(errors.New("invalid array key, not a number"))
 	}
+	index := conv.ToIndex(otherSubPath.Path[l])
 
 	// case 0: offset <= index < offset + count
 	if offset <= index && index < offset+count {

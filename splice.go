@@ -4,7 +4,7 @@
 
 package dot
 
-import "strconv"
+import "github.com/dotchain/dot/conv"
 
 func (t Transformer) mergeSpliceSplice(c1, c2 Change) ([]Change, []Change) {
 	l := commonPathLength(c1.Path, c2.Path)
@@ -75,13 +75,18 @@ func (t Transformer) mergeSpliceSubPath(c1, c2 Change) ([]Change, []Change) {
 	deleted := t.toArray(c1.Splice.Before).Count()
 	inserted := t.toArray(c1.Splice.After).Count()
 
-	if index, err := strconv.Atoi(c2.Path[len(c1.Path)]); err != nil || index < offset {
+	index := -1
+	if conv.IsIndex(c2.Path[len(c1.Path)]) {
+		index = conv.ToIndex(c2.Path[len(c1.Path)])
+	}
+
+	if index < offset {
 		// No effective conflict.
 		// TODO(rameshvk): log warning for Atoi error?
 		return []Change{c2}, []Change{c1}
 	} else if index >= offset && index < offset+deleted {
 		// Transformed c1 should have the effect of c2
-		opPath := append([]string{strconv.Itoa(index - offset)}, c2.Path[len(c1.Path)+1:]...)
+		opPath := append([]string{conv.FromIndex(index - offset)}, c2.Path[len(c1.Path)+1:]...)
 		op := c2
 		op.Path = opPath
 		alteredC1Splice := &SpliceInfo{

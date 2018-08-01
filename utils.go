@@ -5,8 +5,8 @@
 package dot
 
 import (
+	"github.com/dotchain/dot/conv"
 	"github.com/dotchain/dot/encoding"
-	"strconv"
 )
 
 // Utils implements a bunch of utlities on top of transformer.
@@ -49,7 +49,7 @@ func (u Utils) AreSame(i1, i2 interface{}) bool {
 		}
 		failed := false
 		x1.ForEach(func(kk int, val interface{}) {
-			failed = failed || !u.AreSame(val, x2.Get(strconv.Itoa(kk)))
+			failed = failed || !u.AreSame(val, x2.Get(conv.FromIndex(kk)))
 		})
 		return !failed
 	}
