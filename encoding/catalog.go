@@ -15,9 +15,54 @@ func Get(i interface{}) UniversalEncoding {
 	return Default.Get(i)
 }
 
-// Unget does the reverse of Get
+// Unget does the reverse of Get. It is not recursive
 func Unget(i interface{}) interface{} {
 	return Default.Unget(i)
+}
+
+type normalizer interface {
+	NormalizeDOT() interface{}
+}
+
+// Normalize takes any encoding type and returns the raw native
+// version of it, recursively iterating through sub objects.
+//
+// If any of the objects themselves implement a NormalizeDOT() method,
+// then that method is used (though its output is still normalized and
+// recursed through)
+func Normalize(i interface{}) interface{} {
+	if i == nil {
+		return nil
+	}
+
+	switch i := i.(type) {
+	case String16:
+		return string(utf16.Decode(i))
+	case enrichArray:
+		return Normalize(i.ArrayLike)
+	case Array:
+		return Normalize(i.v)
+	case enrichObject:
+		return Normalize(i.ObjectLike)
+	case Dict:
+		return Normalize(map[string]interface{}(i))
+	case normalizer:
+		return i.NormalizeDOT()
+	case []interface{}:
+		copy := append([]interface{}(nil), i...)
+		for kk, v := range i {
+			copy[kk] = Normalize(v)
+		}
+		return copy
+	case map[string]interface{}:
+		copy := make(map[string]interface{})
+		for key, v := range i {
+			copy[key] = Normalize(v)
+		}
+		return copy
+	}
+	//  don't know what type it is, just return as is
+	return i
 }
 
 type constructor func(Catalog, map[string]interface{}) UniversalEncoding
