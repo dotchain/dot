@@ -47,6 +47,14 @@ func (r Array) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// NormalizeDOT returns a native golang object that can be marshaled as JSON
+func (r Array) NormalizeDOT() interface{} {
+	return map[string]interface{}{
+		"dot:encoding": "RichText",
+		"dot:encoded":  r.m,
+	}
+}
+
 // Count returns the total count of the logical array
 func (r Array) Count() int {
 	count := 0
