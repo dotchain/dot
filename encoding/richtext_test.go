@@ -6,7 +6,7 @@ package encoding_test
 
 // sparse should register itself, so it is imported only for
 // its sideeffect.
-import _ "github.com/dotchain/dot/encoding/rich_text"
+import _ "github.com/dotchain/dot/encoding/richtext"
 
 func RichTextTest() Array {
 	make := func(encoded []interface{}) interface{} {

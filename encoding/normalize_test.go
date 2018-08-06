@@ -6,7 +6,7 @@ package encoding_test
 
 import (
 	"github.com/dotchain/dot/encoding"
-	rt "github.com/dotchain/dot/encoding/rich_text"
+	"github.com/dotchain/dot/encoding/richtext"
 	"reflect"
 	"testing"
 )
@@ -29,7 +29,7 @@ func TestNormalize(t *testing.T) {
 		{[]int{1, 2}, []int{1, 2}},
 		{[]interface{}{1, 2}, []interface{}{1, 2}},
 		{map[string]interface{}{"hello": "world"}, map[string]interface{}{"hello": "world"}},
-		{rt.NewArray(encoding.Default, text), expect},
+		{richtext.NewArray(encoding.Default, text), expect},
 	}
 
 	for _, test := range tests {
