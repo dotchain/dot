@@ -11,6 +11,10 @@ import (
 	"unicode/utf16"
 )
 
+func (u unknown) MarshalJSON() ([]byte, error) {
+	return json.Marshal(u.NormalizeDOT())
+}
+
 // MarshalJSON is a custom json marshaler, needed because Array wraps
 // the regular array.
 func (s Array) MarshalJSON() ([]byte, error) {

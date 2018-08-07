@@ -17,6 +17,8 @@ func TestAll(t *testing.T) {
 	t.Run("Dict", DictTest().TestAll)
 	t.Run("Set", SetTest().TestAll)
 	t.Run("RichText", RichTextTest().TestAll)
+	t.Run("UnknownArray", UnknownArrayTest().TestAll)
+	t.Run("UnknownDict", UnknownDictTest().TestAll)
 }
 
 func shouldPanic(t *testing.T, message string, f func()) {

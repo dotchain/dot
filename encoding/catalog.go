@@ -36,6 +36,8 @@ func Normalize(i interface{}) interface{} {
 	}
 
 	switch i := i.(type) {
+	case normalizer:
+		return i.NormalizeDOT()
 	case String16:
 		return string(utf16.Decode(i))
 	case enrichArray:
@@ -46,8 +48,6 @@ func Normalize(i interface{}) interface{} {
 		return Normalize(i.ObjectLike)
 	case Dict:
 		return Normalize(map[string]interface{}(i))
-	case normalizer:
-		return i.NormalizeDOT()
 	case []interface{}:
 		copy := append([]interface{}(nil), i...)
 		for kk, v := range i {
@@ -78,6 +78,7 @@ type catalog struct {
 //
 // Catalogs inherit from the #Default catalog.
 type Catalog struct {
+	StrictEncoding bool
 	*catalog
 }
 
@@ -113,6 +114,9 @@ func (c Catalog) TryGet(i interface{}) (UniversalEncoding, bool) {
 		if name, ok := i["dot:encoding"].(string); ok {
 			if ctor := c.getConstructor(name); ctor != nil {
 				return ctor(c, i), true
+			}
+			if val, ok := i["dot:generic"].(bool); ok && val {
+				return newUnknown(c, i), true
 			}
 		}
 		return enrichObject{Dict(i)}, true
