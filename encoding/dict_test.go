@@ -45,8 +45,9 @@ func (d Dict) TestMarshalUnmarshal(t *testing.T) {
 	}
 
 	u = encoding.Get(d.initial)
-	if !reflect.DeepEqual(unmarshal(marshal(u)), d.initial) {
-		t.Errorf("Unmarshal/Marshal changed stuff %#v %#v\n", unmarshal(marshal(u)), d.initial)
+	x := unmarshal(marshal(u))
+	if !reflect.DeepEqual(x, d.initial) {
+		t.Errorf("Unmarshal/Marshal changed stuff \n%#v\n%#v\n", x, d.initial)
 	}
 }
 

@@ -18,7 +18,7 @@ func init() {
 		return NewArray(c, m)
 	}
 
-	key := "github.com/dotchain/dot/encoding/rich_text"
+	key := "github.com/dotchain/dot/encoding/richtext"
 	encoding.Default.RegisterTypeConstructor("RichText", key, ctor)
 }
 
