@@ -118,6 +118,28 @@
 // changes. While the transforms in this package guarantee
 // convergence, there will be some unexpected effects if remote
 // operations intervene that affect the same region.
+//
+// Custom types
+//
+// The ver package (https://godoc.org/github.com/dotchain/dot)
+// provides client-side to work with collections, maps and to
+// customize them to a degree.  Occasionally, an app would need to
+// build a custom type of collections (say, one which also builds an
+// index along with it).  In these cases, one can write custom
+// "encodings".  See
+// https://godoc.org/github.com/dotchain/dot/encoding/richtext for a
+// rich text encoding which looks like a regular array but is actually
+// stored and transmitted differently on the wire.
+//
+// Another interesting example is the case of "counters" -- integers
+// that can be incremented or decremented.  These provide the
+// impression of arrays but are basically just stored as integers.
+// See https://godoc.org/github.com/dotchain/dot/encoding/counters for
+// an implementation of counters.  Here the wire protocol for mutating
+// a counter does not actually look different -- the encoding only
+// plays a role in the construction of the counter type (for example,
+// when an object field is initialized to a counter).
+//
 package dot
 
 import "github.com/dotchain/dot/conv"
