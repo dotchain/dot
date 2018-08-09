@@ -6,7 +6,7 @@
 //
 // This package is trivial to implement using strconv but strconv
 // pulls in other packages which increases the Javascript build of
-// the DOT packge when using GopherJS.  So, these functions are
+// the DOT package when using GopherJS.  So, these functions are
 // implemented locally here
 package conv
 

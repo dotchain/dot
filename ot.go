@@ -22,7 +22,7 @@
 // to "reconcile" two changes made on the same initial state on
 // separate clients, to bring them both into convergence.
 //
-// For example, if the intial data is the string "!hello world" and
+// For example, if the initial data is the string "!hello world" and
 // two independent changes were made: move the exclamation mark to the
 // end and insert a comma after the "hello".  These can be encoded as
 // changes like so:
