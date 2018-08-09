@@ -249,6 +249,13 @@ func (r Array) Set(key string, val interface{}) encoding.ObjectLike {
 	return spliced.(Array)
 }
 
+// Contains returns true if key exists
+func (r Array) Contains(key string) bool {
+	var offset int
+	count, err := fmt.Sscanf(key, "%d", &offset)
+	return err == nil && count == 1 && offset < r.Count()
+}
+
 // IsArray implements UniversalEncoding.IsArray
 func (r Array) IsArray() bool {
 	return true

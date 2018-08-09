@@ -59,6 +59,10 @@ func (u unknown) ForKeys(fn func(key string, val interface{})) {
 	u.val.ForKeys(fn)
 }
 
+func (u unknown) Contains(key string) bool {
+	return u.val.Contains(key)
+}
+
 func (u unknown) IsArray() bool {
 	return u.val.IsArray()
 }

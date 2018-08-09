@@ -92,6 +92,11 @@ func (c Counter) Set(key string, val interface{}) encoding.ObjectLike {
 	panic("Unexpected Set called on counter")
 }
 
+// Contains returns if the key exists or not
+func (c Counter) Contains(key string) bool {
+	return key == "0"
+}
+
 // IsArray implements UniversalEncoding.IsArray
 func (c Counter) IsArray() bool {
 	return true
