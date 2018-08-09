@@ -87,3 +87,15 @@ func (s Set) ForKeys(fn func(string, interface{})) {
 		fn(key.(string), true)
 	}
 }
+
+// Contains tests a key to see if it exists in the map
+func (s Set) Contains(key string) bool {
+	found := false
+	for _, key2 := range s.v {
+		if key == key2 {
+			found = true
+			break
+		}
+	}
+	return found
+}

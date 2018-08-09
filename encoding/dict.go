@@ -54,3 +54,9 @@ func (s Dict) ForKeys(fn func(string, interface{})) {
 		fn(k, v)
 	}
 }
+
+// Contains returns true if the key exists
+func (s Dict) Contains(key string) bool {
+	_, ok := s[key]
+	return ok
+}

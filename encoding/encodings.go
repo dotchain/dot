@@ -38,6 +38,7 @@ type ObjectLike interface {
 	Get(key string) interface{}
 	Set(key string, value interface{}) ObjectLike
 	ForKeys(func(key string, val interface{}))
+	Contains(key string) bool
 }
 
 // UniversalEncoding is a combination of both ArrayLike and ObjectLike
@@ -78,6 +79,14 @@ func (e enrichArray) ForKeys(fn func(key string, val interface{})) {
 	e.ArrayLike.ForEach(func(offset int, val interface{}) {
 		fn(conv.FromIndex(offset), val)
 	})
+}
+
+func (e enrichArray) Contains(key string) bool {
+	if !conv.IsIndex(key) {
+		return false
+	}
+	i := conv.ToIndex(key)
+	return i < e.Count()
 }
 
 func (e enrichArray) IsArray() bool {
