@@ -117,7 +117,9 @@
 // complications with undos when remote changes can intervene local
 // changes. While the transforms in this package guarantee
 // convergence, there will be some unexpected effects if remote
-// operations intervene that affect the same region.
+// operations intervene that affect the same region. The UndoStack
+// type handles transforming undos and redos when there are
+// intervening operations.
 //
 // Custom types
 //
