@@ -60,3 +60,8 @@ func (s Dict) Contains(key string) bool {
 	_, ok := s[key]
 	return ok
 }
+
+// Count returns the number of items
+func (s Dict) Count() int {
+	return len(s)
+}
