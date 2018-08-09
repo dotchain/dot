@@ -39,12 +39,20 @@ type ObjectLike interface {
 	Set(key string, value interface{}) ObjectLike
 	ForKeys(func(key string, val interface{}))
 	Contains(key string) bool
+	Count() int
 }
 
 // UniversalEncoding is a combination of both ArrayLike and ObjectLike
 type UniversalEncoding interface {
-	ArrayLike
-	ObjectLike
+	Count() int
+	Slice(offset, count int) ArrayLike
+	Splice(offset int, before, after interface{}) ArrayLike
+	RangeApply(offset, count int, fn func(interface{}) interface{}) ArrayLike
+	ForEach(func(offset int, val interface{}))
+	Get(key string) interface{}
+	Set(key string, value interface{}) ObjectLike
+	ForKeys(func(key string, val interface{}))
+	Contains(key string) bool
 	IsArray() bool
 }
 
@@ -94,10 +102,6 @@ func (e enrichArray) IsArray() bool {
 }
 
 type enrichObject struct{ ObjectLike }
-
-func (enrichObject) Count() int {
-	panic(errMethodNotSupported)
-}
 
 func (enrichObject) Slice(offset, count int) ArrayLike {
 	panic(errMethodNotSupported)

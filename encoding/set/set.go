@@ -99,3 +99,8 @@ func (s Set) Contains(key string) bool {
 	}
 	return found
 }
+
+// Count returns the size of the set
+func (s Set) Count() int {
+	return len(s.v)
+}

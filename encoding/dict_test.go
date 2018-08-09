@@ -65,6 +65,8 @@ func (d Dict) TestEmpty(t *testing.T) {
 	e2 := u.Set(d.nonExistingKey, d.zeroValue)
 	ensureEqual(t, e1, d.empty)
 	ensureEqual(t, e2, d.empty)
+
+	ensureEqual(t, 0, s.Count())
 }
 
 func (d Dict) TestNonEmpty(t *testing.T) {
@@ -94,17 +96,21 @@ func (d Dict) TestForKeys(t *testing.T) {
 		x = x.Set(d.existingKeys[kk], d.existingValues[kk])
 		expected[d.existingKeys[kk]] = d.existingValues[kk]
 	}
+	if len(expected) != x.Count() {
+		t.Error("Count mismatch", x.Count(), len(expected))
+	}
+
 	x.ForKeys(func(key string, val interface{}) {
 		actual[key] = val
 	})
 	if !reflect.DeepEqual(expected, actual) {
 		t.Error("Mismatched", expected, actual)
 	}
+
 }
 
 func (d Dict) TestArrayBehaviors(t *testing.T) {
 	s := encoding.Get(d.initial)
-	shouldPanic(t, "Count on dict", func() { s.Count() })
 	shouldPanic(t, "Slice on dict", func() { s.Slice(0, 0) })
 	shouldPanic(t, "Splice on dict", func() { s.Splice(0, nil, nil) })
 	shouldPanic(t, "ForEach on dict", func() { s.ForEach(func(int, interface{}) {}) })

@@ -31,11 +31,11 @@ func (u Utils) AreSame(i1, i2 interface{}) bool {
 	}
 
 	if x1 == nil {
-		return u.isEmpty(x2)
+		return x2.Count() == 0
 	}
 
 	if x2 == nil {
-		return u.isEmpty(x1)
+		return x1.Count() == 0
 	}
 
 	if x1.IsArray() != x2.IsArray() {
@@ -166,11 +166,7 @@ func (u Utils) applyMove(input interface{}, offset, count, distance int) interfa
 func (u Utils) tryApplySet(input interface{}, key string, before, after interface{}) (interface{}, bool) {
 	i := u.C.Get(input)
 	if u.AreSame(before, nil) {
-		found := false
-		i.ForKeys(func(k string, v interface{}) {
-			found = found || k == key
-		})
-		if found {
+		if i.Contains(key) {
 			return nil, false
 		}
 	} else if !u.AreSame(i.Get(key), before) {
@@ -204,15 +200,6 @@ func (u Utils) tryApplyRange(input interface{}, offset, count int, changes inter
 
 func (u Utils) applyRange(input interface{}, offset, count int, changes interface{}) interface{} {
 	return u.check(u.tryApplyRange(input, offset, count, changes))
-}
-
-func (u Utils) isEmpty(e encoding.UniversalEncoding) bool {
-	if e.IsArray() {
-		return e.Count() == 0
-	}
-	count := 0
-	e.ForKeys(func(string, interface{}) { count++ })
-	return count == 0
 }
 
 func (u Utils) check(i interface{}, ok bool) interface{} {
