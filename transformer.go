@@ -203,7 +203,7 @@ func (t Transformer) TryMergeOperations(left, right []Operation) (l []Operation,
 	return l, r, true
 }
 
-// InvertChanges takes a sequence of changes (left followed by right)
+// ReorderChanges takes a sequence of changes (left followed by right)
 // and attempts to invert the order of right and left.  That is:
 //
 //     rightx +  leftx =  left + right
@@ -211,8 +211,19 @@ func (t Transformer) TryMergeOperations(left, right []Operation) (l []Operation,
 // The intent behind left/right is preserved in leftx/rightx
 // respectively, to the extent possible.   It is not perfect though
 // particularly when  there are conflicts (such as conflicting Move vs
-// Splice).  The equation above is guaranteed though.
-func (t Transformer) InvertChanges(left, right []Change) (leftx, rightx []Change) {
+// Splice).  In those cases, rightx may be nil (i.e. the latest change
+// may not be transferred).
+//
+// There are other cases where an op followed by its own undo (either
+// immediately or perversely with some other non-conflicting
+// operations in the middle) will cause similar trouble with matching
+// the intent of the user.
+//
+// These exceptions should be rare though.  In most cases, this will
+// work as intended.
+//
+// In all cases, the equation above is guaranteed to hold.
+func (t Transformer) ReorderChanges(left, right []Change) (leftx, rightx []Change) {
 	leftUndone := Operation{Changes: left}.Undo().Changes
 	rightx, leftx = t.MergeChanges(leftUndone, right)
 	leftx = Operation{Changes: leftx}.Undo().Changes
