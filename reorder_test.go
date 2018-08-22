@@ -14,13 +14,13 @@ import (
 
 // The following test uses the table structure defined in
 // sequences_test.go
-func TestSimpleSequencesInversion(t *testing.T) {
+func TestSimpleSequencesReorder(t *testing.T) {
 	for _, single := range table {
-		testInversion(t, single[0], single[1], single[2])
+		testReorder(t, single[0], single[1], single[2])
 	}
 }
 
-func testInversion(t *testing.T, left, right, expected string) {
+func testReorder(t *testing.T, left, right, expected string) {
 	linput, loutput, lop := parseMutation(left, false)
 	rinput, routput, rop := parseMutation(right, false)
 
@@ -54,11 +54,11 @@ func testInversion(t *testing.T, left, right, expected string) {
 	allRight := append([]dot.Change{rop}, right1...)
 
 	// first invert left
-	lx1, lx2 := x.InvertChanges([]dot.Change{lop}, left1)
+	lx1, lx2 := x.ReorderChanges([]dot.Change{lop}, left1)
 	resultLeft := applyMany(linput, allLeft)
-	resultInverted := applyMany(linput, append(append([]dot.Change(nil), lx2...), lx1...))
-	if !dot.Utils(x).AreSame(resultLeft, resultInverted) {
-		t.Errorf("Invert of %v and %v resulted in %v and %v resp.", left, right, stringify(resultLeft), stringify(resultInverted))
+	resultReordered := applyMany(linput, append(append([]dot.Change(nil), lx2...), lx1...))
+	if !dot.Utils(x).AreSame(resultLeft, resultReordered) {
+		t.Errorf("Reorder of %v and %v resulted in %v and %v resp.", left, right, stringify(resultLeft), stringify(resultReordered))
 	}
 
 	// check if merging left, lx2 produces left1
@@ -71,16 +71,16 @@ func testInversion(t *testing.T, left, right, expected string) {
 		// -abc[1234|]ef- and -ab|c[1234]ef-
 		// TODO: find a way to fix this
 		if len(expectedLeft1) > 0 {
-			t.Errorf("Invert of %v and %v produced %v which does not properly merge with right. instead got %v\n", left, right, fmtChanges(left1), fmtChanges(expectedLeft1))
+			t.Errorf("Reorder of %v and %v produced %v which does not properly merge with right. instead got %v\n", left, right, fmtChanges(left1), fmtChanges(expectedLeft1))
 		}
 	}
 
 	// next invert right
-	rx1, rx2 := x.InvertChanges([]dot.Change{rop}, right1)
+	rx1, rx2 := x.ReorderChanges([]dot.Change{rop}, right1)
 	resultRight := applyMany(rinput, allRight)
-	resultInverted = applyMany(rinput, append(append([]dot.Change(nil), rx2...), rx1...))
-	if !dot.Utils(x).AreSame(resultRight, resultInverted) {
-		t.Errorf("Invert of %v and %v resulted in %v and %v resp.", left, right, stringify(resultLeft), stringify(resultInverted))
+	resultReordered = applyMany(rinput, append(append([]dot.Change(nil), rx2...), rx1...))
+	if !dot.Utils(x).AreSame(resultRight, resultReordered) {
+		t.Errorf("Reorder of %v and %v resulted in %v and %v resp.", left, right, stringify(resultLeft), stringify(resultReordered))
 	}
 
 	// check if merging right, rx2 produces right1
@@ -94,7 +94,7 @@ func testInversion(t *testing.T, left, right, expected string) {
 			"-abc[123]456|ef- x -abc123[456|]ef-": "todo, should be fixable, output is nil",
 		}
 		if skipCases[left+" x "+right] == "" {
-			t.Errorf("Invert of %v and %v produced %v which does not properly merge with left. instead got %v\n", left, right, fmtChanges(right1), fmtChanges(expectedRight1))
+			t.Errorf("Reorder of %v and %v produced %v which does not properly merge with left. instead got %v\n", left, right, fmtChanges(right1), fmtChanges(expectedRight1))
 		}
 	}
 }
