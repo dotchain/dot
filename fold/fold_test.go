@@ -10,7 +10,7 @@ import (
 	"github.com/dotchain/dot/fold"
 )
 
-func Example_Foldable_simple() {
+func ExampleFoldable_simple() {
 	s := "OK: Hello World"
 	f0 := fold.Foldable{Local: s, Remote: s}
 	fmt.Println("Fresh:", f0.LocalValue(), f0.RemoteValue())
