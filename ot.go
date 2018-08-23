@@ -10,7 +10,7 @@
 // This package is a low level transformation library.  It does
 // not include any client or server implementations.  Please see
 // https://godoc.org/github.com/dotchain/ver for an usable client
-// library. Please ssee https://github.com/dotchain/dots for server
+// library. Please see https://github.com/dotchain/dots for server
 // implementations.
 //
 // Quick Introduction to Operational Transforms
@@ -46,7 +46,7 @@
 // Stateless transforms and chaining
 //
 // As described above, the individual changes can be represented in a
-// compac way without reference to the actual data structure. In
+// compact way without reference to the actual data structure. In
 // addition, by careful choice, one can set up the changes so that the
 // changes can be transformed against one another without reference to
 // the current state of the data.  All changes and transformations in
@@ -79,7 +79,7 @@
 //
 // Operations are collections of changes with an ID to uniquely
 // identify the operation.  In addition, each operation contains a
-// Parent field where the first element represents the **BasisID** and
+// Parent pair where the first element represents the **BasisID** and
 // the second represents the **ParentID**.  The core model of this
 // package is the assumption that there is a central server where the
 // operations are persisted in a consistent order.  The BasisID refers
@@ -90,6 +90,10 @@
 // the last local operation.  See the DOT protocol documentation for
 // further details on these IDs
 // (https://github.com/dotchain/site/blob/master/Protocol.md).
+//
+// In git terms, the BasisID is the last commit that was merged into
+// the local branch and the ParentID is the last local commit on the
+// branch.
 //
 // Transformer, Log and ClientLog
 //
@@ -142,6 +146,22 @@
 // plays a role in the construction of the counter type (for example,
 // when an object field is initialized to a counter).
 //
+// Folding and unstaged changes
+//
+// One of the benefits of working with invertible and transformable
+// operations is the ability to create a "folded" branch which has a 
+// set of "folded" changes. Any changes upstream are properly
+// transformed on top of the "folded" changes.  The interesting
+// feature is the ability to take **local** changes applied on top of
+// the folded changes and commit them upstream **but without including
+// any of the folded chagnes themselves**.  A slightly different way
+// to look at it is to consider local changes after the "folding" and
+// somehow reordering them to be ahead of the "folding" changes.
+//
+// Folding allows partial local changes to be "held back" which more
+// changes on top to be pushed through.  An experimental immutable
+// implementation of this idea is available at
+// https://godoc.org/github.com/dotchain/dot/fold
 package dot
 
 import "github.com/dotchain/dot/conv"
