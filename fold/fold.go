@@ -107,7 +107,7 @@ type Foldable struct {
 	Local, Remote interface{}
 }
 
-// LocalValue returns the normalized local value. 
+// LocalValue returns the normalized local value.
 func (f Foldable) LocalValue() interface{} {
 	return encoding.Normalize(f.Local)
 }

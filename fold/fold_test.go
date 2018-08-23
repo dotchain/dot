@@ -7,8 +7,39 @@ package fold_test
 import (
 	"fmt"
 	"github.com/dotchain/dot"
+	"github.com/dotchain/dot/encoding"
 	"github.com/dotchain/dot/fold"
 )
+
+func ExampleFolding_simple() {
+	// initial string is -- OK: Hello World
+
+	// Remove OK:
+	c1 := splice(0, "OK: ", "")
+	// Add "!" at the end
+	c2 := splice(len("Hello World"), "", "!")
+
+	// Create folding
+	f := fold.Folding{Changes: append(c1, c2...)}
+
+	// Change W=>w on the remote
+	c3 := splice(len("OK: Hello "), "W", "w")
+	f2, local := f.TransformRemote(c3)
+
+	// Apply local changes to "Hello World|"
+	fmt.Println(apply("Hello World|", local))
+
+	// Change H => h on the local
+	c4 := splice(0, "H", "h")
+	_, remote := f2.TransformLocal(c4)
+
+	// Apply remote changes to "OK: Hello world!"
+	fmt.Println(apply("OK: Hello world!", remote))
+
+	// Output:
+	// Hello world|
+	// OK: hello world!
+}
 
 func ExampleFoldable_simple() {
 	s := "OK: Hello World"
@@ -39,4 +70,9 @@ func ExampleFoldable_simple() {
 
 func splice(offset int, before, after string) []dot.Change {
 	return []dot.Change{{Splice: &dot.SpliceInfo{offset, before, after}}}
+}
+
+func apply(s string, c []dot.Change) string {
+	x := dot.Utils(dot.Transformer{}).Apply(s, c)
+	return encoding.Normalize(x).(string)
 }
