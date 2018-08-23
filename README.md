@@ -11,11 +11,10 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Documentation
 
-Please see [DOT](https://github.com/dotchain/site/blob/master/dot.md)
-for details.  This package is provides the core stateless
+This package provides the core stateless
 conflict-free transformations for a few composition-friendly
 operations on a virtual JSON type (i.e. the type can be composed using
-arrays and maps).
+arrays and maps).  Please see the GoDoc reference.
 
 ## Status of the project
 
