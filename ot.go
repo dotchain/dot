@@ -318,7 +318,7 @@ func (change Change) Undo() Change {
 
 func (change Change) withUpdatedIndex(offset, index int) []Change {
 	path := change.Path
-	prefix, suffix := append([]string{}, path[:offset]...), path[offset+1:]
+	prefix, suffix := path[:offset:offset], path[offset+1:]
 	updated := append(append(prefix, conv.FromIndex(index)), suffix...)
 	newChange := change
 	newChange.Path = updated

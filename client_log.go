@@ -95,7 +95,7 @@ func (c *ClientLog) Reconcile(l *Log) ([]Operation, error) {
 
 	c.ServerIndex = len(l.Rebased)
 	if len(rebased) > 0 {
-		c.Rebased = append([]Operation{}, rebased...)
+		c.Rebased = rebased[:len(rebased):len(rebased)]
 		c.MergeChain = append(c.MergeChain, merge...)
 	} else {
 		c.Rebased = nil
@@ -150,7 +150,7 @@ func (c *ClientLog) AppendClientOperation(l *Log, op Operation) ([]Operation, er
 	}
 
 	c.Rebased = append(c.Rebased, rebased...)
-	c.MergeChain = append([]Operation{}, merged...)
+	c.MergeChain = merge[0:len(merged):len(merged)]
 	c.ServerIndex = len(l.Rebased)
 	return merged, nil
 }
@@ -173,9 +173,8 @@ func BootstrapClientLog(l *Log, clientOps []Operation) (*ClientLog, []Operation,
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	c := append([]Operation{}, l.Rebased...)
-	r := append([]Operation{}, clog.Rebased...)
-	return clog, c, r, nil
+	c, r := l.Rebased, clog.Rebased
+	return clog, c[:len(c):len(c)], r[:len(r):len(r)], nil
 }
 
 // ReconnectClientLog creates a new client log for a client that has

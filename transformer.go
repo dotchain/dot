@@ -237,17 +237,25 @@ func (t Transformer) swap(info1, info2 []Change) ([]Change, []Change) {
 }
 
 func (t Transformer) join(infos ...[]Change) []Change {
-	result := []Change{}
+	result := []Change(nil)
 	for _, info := range infos {
-		result = append(result, info...)
+		if result == nil {
+			result = info[0:len(info):len(info)]
+		} else {
+			result = append(result, info...)
+		}
 	}
 	return result
 }
 
 func (t Transformer) joinOperation(infos ...[]Operation) []Operation {
-	result := []Operation{}
+	result := []Operation(nil)
 	for _, info := range infos {
-		result = append(result, info...)
+		if result == nil {
+			result = info[0:len(info):len(info)]
+		} else {
+			result = append(result, info...)
+		}
 	}
 	return result
 }
