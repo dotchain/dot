@@ -1,0 +1,122 @@
+// Copyright (C) 2018 Ramesh Vyaghrapuri. All rights reserved.
+// Use of this source code is governed by a MIT-style license
+// that can be found in the LICENSE file.
+
+package changes
+
+// PathChange represents a change at the provided "path" which can
+// consist of strings (for map-like objects) and integers for
+// array-like objects. In particular, each element of the path should
+// be a proper comparable value (so slices and such cannot be part of
+// th path)
+type PathChange struct {
+	Path []interface{}
+	Change
+}
+
+// Revert implements Change.Revert
+func (pc PathChange) Revert() Change {
+	if pc.Change == nil {
+		return nil
+	}
+	return PathChange{pc.Path, pc.Change.Revert()}
+}
+
+// Merge implements Change.Merge
+func (pc PathChange) Merge(o Change) (Change, Change) {
+	opc, ok := o.(PathChange)
+	if !ok {
+		opc = PathChange{nil, o}
+	}
+	return pc.mergePathChange(opc, false)
+}
+
+// ReverseMerge implements but with receiver and arg interchanged.
+func (pc PathChange) ReverseMerge(o Change) (Change, Change) {
+	opc, ok := o.(PathChange)
+	if !ok {
+		opc = PathChange{nil, o}
+	}
+	return pc.mergePathChange(opc, true)
+}
+
+func (pc PathChange) mergePathChange(o PathChange, reverse bool) (Change, Change) {
+	prefixLen := pc.commonPrefixLen(pc.Path, o.Path)
+	switch {
+	case len(pc.Path) != prefixLen && len(o.Path) != prefixLen:
+		return o, pc
+	case len(pc.Path) == prefixLen && len(o.Path) == prefixLen:
+		return pc.prefixMerge(pc.Path, pc.Change, o.Change, reverse)
+	case len(pc.Path) == prefixLen:
+		return pc.mergeSubPath(o, reverse)
+	}
+
+	return swap(o.mergeSubPath(pc, !reverse))
+}
+
+func (pc PathChange) prefixMerge(prefix []interface{}, l, r Change, reverse bool) (Change, Change) {
+	if rev, ok := l.(revMerge); ok && reverse {
+		l, r = rev.ReverseMerge(r)
+	} else if reverse {
+		r, l = r.Merge(l)
+	} else {
+		l, r = l.Merge(r)
+	}
+	return PathChange{prefix, l}, PathChange{prefix, r}
+}
+
+func (pc PathChange) updateSubPathIndex(o PathChange, idx int) (Change, Change) {
+	path := append([]interface{}(nil), o.Path...)
+	path[len(pc.Path)] = idx
+	return PathChange{path, o.Change}, pc
+}
+func (pc PathChange) mergeSubPath(o PathChange, reverse bool) (Change, Change) {
+	sub := o.Path[len(pc.Path):]
+	switch change := pc.Change.(type) {
+	case nil:
+		return o, nil
+	case Replace:
+		change.Before = change.Before.Apply(PathChange{sub, o.Change})
+		return nil, PathChange{pc.Path, change}
+	case Splice:
+		idx := sub[0].(int)
+		beforeSize, afterSize := change.Before.Count(), change.After.Count()
+		switch {
+		case idx < change.Offset:
+			return o, pc
+		case idx >= change.Offset+beforeSize:
+			return pc.updateSubPathIndex(o, idx+afterSize-beforeSize)
+		}
+		sub := append([]interface{}(nil), sub...)
+		sub[0] = idx - change.Offset
+		change.Before = change.Before.Apply(PathChange{sub, o.Change})
+		return nil, PathChange{pc.Path, change}
+	case Move:
+		idx := sub[0].(int)
+		dest, end := change.dest(), change.Offset+change.Count
+		switch {
+		case idx >= change.Offset && idx < end:
+			return pc.updateSubPathIndex(o, idx+change.Distance)
+		case idx >= dest && idx < change.Offset:
+			return pc.updateSubPathIndex(o, idx+change.Count)
+		case idx >= end && idx < dest:
+			return pc.updateSubPathIndex(o, idx-change.Count)
+		}
+		return o, pc
+	}
+
+	return pc.prefixMerge(pc.Path, pc.Change, PathChange{sub, o.Change}, reverse)
+}
+
+func (pc PathChange) commonPrefixLen(a, b []interface{}) int {
+	if len(a) > len(b) {
+		a, b = b, a
+	}
+
+	for kk, elt := range a {
+		if b[kk] != elt {
+			return kk
+		}
+	}
+	return len(a)
+}
