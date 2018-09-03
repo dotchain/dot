@@ -15,18 +15,20 @@
 // path is simply how a particular node is to be traversed, with keys
 // and indices in the order in which they appear.
 //
-// Custom changes can be defined so long as it follows the Change
-// interface and also implements a "ReverseMerge" method. See
-// https://godoc.org/github.com/dotchain/dot/changes/x/rt#Run for a
-// custom change type.
+// Custom change types can be defined. They should implement the
+// Custom interface. See
+// https://godoc.org/github.com/dotchain/dot/changes/x/rt#Run for an
+// example custom change type.
 //
 // The Replace and Splice change both expect the Before, After fields
-// to be non-nil Value implementations.  Nil is an example empty value
-// and Atomic can be used to wrap any immutable value.
+// to be non-nil Value implementations. Replace can use changes.Nil
+// to represent empty values. Slices must make sure  that the Before
+// and After use the "empty" representations of the respective types.
 //
 // Any custom Value implementation should implement the Value
 // interface.  See https://godoc.org/github.com/dotchain/dot/x/types
-// for a set of custom value types
+// for a set of custom value types such as string, arrays and
+// counters.
 package changes
 
 // Change represents an OT-compatible mutation of the virtual JSON.
@@ -179,7 +181,7 @@ type Custom interface {
 	// type to deal with this. This is separate from the regular
 	// Merge method because calling "myType.Merge(move)" may not
 	// be the same:  the Merge() call is not required to be
-	// symmetric. A good example of a non-symettric situation is
+	// symmetric. A good example of a non-symmetric situation is
 	// when the left change and  the right change both are
 	// "inserting" into the same array at the same point -- the
 	// changes will have to be ordered so that one of them ends up
