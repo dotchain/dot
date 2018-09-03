@@ -57,7 +57,7 @@ func (s Replace) Merge(other Change) (otherx, cx Change) {
 		return change(s.MergeSplice(o))
 	case Move:
 		return change(s.MergeMove(o))
-	case revMerge:
+	case Custom:
 		return swap(o.ReverseMerge(s))
 	}
 	panic("Unexpected change")

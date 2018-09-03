@@ -40,6 +40,15 @@ func (pc PathChange) ReverseMerge(o Change) (Change, Change) {
 	return pc.mergePathChange(opc, true)
 }
 
+// ApplyTo is not relevant to PathChange.  It only works when the path
+// is empty. In all other cases, it panics.
+func (pc PathChange) ApplyTo(v Value) Value {
+	if len(pc.Path) == 0 {
+		return v.Apply(pc.Change)
+	}
+	panic("Unexpected use of PathChange.ApplyTo")
+}
+
 func (pc PathChange) mergePathChange(o PathChange, reverse bool) (Change, Change) {
 	prefixLen := pc.commonPrefixLen(pc.Path, o.Path)
 	switch {
@@ -55,7 +64,7 @@ func (pc PathChange) mergePathChange(o PathChange, reverse bool) (Change, Change
 }
 
 func (pc PathChange) prefixMerge(prefix []interface{}, l, r Change, reverse bool) (Change, Change) {
-	if rev, ok := l.(revMerge); ok && reverse {
+	if rev, ok := l.(Custom); ok && reverse {
 		l, r = rev.ReverseMerge(r)
 	} else if reverse {
 		r, l = r.Merge(l)

@@ -257,7 +257,7 @@ func (m Move) Merge(other Change) (otherx, cx Change) {
 	case Move:
 		l, r := m.MergeMove(o)
 		return movesToChange(l), movesToChange(r)
-	case revMerge:
+	case Custom:
 		return swap(o.ReverseMerge(m))
 	}
 	panic("Unexpected change")

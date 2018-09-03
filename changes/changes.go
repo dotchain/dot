@@ -25,7 +25,7 @@
 // and Atomic can be used to wrap any immutable value.
 //
 // Any custom Value implementation should implement the Value
-// interface.  See https://godoc.org/github.com/dotchain/dot/types
+// interface.  See https://godoc.org/github.com/dotchain/dot/x/types
 // for a set of custom value types
 package changes
 
@@ -141,8 +141,14 @@ func (c ChangeSet) Revert() Change {
 	return ChangeSet(results[:idx])
 }
 
-type revMerge interface {
-	ReverseMerge(o Change) (ox, mx Change)
+// ApplyTo simply walks through the individual changes and applies
+// them to the value.
+func (c ChangeSet) ApplyTo(v Value) Value {
+	for _, cx := range c {
+		v = v.Apply(cx)
+
+	}
+	return v
 }
 
 // helper method
@@ -156,4 +162,42 @@ func change(x, y changeable) (Change, Change) {
 
 func swap(x, y Change) (Change, Change) {
 	return y, x
+}
+
+// Custom is the interface that custom change types should implement.
+// This allows the "known" types to interact with custom types.
+type Custom interface {
+	Change
+
+	// ReverseMerge is used when a "known" change type is merged
+	// with a custom type:
+	//
+	//       move.Merge(myType)
+	//
+	// The known type has no way of figuring out how to merge. It
+	// calls ReverseMerge on the custom type to get the custom
+	// type to deal with this. This is separate from the regular
+	// Merge method because calling "myType.Merge(move)" may not
+	// be the same:  the Merge() call is not required to be
+	// symmetric. A good example of a non-symettric situation is
+	// when the left change and  the right change both are
+	// "inserting" into the same array at the same point -- the
+	// changes will have to be ordered so that one of them ends up
+	// before the other.
+	//
+	// Basically, if:
+	//
+	//       ax, bx := a.Merge(b)
+	//
+	// Then:
+	//
+	//       bx, ax := b.ReverseMerge(a)
+	//
+	ReverseMerge(c Change) (Change, Change)
+
+	// ApplyTo allows custom change types to implement a method to
+	// apply their changes onto known "values".  This allows Value
+	// implementations to be written without awareness of all
+	// possible Change implementations
+	ApplyTo(v Value) Value
 }

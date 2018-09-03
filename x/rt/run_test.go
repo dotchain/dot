@@ -7,9 +7,13 @@ package rt_test
 import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/x/rt"
+	"github.com/dotchain/dot/x/types"
 	"reflect"
 	"testing"
 )
+
+type S = types.S8
+type A = types.A
 
 func TestRunRevert(t *testing.T) {
 	r := rt.Run{0, 5, nil}

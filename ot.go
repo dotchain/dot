@@ -149,7 +149,7 @@
 // Folding and unstaged changes
 //
 // One of the benefits of working with invertible and transformable
-// operations is the ability to create a "folded" branch which has a 
+// operations is the ability to create a "folded" branch which has a
 // set of "folded" changes. Any changes upstream are properly
 // transformed on top of the "folded" changes.  The interesting
 // feature is the ability to take **local** changes applied on top of

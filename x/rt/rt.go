@@ -5,4 +5,3 @@
 // Package rt implements a rich type value which supports formatting,
 // styles, lists etc
 package rt
-

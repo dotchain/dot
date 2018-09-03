@@ -123,7 +123,8 @@ func (s Splice) mergeNonOverlappingMove(o Move) (ox, sx Change) {
 		right := s.Offset + beforeSize - odest
 		s1 := s
 		s1.Before = s.Before.Slice(0, odest-s.Offset)
-		s2 := Splice{o.Offset + o.Count + o.Distance, Nil, Nil}
+		empty := s.Before.Slice(0, 0)
+		s2 := Splice{o.Offset + o.Count + o.Distance, empty, empty}
 		s2.Before = s.Before.Slice(odest-s.Offset, right)
 
 		if o.Offset < s.Offset {
@@ -161,14 +162,15 @@ func (s Splice) mergeContainedMove(o Move) (ox, sx Change) {
 	}
 
 	sliced := s.Before.Slice(o.Offset-s.Offset, o.Count)
-	spliced := s.Before.Apply(Splice{o.Offset - s.Offset, sliced, Nil})
+	empty := sliced.Slice(0, 0)
+	spliced := s.Before.Apply(Splice{o.Offset - s.Offset, sliced, empty})
 
 	if odest < s.Offset {
-		ox = Splice{odest, Nil, sliced}
+		ox = Splice{odest, empty, sliced}
 		sx = Splice{s.Offset + o.Count, spliced, s.After}
 		return ox, sx
 	}
-	ox = Splice{odest + s.After.Count() - beforeSize, Nil, sliced}
+	ox = Splice{odest + s.After.Count() - beforeSize, empty, sliced}
 	s.Before = spliced
 	return ox, s
 }
@@ -186,7 +188,7 @@ func (s Splice) Merge(other Change) (otherx, cx Change) {
 		return change(s.MergeSplice(o))
 	case Move:
 		return s.MergeMove(o)
-	case revMerge:
+	case Custom:
 		return swap(o.ReverseMerge(s))
 	}
 	panic("Unexpected change")
