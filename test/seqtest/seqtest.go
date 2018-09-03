@@ -66,7 +66,7 @@ func ForEachTest(left, right StringMutator, validate Validator) {
 	for _, test := range sequenceTests {
 		l, initial := parse(test[0], left)
 		r, _ := parse(test[1], right)
-		
+
 		name := test[0] + " x " + test[1]
 		validate(name, initial, l, r, test[2])
 	}
@@ -74,14 +74,15 @@ func ForEachTest(left, right StringMutator, validate Validator) {
 
 var mutationRE = regexp.MustCompile(`\[.*\]`)
 var attributes = map[string]bool{
-	"strike": true,
-	"unstrike": true,
-	"underline": true,
+	"strike":      true,
+	"unstrike":    true,
+	"underline":   true,
 	"ununderline": true,
 }
+
 func parse(s string, m StringMutator) (interface{}, string) {
 	indices := mutationRE.FindStringIndex(s)
-	inner := s[indices[0]+1:indices[1]-1]
+	inner := s[indices[0]+1 : indices[1]-1]
 	left, right := s[:indices[0]], s[indices[1]:]
 
 	if pipe := strings.IndexAny(inner, "|"); pipe >= 0 {
@@ -132,7 +133,6 @@ var sequenceTests = [][3]string{
 	{"-abc123[|EFG]efg-", "-abc[123|]efg-", "-abcEFGefg-"},
 	{"-abc123[efg|]-", "-abc[123|]efg-", "-abc-"},
 
-	
 	// Series A.1 - conflicting splices
 	{"-abc[123|d]4fgh-", "-abc12[34|e]fgh-", "-abcdefgh-"},
 	{"-abc[123|]4fgh-", "-abc12[34|e]fgh-", "-abcefgh-"},
@@ -141,7 +141,7 @@ var sequenceTests = [][3]string{
 	{"-abc[123|]4fgh-", "-abc[1234|e]fgh-", "-abcefgh-"},
 
 	{"-abc12[34|d]fgh-", "-abc[123|e]4fgh-", "-abcedfgh-"},
-	{"-abc12[34|]fgh-", "-abc[123|e]4fgh-", "-abcefgh-"},	
+	{"-abc12[34|]fgh-", "-abc[123|e]4fgh-", "-abcefgh-"},
 
 	{"-abc[1234|d]fgh-", "-abc12[34|e]fgh-", "-abcdfgh-"},
 	{"-abc12[34|e]fgh-", "-abc[1234|d]fgh-", "-abcdfgh-"},
@@ -152,7 +152,6 @@ var sequenceTests = [][3]string{
 	{"-abc[1234|d]fgh-", "-abc1[23|e]4fgh-", "-abcdfgh-"},
 	{"-abc1[23|e]4fgh-", "-abc[1234|d]fgh-", "-abcdfgh-"},
 
-	
 	// Series B: non conflicting simple move move actions
 
 	{"-abc[123]d|e456fg-", "-abc123d|e[456]fg-", "-abcd456123efg-"}, // unexpected but ok
