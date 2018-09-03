@@ -30,18 +30,8 @@ func (a Atomic) Apply(c Change) Value {
 		if !c.IsInsert {
 			return c.After
 		}
-	case PathChange:
-		if len(c.Path) == 0 {
-			return a.Apply(c.Change)
-		}
-	case ChangeSet:
-		v := Value(a)
-		for _, cx := range c {
-			if cx != nil {
-				v = v.Apply(cx)
-			}
-		}
-		return v
+	case Custom:
+		return c.ApplyTo(a)
 	}
 	panic("Unexpected change applied on atomic")
 }

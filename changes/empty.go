@@ -35,18 +35,8 @@ func (e empty) Apply(c Change) Value {
 		if c.IsInsert && c.After != Nil {
 			return c.After
 		}
-	case PathChange:
-		if len(c.Path) == 0 {
-			return e.Apply(c.Change)
-		}
-	case ChangeSet:
-		v := Value(e)
-		for _, cx := range c {
-			if cx != nil {
-				v = v.Apply(cx)
-			}
-		}
-		return v
+	case Custom:
+		return c.ApplyTo(e)
 	}
 	panic("Unexpected change applied on empty")
 }

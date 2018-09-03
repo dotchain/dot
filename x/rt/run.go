@@ -14,6 +14,14 @@ type Run struct {
 	changes.Change
 }
 
+// ApplyTo just converts the method into a set of path changes
+func (r Run) ApplyTo(v changes.Value) changes.Value {
+	for kk := r.Offset; kk < r.Offset+r.Count; kk++ {
+		v = v.Apply(changes.PathChange{[]interface{}{kk}, r.Change})
+	}
+	return v
+}
+
 // Revert undoes the effect of the Run
 func (r Run) Revert() changes.Change {
 	if r.Change == nil {

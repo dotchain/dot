@@ -162,7 +162,7 @@ func validateMergeResults1(t *testing.T, l, r, lexpected, rexpected changes.Chan
 		t.Error("Unexpected l, r", lx, rx)
 	}
 
-	if rev, ok := r.(revMerge); ok {
+	if rev, ok := r.(changes.Custom); ok {
 		rx, lx := rev.ReverseMerge(l)
 		if !reflect.DeepEqual(simplify(lx), lexpected) || !reflect.DeepEqual(simplify(rx), rexpected) {
 			t.Error("Unexpected l, r", lx, rx)
@@ -200,8 +200,4 @@ func simplify(c changes.Change) changes.Change {
 		return c
 	}
 	return c
-}
-
-type revMerge interface {
-	ReverseMerge(changes.Change) (changes.Change, changes.Change)
 }

@@ -6,9 +6,13 @@ package changes_test
 
 import (
 	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/x/types"
 	"reflect"
 	"testing"
 )
+
+type A = types.A
+type S = types.S8
 
 // The random set of tests here are more targeted to cover some rarely
 // used codepaths.
@@ -111,6 +115,15 @@ func TestEmptyAtomicAndUnexpectedChange(t *testing.T) {
 	expectPanic("myChange1", func() { (changes.Replace{Before: S(""), After: S("a")}).Merge(z) })
 	expectPanic("myChange2", func() { (changes.Splice{0, S(""), S("a")}).Merge(z) })
 	expectPanic("myChange3", func() { (changes.Move{0, 5, 1}).Merge(z) })
+
+	expectPanic("ApplyTo", func() {
+		p := changes.PathChange{[]interface{}{"OK"}, nil}
+		p.ApplyTo(S(""))
+	})
+	p := changes.PathChange{nil, changes.Move{2, 2, 2}}
+	if x := p.ApplyTo(S("abcdef")); x != S("abefcd") {
+		t.Error("PathChange.ApplyTo failed", x)
+	}
 }
 
 type myChange struct{}
