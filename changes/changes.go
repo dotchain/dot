@@ -8,6 +8,12 @@
 // replaces a value altogether while Splice replaces a sub-sequence in
 // an array-like object and Move shuffles a sub-sequence.
 //
+// Both Slice and Move work on strings as well as strings are just a
+// form of arrays as far as OT is concerned. The actual representation
+// of strings is abstracted away.  See
+// https://godoc.org/github.com/dotchain/dot/x/types#S8 for the
+// implementation of an OT-compatible string type.
+//
 // ChangeSet allows a set of mutations to be grouped together.
 //
 // PathChange allows a mutation to refer to a "path".  This is useful
@@ -20,15 +26,23 @@
 // https://godoc.org/github.com/dotchain/dot/changes/x/rt#Run for an
 // example custom change type.
 //
-// The Replace and Splice change both expect the Before, After fields
+// Replace and Splice change both expect the Before and After fields
 // to be non-nil Value implementations. Replace can use changes.Nil
-// to represent empty values. Slices must make sure  that the Before
+// to represent empty values for the case where a value is being
+// deleted or created. Slices must make sure that the Before
 // and After use the "empty" representations of the respective types.
+//
+// Slices also should generally make sure that the Before and After
+// types are compatible -- i.e. inserting a number within a string is
+// not permitted.
 //
 // Any custom Value implementation should implement the Value
 // interface.  See https://godoc.org/github.com/dotchain/dot/x/types
 // for a set of custom value types such as string, arrays and
 // counters.
+//
+// See https://godoc.org/github.com/dotchain/dot/x/rt for a custom
+// type that has a specific custom change associated with it.
 package changes
 
 // Change represents an OT-compatible mutation of the virtual JSON.
