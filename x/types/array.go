@@ -46,6 +46,9 @@ func (a A) Apply(c changes.Change) changes.Value {
 		if len(c.Path) > 0 {
 			idx := c.Path[0].(int)
 			clone := append([]changes.Value(nil), a...)
+			if clone[idx] == nil {
+				clone[idx] = changes.Nil
+			}
 			clone[idx] = clone[idx].Apply(changes.PathChange{c.Path[1:], c.Change})
 			return A(clone)
 		}
