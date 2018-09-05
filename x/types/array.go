@@ -6,8 +6,10 @@ package types
 
 import "github.com/dotchain/dot/changes"
 
-// The A type represents a slice of arbitrary values that also
-// implements the changes.Value interface
+// The A type represents a slice of arbitrary values. It implements
+// the changes.Value interface. The actual elements can be nil (unlike
+// the regular requirement for values to be non-nil). Nil values are
+// treated as if they were changes.Nil
 type A []changes.Value
 
 // Slice implements changes.Value.Slice
@@ -21,6 +23,10 @@ func (a A) Count() int {
 }
 
 // Apply applies the change and returns the updated value
+//
+// Note: deleting an element via changes.Replace simply replaces it
+// with nil.  It does not actually remove the element -- that needs a
+// changes.Splice.
 func (a A) Apply(c changes.Change) changes.Value {
 	switch c := c.(type) {
 	case nil:
@@ -50,6 +56,10 @@ func (a A) Apply(c changes.Change) changes.Value {
 				clone[idx] = changes.Nil
 			}
 			clone[idx] = clone[idx].Apply(changes.PathChange{c.Path[1:], c.Change})
+			if clone[idx] == changes.Nil {
+				clone[idx] = nil
+			}
+
 			return A(clone)
 		}
 		return c.ApplyTo(a)

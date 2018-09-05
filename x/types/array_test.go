@@ -88,6 +88,12 @@ func TestAApply(t *testing.T) {
 	if !reflect.DeepEqual(x, types.A{types.S8("OK")}) {
 		t.Error("Unexpected apply with nil element", x)
 	}
+
+	remove := changes.Replace{IsDelete: true, Before: types.S8("OK"), After: changes.Nil}
+	x = x.Apply(changes.PathChange{[]interface{}{0}, remove})
+	if !reflect.DeepEqual(x, a) {
+		t.Error("Unexpected apply with nil element", x)
+	}
 }
 
 func TestAPanics(t *testing.T) {

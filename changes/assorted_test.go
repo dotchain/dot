@@ -99,8 +99,8 @@ func TestEmptyAtomicAndUnexpectedChange(t *testing.T) {
 	a := changes.Atomic{nil}
 	expectPanic("Atomic.Slice", func() { a.Slice(0, 0) })
 	expectPanic("Atomic.Count", func() { a.Count() })
-	expectPanic("Atomic.Count", func() { a.Apply(changes.Replace{IsInsert: true}) })
 	expectPanic("Atomic.Apply", func() { a.Apply(changes.Move{0, 5, 1}) })
+	expectPanic("Atomic.IsInsert", func() { a.Apply(changes.Replace{IsInsert: true}) })
 
 	if x := a.Apply(changes.ChangeSet{changes.PathChange{}}); x != a {
 		t.Error("Unexpected apply(...)", x)
