@@ -6,7 +6,7 @@ package ops
 
 import "context"
 
-// NewTransformer creates a new Store which returns transformed
+// Transformed creates a new Store which returns transformed
 // operations.
 //
 // The regular sequence of operations stored cannot be directly
@@ -16,27 +16,40 @@ import "context"
 // The transformed store returns the same operations but modifies the
 // changes so that it these change have the same effect as the
 // original but can be applied in sequence.
-func NewTransformer(raw Store) Store {
-	return transformer{raw}
+func Transformed(raw Store) Store {
+	return transformer{raw, nullCache{}}
+}
+
+// TransformedWithCache is the same as Transformed but with the
+// addition of an internal cache for performance.  The cache
+// interfaace is compatible with sync.Map.  The keys in the map are
+// the version numbers of the ops in the store -- the caller can
+// implement their eviction strategy based on this if needed (such as
+// evicting old version numbers). Custom caches can be implemented for
+// more sophisticated use cases.
+func TransformedWithCache(raw Store, cache Cache) Store {
+	return transformer{raw, cache}
 }
 
 type transformer struct {
 	Store
+	Cache
 }
 
 func (t transformer) GetSince(ctx context.Context, version, count int) ([]Op, error) {
 	ops, err := t.Store.GetSince(ctx, version, count)
-	if err != nil {
+	if err != nil || len(ops) == 0 {
 		return ops, err
 	}
+	result := make([]Op, len(ops))
 	for kk := range ops {
 		opInfo, err := t.xform(ctx, ops[kk])
 		if err != nil {
 			return nil, err
 		}
-		ops[kk] = opInfo.xformed
+		result[kk] = opInfo.xformed
 	}
-	return ops, nil
+	return result, nil
 }
 
 // opInfo contains the transformed op (remote master) as well as the
@@ -56,6 +69,10 @@ type opInfo struct {
 
 func (t *transformer) xform(ctx context.Context, op Op) (opInfo, error) {
 	basis, version, parent := op.Basis(), op.Version(), op.Parent()
+
+	if result, ok := t.Cache.Load(version); ok {
+		return result.(opInfo), nil
+	}
 
 	if version == basis+1 {
 		return opInfo{op, nil}, nil
@@ -90,7 +107,9 @@ func (t *transformer) xform(ctx context.Context, op Op) (opInfo, error) {
 		op, mergeChain[kk] = t.merge(info.xformed, op)
 	}
 
-	return opInfo{op, mergeChain}, nil
+	result := opInfo{op, mergeChain[:len(mergeChain):len(mergeChain)]}
+	t.Cache.Store(version, result)
+	return result, nil
 }
 
 func (t transformer) merge(left, right Op) (Op, Op) {

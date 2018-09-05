@@ -63,13 +63,14 @@ func (m *mem) Append(ctx context.Context, ops []ops.Op) error {
 	return nil
 }
 
-func (m *mem) GetSince(ctx context.Context, version, limit int) (ops []ops.Op, err error) {
+func (m *mem) GetSince(ctx context.Context, version, limit int) ([]ops.Op, error) {
+	result := []ops.Op(nil)
 	done := make(chan struct{}, 1)
 	fn := func() {
 		if version < len(m.ops) {
-			ops = m.ops[version:]
-			if len(ops) > limit {
-				ops = ops[:limit]
+			result = m.ops[version:]
+			if len(result) > limit {
+				result = result[:limit]
 			}
 		}
 		done <- struct{}{}
@@ -83,7 +84,7 @@ func (m *mem) GetSince(ctx context.Context, version, limit int) (ops []ops.Op, e
 	case m.control <- fn:
 	}
 	<-done
-	return ops[:len(ops):len(ops)], err
+	return result, nil
 }
 
 func (m *mem) Poll(ctx context.Context, version int) error {
