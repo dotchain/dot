@@ -194,6 +194,19 @@ func (s Splice) Merge(other Change) (otherx, cx Change) {
 	panic("Unexpected change")
 }
 
+// MapIndex maps an index to the new location of the index after the
+// splice. It also returns whether the item at that index has been
+// modified by the splice change.
+func (s Splice) MapIndex(idx int) (int, bool) {
+	switch {
+	case idx < s.Offset:
+		return idx, false
+	case idx >= s.Offset+s.Before.Count():
+		return idx + s.After.Count() - s.Before.Count(), false
+	}
+	return s.Offset, true
+}
+
 // Change returns nil or the underlying Splice
 func (s *Splice) Change() Change {
 	if s == nil {
