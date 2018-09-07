@@ -145,7 +145,7 @@ func getBranchedOps() (initial, final changes.Value, xformed []ops.Op) {
 	// client 1 => + merge (insert "X") + insert "C " => "A B X C Hello World"
 	// client 2 => + merge (insert "A") + insert "Z " => "A X Y Z Hello World"
 
-	first := changes.Replace{IsInsert: true, Before: changes.Nil, After: S("Hello World")}
+	first := changes.Replace{changes.Nil, S("Hello World")}
 	c1_1 := changes.Splice{0, S(""), S("A ")}
 	c1_2 := changes.Splice{2, S(""), S("B ")}
 	c2_1 := changes.Splice{0, S(""), S("X ")}

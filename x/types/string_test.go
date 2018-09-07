@@ -35,12 +35,12 @@ func TestS8Apply(t *testing.T) {
 		t.Error("Unexpected Apply.nil", x)
 	}
 
-	x = s.Apply(changes.Replace{Before: s, IsDelete: true})
+	x = s.Apply(changes.Replace{s, changes.Nil})
 	if x != changes.Nil {
 		t.Error("Unexpeted Apply.Replace-Delete", x)
 	}
 
-	x = s.Apply(changes.Replace{Before: s, After: types.S16("OK")})
+	x = s.Apply(changes.Replace{s, types.S16("OK")})
 	if x != types.S16("OK") {
 		t.Error("Unexpected Apply.Replace", x)
 	}
@@ -93,39 +93,39 @@ func TestS16Apply(t *testing.T) {
 		t.Error("Unexpected Apply.nil", x)
 	}
 
-	x = s.Apply(changes.Replace{Before: s, IsDelete: true})
+	x = s.Apply(changes.Replace{s, changes.Nil})
 	if x != changes.Nil {
 		t.Error("Unexpeted Apply.Replace-Delete", x)
 	}
 
-	x = s.Apply(changes.Replace{Before: s, After: types.S8("OK")})
+	x = s.Apply(changes.Replace{s, types.S8("OK")})
 	if x != types.S8("OK") {
 		t.Error("Unexpected Apply.Replace", x)
 	}
 
 	x = s.Apply(changes.Splice{7, s.Slice(7, 2), types.S16("-")})
 	if x != types.S16("hello, -🌂") {
-		t.Error("Unexpected Apply.Replace", x)
+		t.Error("Unexpected Apply.Splice", x)
 	}
 
 	x = s.Apply(changes.Splice{11, types.S16(""), types.S16("-")})
 	if x != types.S16("hello, 🌂🌂-") {
-		t.Error("Unexpected Apply.Replace", x)
+		t.Error("Unexpected Apply.Splice", x)
 	}
 
 	x = s.Apply(changes.Move{7, 2, -1})
 	if x != types.S16("hello,🌂 🌂") {
-		t.Error("Unexpected Apply.Replace", x)
+		t.Error("Unexpected Apply.Move", x)
 	}
 
 	x = s.Apply(changes.ChangeSet{changes.Move{7, 2, -1}})
 	if x != types.S16("hello,🌂 🌂") {
-		t.Error("Unexpected Apply.Replace", x)
+		t.Error("Unexpected Apply.Move", x)
 	}
 
 	x = s.Apply(changes.PathChange{nil, changes.Move{7, 2, -1}})
 	if x != types.S16("hello,🌂 🌂") {
-		t.Error("Unexpected Apply.Replace", x)
+		t.Error("Unexpected Apply.Move", x)
 	}
 }
 

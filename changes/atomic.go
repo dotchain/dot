@@ -27,7 +27,7 @@ func (a Atomic) Apply(c Change) Value {
 	case nil:
 		return a
 	case Replace:
-		if !c.IsInsert {
+		if !c.IsCreate() {
 			return c.After
 		}
 	case Custom:

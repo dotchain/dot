@@ -65,7 +65,7 @@ func TestMultiChangeSet(t *testing.T) {
 }
 
 func TestChangeMethod(t *testing.T) {
-	r := &changes.Replace{Before: S(""), After: S("a")}
+	r := &changes.Replace{S(""), S("a")}
 	s := &changes.Splice{0, S(""), S("a")}
 	m := &changes.Move{0, 5, 1}
 	if r.Change() != *r || s.Change() != *s || m.Change() != *m {
@@ -84,14 +84,14 @@ func TestEmptyAtomicAndUnexpectedChange(t *testing.T) {
 	}
 	expectPanic("Nil.Slice", func() { changes.Nil.Slice(0, 0) })
 	expectPanic("Nil.Count", func() { changes.Nil.Count() })
-	expectPanic("Nil.Count", func() { changes.Nil.Apply(changes.Replace{IsDelete: true}) })
+	expectPanic("Nil.Replace.Delete", func() { changes.Nil.Apply(changes.Replace{types.S8(""), changes.Nil}) })
 	expectPanic("Nil.Apply", func() { changes.Nil.Apply(changes.Move{0, 5, 1}) })
 
 	if x := changes.Nil.Apply(changes.ChangeSet{changes.PathChange{}}); x != changes.Nil {
 		t.Error("Unexpected apply(...)", x)
 	}
 
-	x := changes.Nil.Apply(changes.Replace{IsInsert: true, Before: changes.Nil, After: S("a")})
+	x := changes.Nil.Apply(changes.Replace{changes.Nil, S("a")})
 	if x != S("a") {
 		t.Error("Unexpected replace", x)
 	}
@@ -100,19 +100,19 @@ func TestEmptyAtomicAndUnexpectedChange(t *testing.T) {
 	expectPanic("Atomic.Slice", func() { a.Slice(0, 0) })
 	expectPanic("Atomic.Count", func() { a.Count() })
 	expectPanic("Atomic.Apply", func() { a.Apply(changes.Move{0, 5, 1}) })
-	expectPanic("Atomic.IsInsert", func() { a.Apply(changes.Replace{IsInsert: true}) })
+	expectPanic("Atomic.Create", func() { a.Apply(changes.Replace{changes.Nil, types.S8("")}) })
 
 	if x := a.Apply(changes.ChangeSet{changes.PathChange{}}); x != a {
 		t.Error("Unexpected apply(...)", x)
 	}
 
-	x = a.Apply(changes.Replace{Before: a, After: S("a")})
+	x = a.Apply(changes.Replace{a, S("a")})
 	if x != S("a") {
 		t.Error("Unexpected replace", x)
 	}
 
 	z := myChange{}
-	expectPanic("myChange1", func() { (changes.Replace{Before: S(""), After: S("a")}).Merge(z) })
+	expectPanic("myChange1", func() { (changes.Replace{S(""), S("a")}).Merge(z) })
 	expectPanic("myChange2", func() { (changes.Splice{0, S(""), S("a")}).Merge(z) })
 	expectPanic("myChange3", func() { (changes.Move{0, 5, 1}).Merge(z) })
 

@@ -4,30 +4,25 @@
 
 package changes
 
-// Replace represents replacing a particular value with another
-// IsDelete is used to distinguish the case where the replace is
-// deleting a value as opposed to setting it to nil
-//
-// Before is ignored for IsInsert and After is ignored for IsDelete.
+// Replace represents create, delete and update of a value based on
+// whether Before is Nil, After is Nil and both are non-Nil
+// respectively.
 type Replace struct {
-	IsDelete      bool  `json:",omitempty"`
-	IsInsert      bool  `json:",omitempty"`
-	Before, After Value `json:",omitempty"`
+	Before, After Value
 }
 
 // Revert inverts the effect of the replace
 func (s Replace) Revert() Change {
-	return Replace{s.IsInsert, s.IsDelete, s.After, s.Before}
+	return Replace{s.After, s.Before}
 }
 
 // MergeReplace merges against another Replace change.  The last writer wins
 // here with the receiver assumed to be the earlier change
 func (s Replace) MergeReplace(other Replace) (other1, s1 *Replace) {
-	if s.IsDelete && other.IsDelete {
+	if s.IsDelete() && other.IsDelete() {
 		return nil, nil
 	}
 
-	other.IsInsert = s.IsDelete
 	other.Before = s.After
 	return &other, nil
 }
@@ -61,6 +56,16 @@ func (s Replace) Merge(other Change) (otherx, cx Change) {
 		return swap(o.ReverseMerge(s))
 	}
 	panic("Unexpected change")
+}
+
+// IsDelete identifies if the change is a delete
+func (s Replace) IsDelete() bool {
+	return s.Before != Nil && s.After == Nil
+}
+
+// IsCreate identifies if the change is a create
+func (s Replace) IsCreate() bool {
+	return s.Before == Nil && s.After != Nil
 }
 
 // Change returns either nil or a Change

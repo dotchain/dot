@@ -16,11 +16,11 @@ func TestCounterApply(t *testing.T) {
 		t.Error("Apply(nil)", x)
 	}
 
-	if x := c.Apply(changes.Replace{Before: c, IsDelete: true}); x != changes.Nil {
+	if x := c.Apply(changes.Replace{c, changes.Nil}); x != changes.Nil {
 		t.Error("Replace(IsDelete)", x)
 	}
 
-	if x := c.Apply(changes.Replace{Before: c, After: types.S8("OK")}); x != types.S8("OK") {
+	if x := c.Apply(changes.Replace{c, types.S8("OK")}); x != types.S8("OK") {
 		t.Error("Replace()", x)
 	}
 

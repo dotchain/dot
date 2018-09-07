@@ -32,7 +32,7 @@ func (e empty) Apply(c Change) Value {
 	case nil:
 		return e
 	case Replace:
-		if c.IsInsert && c.After != Nil {
+		if c.IsCreate() {
 			return c.After
 		}
 	case Custom:

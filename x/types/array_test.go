@@ -42,12 +42,12 @@ func TestAApply(t *testing.T) {
 		t.Error("Unexpected Apply.nil", x)
 	}
 
-	x = a.Apply(changes.Replace{Before: a, IsDelete: true})
+	x = a.Apply(changes.Replace{a, changes.Nil})
 	if x != changes.Nil {
 		t.Error("Unexpeted Apply.Replace-Delete", x)
 	}
 
-	x = a.Apply(changes.Replace{Before: a, After: types.S16("OK")})
+	x = a.Apply(changes.Replace{a, types.S16("OK")})
 	if x != types.S16("OK") {
 		t.Error("Unexpected Apply.Replace", x)
 	}
@@ -83,13 +83,13 @@ func TestAApply(t *testing.T) {
 
 	// validate that nil values can be replaced
 	a = types.A{nil}
-	rep := changes.Replace{IsInsert: true, Before: changes.Nil, After: types.S8("OK")}
+	rep := changes.Replace{changes.Nil, types.S8("OK")}
 	x = a.Apply(changes.PathChange{[]interface{}{0}, rep})
 	if !reflect.DeepEqual(x, types.A{types.S8("OK")}) {
 		t.Error("Unexpected apply with nil element", x)
 	}
 
-	remove := changes.Replace{IsDelete: true, Before: types.S8("OK"), After: changes.Nil}
+	remove := changes.Replace{types.S8("OK"), changes.Nil}
 	x = x.Apply(changes.PathChange{[]interface{}{0}, remove})
 	if !reflect.DeepEqual(x, a) {
 		t.Error("Unexpected apply with nil element", x)
