@@ -62,17 +62,11 @@ func (p Path) mergeMove(c changes.Move) (Ref, changes.Change) {
 		return p, c
 	}
 	idx := p[0].(int)
-	switch {
-	case idx >= c.Offset && idx < c.Offset+c.Count:
-		idx += c.Distance
-	case idx >= c.Offset+c.Distance && idx < c.Offset:
-		idx += c.Count
-	case idx >= c.Offset+c.Count && idx < c.Offset+c.Count+c.Distance:
-		idx -= c.Count
-	default:
+	idx2 := mapIndex(c, idx)
+	if idx2 == idx {
 		return p, nil
 	}
-	return Path(append([]interface{}{idx}, p[1:]...)), nil
+	return Path(append([]interface{}{idx2}, p[1:]...)), nil
 }
 
 func (p Path) mergePathChange(c changes.PathChange) (Ref, changes.Change) {

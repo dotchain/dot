@@ -42,21 +42,9 @@ func (caret Caret) updateIndex(path Path, idx int, cx changes.Change) Ref {
 	case changes.Replace:
 		return InvalidRef
 	case changes.Splice:
-		if idx >= cx.Offset && idx < cx.Offset+cx.Before.Count() {
-			idx = cx.Offset
-		}
-		if idx >= cx.Offset+cx.Before.Count() {
-			idx += cx.After.Count() - cx.Before.Count()
-		}
+		return Caret{path, mapIndex(cx, idx)}
 	case changes.Move:
-		switch {
-		case idx >= cx.Offset+cx.Distance && idx < cx.Offset:
-			idx += cx.Count
-		case idx >= cx.Offset && idx < cx.Offset+cx.Count:
-			idx += cx.Distance
-		case idx >= cx.Offset+cx.Count && idx < cx.Offset+cx.Count+cx.Distance:
-			idx -= cx.Count
-		}
+		return Caret{path, mapIndex(cx, idx)}
 	case changes.PathChange:
 		if len(cx.Path) == 0 {
 			return caret.updateIndex(path, idx, cx.Change)
@@ -73,6 +61,28 @@ func (caret Caret) updateIndex(path Path, idx int, cx changes.Change) Ref {
 		return cx.MergeCaret(Caret{path, idx})
 	}
 	return Caret{path, idx}
+}
+
+func mapIndex(c changes.Change, idx int) int {
+	if m, ok := c.(changes.Move); ok {
+		switch {
+		case idx >= m.Offset+m.Distance && idx < m.Offset:
+			idx += m.Count
+		case idx >= m.Offset && idx < m.Offset+m.Count:
+			idx += m.Distance
+		case idx >= m.Offset+m.Count && idx < m.Offset+m.Count+m.Distance:
+			idx -= m.Count
+		}
+		return idx
+	}
+	cx := c.(changes.Splice)
+	if idx >= cx.Offset && idx < cx.Offset+cx.Before.Count() {
+		idx = cx.Offset
+	}
+	if idx >= cx.Offset+cx.Before.Count() {
+		idx += cx.After.Count() - cx.Before.Count()
+	}
+	return idx
 }
 
 type caretMerger interface {
