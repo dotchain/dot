@@ -79,6 +79,7 @@ func (pc PathChange) updateSubPathIndex(o PathChange, idx int) (Change, Change) 
 	path[len(pc.Path)] = idx
 	return PathChange{path, o.Change}, pc
 }
+
 func (pc PathChange) mergeSubPath(o PathChange, reverse bool) (Change, Change) {
 	sub := o.Path[len(pc.Path):]
 	switch change := pc.Change.(type) {
