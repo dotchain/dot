@@ -30,7 +30,7 @@ func (m M) Apply(c changes.Change) changes.Value {
 	case nil:
 		return m
 	case changes.Replace:
-		if c.IsDelete {
+		if c.IsDelete() {
 			return changes.Nil
 		}
 		return c.After

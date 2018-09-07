@@ -12,8 +12,8 @@ import (
 func TestReverts(t *testing.T) {
 	initial := S("hello")
 	cx := []changes.Change{
-		changes.Replace{Before: initial, After: S("World")},
-		changes.Replace{Before: initial, After: changes.Nil, IsDelete: true},
+		changes.Replace{initial, S("World")},
+		changes.Replace{initial, changes.Nil},
 		changes.Splice{1, S(""), S("OK!")},
 		changes.Splice{1, S("el"), S("")},
 		changes.Splice{1, S("el"), S("goo")},

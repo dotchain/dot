@@ -31,7 +31,7 @@ func (c Counter) Apply(cx changes.Change) changes.Value {
 	case nil:
 		return c
 	case changes.Replace:
-		if cx.IsDelete {
+		if cx.IsDelete() {
 			return changes.Nil
 		}
 		return cx.After

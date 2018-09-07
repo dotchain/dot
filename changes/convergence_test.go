@@ -30,8 +30,8 @@ func TestConvergenceNonEmptyInitial(t *testing.T) {
 func TestConvergenceEmptyInitial(t *testing.T) {
 	initial := changes.Nil
 	cx := []changes.Change{
-		changes.Replace{IsInsert: true, Before: changes.Nil, After: S("hello")},
-		changes.Replace{IsInsert: true, Before: changes.Nil, After: S("world")},
+		changes.Replace{changes.Nil, S("hello")},
+		changes.Replace{changes.Nil, S("world")},
 	}
 	for _, left := range cx {
 		for _, right := range cx {
@@ -43,8 +43,8 @@ func TestConvergenceEmptyInitial(t *testing.T) {
 func TestConvergenceChangeSet(t *testing.T) {
 	initial := S("hello")
 	left := changes.ChangeSet{
-		changes.Replace{IsDelete: true, Before: initial, After: changes.Nil},
-		changes.Replace{IsInsert: true, Before: changes.Nil, After: S("World")},
+		changes.Replace{initial, changes.Nil},
+		changes.Replace{changes.Nil, S("World")},
 		changes.Splice{5, S(""), S("!")},
 	}
 	right := changes.ChangeSet{
@@ -57,8 +57,8 @@ func TestConvergenceChangeSet(t *testing.T) {
 func ForEachChange(replacement changes.Value, fn func(initial changes.Value, c changes.Change)) {
 	initial := S("abcdef")
 	fn(initial, changes.ChangeSet{nil})
-	fn(initial, changes.Replace{Before: initial, After: replacement})
-	fn(initial, changes.Replace{Before: initial, IsDelete: true})
+	fn(initial, changes.Replace{initial, replacement})
+	fn(initial, changes.Replace{initial, changes.Nil})
 	fn(initial, changes.Move{0, 5, 0})
 	fn(initial, changes.Move{5, 0, 1})
 	for offset := 0; offset <= initial.Count(); offset++ {

@@ -22,17 +22,17 @@ func TestMApply(t *testing.T) {
 		t.Error("Unexpected Apply.nil", x)
 	}
 
-	x = m.Apply(changes.Replace{Before: m, IsDelete: true})
+	x = m.Apply(changes.Replace{m, changes.Nil})
 	if x != changes.Nil {
 		t.Error("Unexpeted Apply.Replace-Delete", x)
 	}
 
-	x = m.Apply(changes.Replace{Before: m, After: types.S16("OK")})
+	x = m.Apply(changes.Replace{m, types.S16("OK")})
 	if x != types.S16("OK") {
 		t.Error("Unexpected Apply.Replace", x)
 	}
 
-	insert := changes.PathChange{[]interface{}{"new"}, changes.Replace{IsInsert: true, Before: changes.Nil, After: types.S8("string")}}
+	insert := changes.PathChange{[]interface{}{"new"}, changes.Replace{changes.Nil, types.S8("string")}}
 	expected := types.M{
 		true:  types.S8("bool"),
 		5.3:   types.S8("float"),
@@ -54,7 +54,7 @@ func TestMApply(t *testing.T) {
 		t.Error("Unexpected Apply.PathChange", x)
 	}
 
-	modify := changes.PathChange{[]interface{}{true}, changes.Replace{Before: types.S8("bool"), After: types.S8("BOOL")}}
+	modify := changes.PathChange{[]interface{}{true}, changes.Replace{types.S8("bool"), types.S8("BOOL")}}
 	expected = types.M{
 		true: types.S8("BOOL"),
 		5.3:  types.S8("float"),
@@ -66,13 +66,13 @@ func TestMApply(t *testing.T) {
 
 	// validate that nil values can be replaced
 	m = types.M{"nil": nil}
-	rep := changes.Replace{IsInsert: true, Before: changes.Nil, After: types.S8("OK")}
+	rep := changes.Replace{changes.Nil, types.S8("OK")}
 	x = m.Apply(changes.PathChange{[]interface{}{"nil"}, rep})
 	if !reflect.DeepEqual(x, types.M{"nil": types.S8("OK")}) {
 		t.Error("Unexpected apply with nil element", x)
 	}
 
-	remove := changes.Replace{IsDelete: true, Before: types.S8("OK"), After: changes.Nil}
+	remove := changes.Replace{types.S8("OK"), changes.Nil}
 	x = x.Apply(changes.PathChange{[]interface{}{"nil"}, remove})
 	if !reflect.DeepEqual(x, m) {
 		t.Error("Unexpected apply with nil element", x)

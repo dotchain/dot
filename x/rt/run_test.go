@@ -61,7 +61,7 @@ func TestRunMergeReplace(t *testing.T) {
 	l := rt.Run{0, 2, changes.Move{0, 1, 1}}
 	r := changes.Replace{Before: initial, After: S("OK")}
 	validateMerge(t, l, r)
-	validateMerge(t, l, changes.Replace{Before: initial, After: changes.Nil, IsDelete: true})
+	validateMerge(t, l, changes.Replace{initial, changes.Nil})
 }
 
 func TestRunMergeSplice(t *testing.T) {
@@ -121,12 +121,12 @@ func TestRunMergeRun(t *testing.T) {
 
 func TestRunMergePathChange(t *testing.T) {
 	l := rt.Run{1, 1, changes.Splice{0, A{}, A{S("Left")}}}
-	r := changes.PathChange{nil, changes.Replace{IsDelete: true, Before: initial, After: changes.Nil}}
+	r := changes.PathChange{nil, changes.Replace{initial, changes.Nil}}
 	validateMerge(t, l, r)
 
 	l = rt.Run{1, 2, changes.Splice{0, A{}, A{S("Left")}}}
 	for kk := 0; kk < 3; kk++ {
-		replace := changes.Replace{IsDelete: true, Before: initial[kk], After: changes.Nil}
+		replace := changes.Replace{initial[kk], changes.Nil}
 		r := changes.PathChange{[]interface{}{kk}, replace}
 		validateMerge(t, l, r)
 		validateMerge(t, r, l)

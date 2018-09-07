@@ -28,7 +28,7 @@ func (s S8) Apply(c changes.Change) changes.Value {
 	case nil:
 		return s
 	case changes.Replace:
-		if c.IsDelete {
+		if c.IsDelete() {
 			return changes.Nil
 		}
 		return c.After
@@ -71,7 +71,7 @@ func (s S16) Apply(c changes.Change) changes.Value {
 	case nil:
 		return s
 	case changes.Replace:
-		if c.IsDelete {
+		if c.IsDelete() {
 			return changes.Nil
 		}
 		return c.After
