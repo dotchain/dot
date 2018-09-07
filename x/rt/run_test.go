@@ -6,6 +6,7 @@ package rt_test
 
 import (
 	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/refs"
 	"github.com/dotchain/dot/x/rt"
 	"github.com/dotchain/dot/x/types"
 	"reflect"
@@ -130,6 +131,48 @@ func TestRunMergePathChange(t *testing.T) {
 		r := changes.PathChange{[]interface{}{kk}, replace}
 		validateMerge(t, l, r)
 		validateMerge(t, r, l)
+	}
+}
+
+func TestRunMergePath(t *testing.T) {
+	r := rt.Run{5, 10, changes.Replace{S("OK"), S("boo")}}
+	p := refs.Path{}
+	px, cx := p.Merge(r)
+	if !reflect.DeepEqual(px, p) || !reflect.DeepEqual(cx, r) {
+		t.Fatal("Empty refs.Path merge failed", px, cx)
+	}
+
+	p = refs.Path{4}
+	px, cx = p.Merge(r)
+	if !reflect.DeepEqual(px, p) || cx != nil {
+		t.Fatal("Unaffected refs.Path merge failed", px, cx)
+	}
+
+	p = refs.Path{15}
+	px, cx = p.Merge(r)
+	if !reflect.DeepEqual(px, p) || cx != nil {
+		t.Fatal("Unaffected refs.Path merge failed", px, cx)
+	}
+
+	p = refs.Path{5}
+	px, cx = p.Merge(r)
+	if px != refs.InvalidRef || cx != nil {
+		t.Fatal("Affected refs.Path merge failed", px, cx)
+	}
+
+	p = refs.Path{14, "x"}
+	move := changes.Move{2, 3, 4}
+	r = rt.Run{5, 10, changes.PathChange{[]interface{}{"x"}, move}}
+	px, cx = p.Merge(r)
+	if !reflect.DeepEqual(px, p) || cx != move {
+		t.Fatal("Affected refs.Path merge failed", px, cx)
+	}
+
+	p = refs.Path{14, 2}
+	r = rt.Run{5, 10, move}
+	px, cx = p.Merge(r)
+	if !reflect.DeepEqual(px, refs.Path{14, 6}) || cx != nil {
+		t.Fatal("Affected refs.Path merge failed", px, cx)
 	}
 }
 

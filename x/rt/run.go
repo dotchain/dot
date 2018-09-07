@@ -4,7 +4,10 @@
 
 package rt
 
-import "github.com/dotchain/dot/changes"
+import (
+	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/refs"
+)
 
 // Run implements a custom change type which applies a provided
 // inner change to a range of items in an array.  This is particularly
@@ -40,6 +43,24 @@ func (r Run) Merge(o changes.Change) (changes.Change, changes.Change) {
 // know how to implement merge with r, it calls r.ReverseMerge(ch).
 func (r Run) ReverseMerge(o changes.Change) (changes.Change, changes.Change) {
 	return r.merge(o, true)
+}
+
+// MergePath implements the method needed to work with refs.Merge
+func (r Run) MergePath(p refs.Path) (refs.Ref, changes.Change) {
+	if len(p) == 0 {
+		return p, r
+	}
+
+	idx := p[0].(int)
+	if idx < r.Offset || idx >= r.Offset+r.Count {
+		return p, nil
+	}
+
+	px, cx := p[1:].Merge(r.Change)
+	if path, ok := px.(refs.Path); ok {
+		return append(refs.Path{p[0]}, path...), cx
+	}
+	return px, cx
 }
 
 func (r Run) merge(o changes.Change, reverse bool) (changes.Change, changes.Change) {
