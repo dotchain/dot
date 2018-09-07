@@ -21,7 +21,7 @@ func TestPathNil(t *testing.T) {
 }
 
 func TestPathReplace(t *testing.T) {
-	replace := changes.Replace{Before: types.S8("OK"), After: types.S8("goop")}
+	replace := changes.Replace{types.S8("OK"), types.S8("goop")}
 
 	p := refs.Path(nil)
 	p2, cx := p.Merge(replace)
@@ -32,7 +32,7 @@ func TestPathReplace(t *testing.T) {
 	change := changes.PathChange{[]interface{}{"xyz"}, replace}
 	p2, cx = p.Merge(change)
 	if !reflect.DeepEqual(p2, p) || !reflect.DeepEqual(cx, change) {
-		t.Errorf("Unexpected Merge %#v %#v", p2, cx)
+		t.Error("Unexpected Merge", p2, cx)
 	}
 }
 
@@ -188,15 +188,12 @@ func TestPathInvalidRef(t *testing.T) {
 	}
 }
 
-func TestUnknownChange(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("Unexpected merge, no panic")
-		}
-	}()
-
+func TestPathUnknownChange(t *testing.T) {
 	p := refs.Path{}
-	p.Merge(myChange{})
+	px, cx := p.Merge(myChange{})
+	if !reflect.DeepEqual(px, p) || cx != nil {
+		t.Error("Unexpected merge with unknown change", px, cx)
+	}
 }
 
 func TestPathMerger(t *testing.T) {

@@ -11,13 +11,21 @@ import "github.com/dotchain/dot/changes"
 //
 // This is an immutable type -- none of the methods modify the
 // provided path itself.
+//
+// This only handles the standard set of changes. Custom changes
+// should implement a MergePath method which will then get invoked
+// whenever this method is invoked:
+//
+//     MergePath(path refs.Path) (refs.Ref, changes.Change)
+//
+// If no such method is implemented by the change, the change is
+// ignored as if it has no side-effects.  If such a method is
+// implemented, it should only return InvalidRef or another Path.
 type Path []interface{}
 
 // Merge implements Ref.Merge
 func (p Path) Merge(c changes.Change) (Ref, changes.Change) {
 	switch c := c.(type) {
-	case nil:
-		return p, nil
 	case changes.Replace:
 		return InvalidRef, nil
 	case changes.Splice:
@@ -31,8 +39,7 @@ func (p Path) Merge(c changes.Change) (Ref, changes.Change) {
 	case pathMerger:
 		return c.MergePath(p)
 	}
-
-	panic("MergeRef not supported on change")
+	return p, nil
 }
 
 func (p Path) mergeSplice(c changes.Splice) (Ref, changes.Change) {
