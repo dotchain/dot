@@ -46,27 +46,19 @@ func (p Path) mergeSplice(c changes.Splice) (Ref, changes.Change) {
 	if len(p) == 0 {
 		return p, c
 	}
-	idx := p[0].(int)
-	switch {
-	case idx >= c.Offset && idx < c.Offset+c.Before.Count():
+	idx, ok := c.MapIndex(p[0].(int))
+	if ok {
 		return InvalidRef, nil
-	case idx > c.Offset:
-		idx += c.After.Count() - c.Before.Count()
-		return Path(append([]interface{}{idx}, p[1:]...)), nil
 	}
-	return p, nil
+	return Path(append([]interface{}{idx}, p[1:]...)), nil
 }
 
 func (p Path) mergeMove(c changes.Move) (Ref, changes.Change) {
 	if len(p) == 0 {
 		return p, c
 	}
-	idx := p[0].(int)
-	idx2 := mapIndex(c, idx)
-	if idx2 == idx {
-		return p, nil
-	}
-	return Path(append([]interface{}{idx2}, p[1:]...)), nil
+	idx := c.MapIndex(p[0].(int))
+	return Path(append([]interface{}{idx}, p[1:]...)), nil
 }
 
 func (p Path) mergePathChange(c changes.PathChange) (Ref, changes.Change) {

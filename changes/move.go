@@ -194,11 +194,25 @@ func (m Move) mergeMoveContained(o Move) ([]Move, []Move) {
 	return []Move{ox}, []Move{mx}
 }
 
-func (m Move) mapPoint(idx int) int {
-	if idx >= m.Offset+m.Distance && idx <= m.Offset {
+// MapIndex maps a particular index to the new location of the index
+// after the move
+func (m Move) MapIndex(idx int) int {
+	switch {
+	case idx >= m.Offset+m.Distance && idx < m.Offset:
 		return idx + m.Count
+	case idx >= m.Offset && idx < m.Offset+m.Count:
+		return idx + m.Distance
+	case idx >= m.Offset+m.Count && idx < m.Offset+m.Count+m.Distance:
+		return idx - m.Count
 	}
-	if idx >= m.Offset+m.Count && idx < m.Offset+m.Count+m.Distance {
+	return idx
+}
+
+func (m Move) mapPoint(idx int) int {
+	switch {
+	case idx >= m.Offset+m.Distance && idx <= m.Offset:
+		return idx + m.Count
+	case idx >= m.Offset+m.Count && idx < m.Offset+m.Count+m.Distance:
 		return idx - m.Count
 	}
 	return idx

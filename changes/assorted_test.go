@@ -73,6 +73,43 @@ func TestChangeMethod(t *testing.T) {
 	}
 }
 
+func TestSpliceMapIndex(t *testing.T) {
+	s := changes.Splice{5, types.S8("12"), types.S8("1234")}
+	idx, ok := s.MapIndex(4)
+	if idx != 4 || ok {
+		t.Error("Unexpected MapIndex", idx, ok)
+	}
+
+	idx, ok = s.MapIndex(5)
+	if idx != 5 || !ok {
+		t.Error("Unexpected MapIndex", idx, ok)
+	}
+
+	idx, ok = s.MapIndex(6)
+	if idx != 5 || !ok {
+		t.Error("Unexpected MapIndex", idx, ok)
+	}
+
+	idx, ok = s.MapIndex(7)
+	if idx != 9 || ok {
+		t.Error("Unexpected MapIndex", idx, ok)
+	}
+}
+
+func TestMoveMapIndex(t *testing.T) {
+	m1 := changes.Move{2, 3, 4}
+	m2 := changes.Move{5, 4, -3}
+
+	mapped := map[int]int{1: 1, 2: 6, 4: 8, 5: 2, 8: 5, 9: 9}
+	for before, after := range mapped {
+		idx1 := m1.MapIndex(before)
+		idx2 := m2.MapIndex(before)
+		if idx1 != after || idx2 != after {
+			t.Error("MapIndex failed", before, idx1, idx2, after)
+		}
+	}
+}
+
 func TestEmptyAtomicAndUnexpectedChange(t *testing.T) {
 	expectPanic := func(msg string, fn func()) {
 		defer func() {
