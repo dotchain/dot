@@ -6,7 +6,7 @@ package changes
 
 // NewStream returns a well constructed stream
 func NewStream() *Stream {
-	return &Stream{fns: map[interface{}]func(Change, interface{}, *Stream){}}
+	return &Stream{fns: map[interface{}]func(Change, *Stream){}}
 }
 
 // Stream represents a sequence of changes.  A change can be "applied"
@@ -38,22 +38,21 @@ func NewStream() *Stream {
 // move the changes between two branches.
 type Stream struct {
 	c    Change
-	src  interface{}
 	next *Stream
-	fns  map[interface{}]func(c Change, src interface{}, latest *Stream)
+	fns  map[interface{}]func(c Change, latest *Stream)
 }
 
 // On adds or updates a listener specified  by the key. Setting the
 // callback function to nil will remove the callback
 //
 // The same stream instance is returned for convenience.
-func (s *Stream) On(key interface{}, fn func(c Change, src interface{}, latest *Stream)) *Stream {
+func (s *Stream) On(key interface{}, fn func(c Change, latest *Stream)) *Stream {
 	if fn == nil {
 		delete(s.fns, key)
 	} else {
 		s.fns[key] = fn
 		for s.next != nil {
-			fn(s.c, s.src, s.next)
+			fn(s.c, s.next)
 			s = s.next
 		}
 	}
@@ -67,23 +66,22 @@ func (s *Stream) On(key interface{}, fn func(c Change, src interface{}, latest *
 //
 // The returned stream is a logical different "version" than the
 // current stream instance.
-func (s *Stream) Apply(c Change, src interface{}) *Stream {
-	return s.apply(c, src, false)
+func (s *Stream) Apply(c Change) *Stream {
+	return s.apply(c, false)
 }
 
-func (s *Stream) apply(c Change, src interface{}, reverse bool) *Stream {
+func (s *Stream) apply(c Change, reverse bool) *Stream {
 	result := &Stream{fns: s.fns}
 	next := result
 	for s.next != nil {
 		c, next.c = s.merge(s.c, c, reverse)
 		s = s.next
-		next.src = s.src
 		next.next = &Stream{fns: s.fns}
 		next = next.next
 	}
-	s.c, s.next, s.src = c, next, src
+	s.c, s.next = c, next
 	for _, fn := range s.fns {
-		fn(c, src, next)
+		fn(c, next)
 	}
 	return result
 }
@@ -114,7 +112,7 @@ type Branch struct {
 
 func (b *Branch) merge(from, to *Stream, reverse bool) (fromx, tox *Stream) {
 	for from.next != nil {
-		to = to.apply(from.c, from.src, reverse)
+		to = to.apply(from.c, reverse)
 		from = from.next
 	}
 	return from, to

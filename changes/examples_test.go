@@ -12,12 +12,12 @@ import (
 
 func ExampleStream_create() {
 	latest := changes.Value(types.S8("Hello World"))
-	s := changes.NewStream().On("apply", func(c changes.Change, _ interface{}, _ *changes.Stream) {
+	s := changes.NewStream().On("apply", func(c changes.Change, c_ *changes.Stream) {
 		latest = latest.Apply(c)
 		fmt.Println("Changed:", latest)
 	})
 
-	s.Apply(changes.Splice{0, types.S8(""), types.S8("OK ")}, nil)
+	s.Apply(changes.Splice{0, types.S8(""), types.S8("OK ")})
 
 	// Output:
 	// Changed: OK Hello World
@@ -25,17 +25,17 @@ func ExampleStream_create() {
 
 func ExampleStream_mergeUsingOnAndApply() {
 	latest := changes.Value(types.S8("Hello World"))
-	s := changes.NewStream().On("apply", func(c changes.Change, _ interface{}, _ *changes.Stream) {
+	s := changes.NewStream().On("apply", func(c changes.Change, _ *changes.Stream) {
 		latest = latest.Apply(c)
 		fmt.Println("Changed:", latest)
 	})
 
-	s1 := s.Apply(changes.Splice{0, types.S8(""), types.S8("OK ")}, nil)
+	s1 := s.Apply(changes.Splice{0, types.S8(""), types.S8("OK ")})
 	// note that this works on s, so the offset location is based
 	// off "Hello World", rather than "OK Hello World"
-	_ = s.Apply(changes.Splice{len("Hello World"), types.S8(""), types.S8("!")}, nil)
+	_ = s.Apply(changes.Splice{len("Hello World"), types.S8(""), types.S8("!")})
 	// now modify s1 again which is based off of "OK Hello World"
-	s1.Apply(changes.Splice{len("OK Hello World"), types.S8(""), types.S8("*")}, nil)
+	s1.Apply(changes.Splice{len("OK Hello World"), types.S8(""), types.S8("*")})
 
 	// Output:
 	// Changed: OK Hello World
@@ -45,7 +45,7 @@ func ExampleStream_mergeUsingOnAndApply() {
 
 func ExampleBranch_create() {
 	latest := changes.Value(types.S8("Hello World"))
-	s := changes.NewStream().On("apply", func(c changes.Change, _ interface{}, _ *changes.Stream) {
+	s := changes.NewStream().On("apply", func(c changes.Change, _ *changes.Stream) {
 		latest = latest.Apply(c)
 	})
 
@@ -54,7 +54,7 @@ func ExampleBranch_create() {
 	branch := &changes.Branch{s, child}
 
 	// update child, the changes won't be reflected on latest
-	child.Apply(changes.Splice{0, types.S8(""), types.S8("OK ")}, nil)
+	child.Apply(changes.Splice{0, types.S8(""), types.S8("OK ")})
 	fmt.Println("Latest:", latest)
 
 	// merge child and parent, change will get reflected
