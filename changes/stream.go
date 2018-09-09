@@ -25,6 +25,17 @@ func NewStream() *Stream {
 //
 // Setting up an event listener via On will cause this forward list to
 // be scanned.
+//
+// Concurrency
+//
+// Streams are not safe for concurrent access.
+//
+// Branching
+//
+// All changes made on a stream are immediately visible. It is
+// possible to create git-like branches using the Branch type, where
+// the changes are cached until an explicit call to Pull or Push to
+// move the changes between two branches.
 type Stream struct {
 	c    Change
 	src  interface{}
@@ -93,6 +104,10 @@ func (s *Stream) merge(left, right Change, reverse bool) (lx, rx Change) {
 // reflected on the Master until a call to Push. Similarly, changes to
 // the Masater stream are not reflected on the child branch until a
 // call to Pull.  Merge is a combination of Push and Pull
+//
+// Concurrency
+//
+// Streams are not safe for concurrent access.
 type Branch struct {
 	Master, Local *Stream
 }
