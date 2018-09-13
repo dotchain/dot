@@ -10,7 +10,7 @@ import (
 	"github.com/dotchain/dot/x/types"
 )
 
-func ExampleStream_create() {
+func Example_newStream() {
 	latest := changes.Value(types.S8("Hello World"))
 	s := changes.NewStream()
 	s.Nextf("apply", func(c changes.Change, c_ changes.Stream) {
@@ -24,7 +24,7 @@ func ExampleStream_create() {
 	// Changed: OK Hello World
 }
 
-func ExampleStream_mergeUsingOnAndApply() {
+func Example_streamMergeUsingNextfAndApply() {
 	latest := changes.Value(types.S8("Hello World"))
 	s := changes.NewStream()
 	s.Nextf("apply", func(c changes.Change, _ changes.Stream) {
@@ -45,7 +45,7 @@ func ExampleStream_mergeUsingOnAndApply() {
 	// Changed: OK Hello World!*
 }
 
-func ExampleBranch_create() {
+func Example_streamBranching() {
 	latest := changes.Value(types.S8("Hello World"))
 	s := changes.NewStream()
 	s.Nextf("apply", func(c changes.Change, _ changes.Stream) {
