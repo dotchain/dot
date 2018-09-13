@@ -12,35 +12,30 @@ import (
 
 func TestStream(t *testing.T) {
 	initial := S("")
-	var latest *changes.Stream
+	var latest changes.Stream
 	v := changes.Value(initial)
 
-	ev := func(c changes.Change, l *changes.Stream) {
+	ev := func(c changes.Change, l changes.Stream) {
 		v = v.Apply(c)
 		latest = l
 	}
-	s := changes.NewStream().On("boo", ev)
-	defer s.On("boo", nil)
+	s := changes.NewStream()
+	s.Nextf("boo", ev)
+	defer s.Nextf("boo", nil)
 
-	s1 := s.Apply(changes.Replace{changes.Nil, S("Hello World")})
+	s1 := s.Append(changes.Replace{changes.Nil, S("Hello World")})
 
-	c1_1 := s1.Apply(changes.Splice{0, S(""), S("A ")})
-	c1_2 := c1_1.Apply(changes.Splice{2, S(""), S("B ")})
+	c1_1 := s1.Append(changes.Splice{0, S(""), S("A ")})
+	c1_2 := c1_1.Append(changes.Splice{2, S(""), S("B ")})
 
-	c2_1 := s1.Apply(changes.Splice{0, S(""), S("X ")})
+	c2_1 := s1.Append(changes.Splice{0, S(""), S("X ")})
 	c2_1_merged := latest
 
-	c2_2 := c2_1.Apply(changes.Splice{2, S(""), S("Y ")})
-	var c2_2_with_c1_1 *changes.Stream
-	c2_2.On("boque", func(_ changes.Change, l *changes.Stream) {
-		if c2_2_with_c1_1 == nil {
-			c2_2_with_c1_1 = l
-		}
-	})
-	c2_2.On("boque", nil)
+	c2_2 := c2_1.Append(changes.Splice{2, S(""), S("Y ")})
+	_, c2_2_with_c1_1 := c2_2.Next()
 
-	c1_3 := c2_1_merged.Apply(changes.Splice{6, S(""), S("C ")})
-	c2_3 := c2_2_with_c1_1.Apply(changes.Splice{6, S(""), S("Z ")})
+	c1_3 := c2_1_merged.Append(changes.Splice{6, S(""), S("C ")})
+	c2_3 := c2_2_with_c1_1.Append(changes.Splice{6, S(""), S("Z ")})
 
 	if !reflect.DeepEqual(v, S("A B X Y C Z Hello World")) {
 		t.Error("Merge failed: ", v)
@@ -53,32 +48,33 @@ func TestBranch(t *testing.T) {
 	initial := S("")
 	v := changes.Value(initial)
 
-	ev := func(c changes.Change, l *changes.Stream) {
+	ev := func(c changes.Change, l changes.Stream) {
 		v = v.Apply(c)
 	}
-	s := changes.NewStream().On("boo", ev)
-	defer s.On("boo", nil)
-	s = s.Apply(changes.Replace{changes.Nil, S("Hello World")})
+	s := changes.NewStream()
+	s.Nextf("boo", ev)
+	defer s.Nextf("boo", nil)
+	s = s.Append(changes.Replace{changes.Nil, S("Hello World")})
 
 	child := changes.NewStream()
-	branch := changes.Branch{s, child}
-	child1 := child.Apply(changes.Splice{0, S(""), S("OK ")})
+	branch := &changes.Branch{s, child}
+	child1 := child.Append(changes.Splice{0, S(""), S("OK ")})
 	if v != S("Hello World") {
 		t.Fatal("Unexpected branch updated", v)
 	}
-	s = s.Apply(changes.Splice{0, S(""), S("Oh ")})
-	s.Apply(changes.Splice{len("Oh Hello World"), S(""), S("!")})
+	s = s.Append(changes.Splice{0, S(""), S("Oh ")})
+	s.Append(changes.Splice{len("Oh Hello World"), S(""), S("!")})
 
 	branch.Push()
 	if v != S("Oh OK Hello World!") {
 		t.Fatal("Unexpected branch updated", v)
 	}
 
-	child1.Apply(changes.Splice{len("OK Hello World"), S(""), S("**")})
+	child1.Append(changes.Splice{len("OK Hello World"), S(""), S("**")})
 	branch.Pull()
 	v = changes.Value(S("Hello World"))
-	child.On("boq", ev)
-	child.On("boq", nil)
+	child.Nextf("boq", ev)
+	child.Nextf("boq", nil)
 	if v != S("Oh OK Hello World!**") {
 		t.Fatal("Unexpected branch updated", v)
 	}
@@ -88,17 +84,18 @@ func TestStreamNilChange(t *testing.T) {
 	initial := S("")
 	v := changes.Value(initial)
 
-	ev := func(c changes.Change, l *changes.Stream) {
+	ev := func(c changes.Change, l changes.Stream) {
 		v = v.Apply(c)
 	}
-	s := changes.NewStream().On("boo", ev)
-	defer s.On("boo", nil)
+	s := changes.NewStream()
+	s.Nextf("boo", ev)
+	defer s.Nextf("boo", nil)
 
 	child := changes.NewStream()
 	branch := changes.Branch{s, child}
 
-	s.Apply(nil)
-	child.Apply(nil)
+	s.Append(nil)
+	child.Append(nil)
 	branch.Merge()
 
 	if v != S("") {
