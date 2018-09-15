@@ -17,7 +17,6 @@ func TestAppendFailurePanic(t *testing.T) {
 	expectedError := errors.New("my error")
 	defer func() {
 		if r := recover(); r != expectedError {
-			panic(r)
 			t.Fatal("Failed to panic or panic'ed differently", r)
 		}
 	}()
