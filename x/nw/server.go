@@ -45,7 +45,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if duration == 0 {
 		duration = 5 * time.Second
 	}
-	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(duration))
+	ctx, done := context.WithDeadline(context.Background(), time.Now().Add(duration))
+	defer done()
+
 	var res response
 	res.Error = errors.New("Unknown error")
 	switch req.Name {

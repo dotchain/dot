@@ -135,6 +135,8 @@ func (u unencodeableOp) Changes() changes.Change           { return nil }
 func (u unencodeableOp) WithChanges(changes.Change) ops.Op { return nil }
 
 func getContext() context.Context {
-	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(3*time.Second))
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(3*time.Second))
+	// in this test, we let cancel and the associated channel leak.
+	_ = cancel
 	return ctx
 }
