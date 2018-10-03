@@ -41,9 +41,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	duration := req.Duration
-	if duration == 0 {
-		duration = 5 * time.Second
+	duration := 30 * time.Second
+	if req.Duration != 0 {
+		duration = req.Duration
 	}
 	ctx, done := context.WithDeadline(context.Background(), time.Now().Add(duration))
 	defer done()

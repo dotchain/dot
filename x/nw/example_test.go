@@ -13,7 +13,9 @@ import (
 )
 
 func Example() {
-	handler := &nw.Handler{Store: MemStore(nil)}
+	store := nw.MemPoller(nw.MemStore(nil))
+	defer store.Close()
+	handler := &nw.Handler{Store: store}
 	srv := httptest.NewServer(handler)
 	defer srv.Close()
 
