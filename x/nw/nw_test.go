@@ -78,8 +78,74 @@ func TestHeaderPasssing(t *testing.T) {
 	}
 }
 
+func TestPollerStore(t *testing.T) {
+	store := nw.MemPoller(nw.MemStore(nil))
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	err := store.Poll(ctx, 0)
+	if err == nil || err != ctx.Err() {
+		t.Error("unexpected poll result", err)
+	}
+
+	ctx, cancel = context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	// now kick off a go routine to wakeup
+	go func() {
+		time.Sleep(10 * time.Millisecond)
+		op := ops.Operation{"ID2", "", 100, -1, rt.Run{}}
+		_ = store.Append(context.Background(), []ops.Op{op})
+	}()
+
+	err = store.Poll(ctx, 0)
+	if err != nil {
+		t.Error("unexpected poll result", err)
+	}
+}
+
+func TestClosedPollerStore(t *testing.T) {
+	store := nw.MemPoller(nw.MemStore(nil))
+	store.Close()
+
+	err := store.Poll(context.Background(), 0)
+	if err != nil {
+		t.Error("unexpected poll result", err)
+	}
+
+	store = nw.MemPoller(nw.MemStore(nil))
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	go func() {
+		time.Sleep(10 * time.Millisecond)
+		store.Close()
+	}()
+
+	err = store.Poll(ctx, 0)
+	if err != nil {
+		t.Error("unexpected poll result", err)
+	}
+}
+
+func TestStoreGetSince(t *testing.T) {
+	operations := []ops.Op{
+		ops.Operation{"ID1", "", 100, -1, rt.Run{}},
+		ops.Operation{"ID2", "", 100, -1, rt.Run{}},
+		ops.Operation{"ID3", "", 100, -1, rt.Run{}},
+	}
+	store := nw.MemStore(operations)
+	defer store.Close()
+
+	result, err := store.GetSince(context.Background(), 0, 1)
+	if err != nil || len(result) != 1 {
+		t.Error("Unexpected results", err, len(result))
+	}
+}
+
 func TestServerErrors(t *testing.T) {
-	store := fakeStore{}
+	store := nw.MemPoller(fakeStore{})
+	defer store.Close()
 	srv := httptest.NewServer(&nw.Handler{Store: store})
 	defer srv.Close()
 
@@ -135,7 +201,7 @@ func (u unencodeableOp) Changes() changes.Change           { return nil }
 func (u unencodeableOp) WithChanges(changes.Change) ops.Op { return nil }
 
 func getContext() context.Context {
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(3*time.Second))
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	// in this test, we let cancel and the associated channel leak.
 	_ = cancel
 	return ctx

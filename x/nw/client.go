@@ -71,7 +71,7 @@ func (c *Client) call(ctx context.Context, r *request) ([]ops.Op, error) {
 
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			log.Println("Unexpected close failure")
+			log.Println("Unexpected close failure", err)
 		}
 	}()
 	var res response
