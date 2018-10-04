@@ -114,7 +114,7 @@ func TestConnectedBranches(t *testing.T) {
 	b.Connect()
 	if master != S("OK! Computers") || local != master {
 		t.Fatal("Unexpected master, local", master, local)
-	}		
+	}
 }
 
 func TestStreamNilChange(t *testing.T) {
