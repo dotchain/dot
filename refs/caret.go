@@ -6,11 +6,10 @@ package refs
 
 import "github.com/dotchain/dot/changes"
 
-// Caret is a selection into a specific position in an array-like
+// Caret is a reference o a specific position in an array-like
 // object.
 //
-// This is an immutable type -- none of the methds modify the provided
-// path itself.
+// This is an immutable type
 //
 // This only handles the standard set of changes. Custom changes
 // should implement a MergeCaret method:
@@ -21,9 +20,15 @@ import "github.com/dotchain/dot/changes"
 // called first to transform the path and then the MergeCaret is
 // called  on the updated Caret (based on the path returned by
 // MergePath).
+//
+// The IsLeft flag controls whether the position sticks with the
+// element to the left in case of insertions happening at the
+// index. The default is for the reference to stick to the element on
+// the right.
 type Caret struct {
 	Path
-	Index int
+	Index  int
+	IsLeft bool
 }
 
 // Merge updates the caret index based on the change.  Note that it
@@ -37,15 +42,32 @@ func (caret Caret) Merge(c changes.Change) (Ref, changes.Change) {
 	return caret.updateIndex(px.(Path), caret.Index, cx), nil
 }
 
+func (caret Caret) updateMoveIndex(path Path, idx int, cx changes.Move) int {
+	dest := cx.Offset + cx.Distance
+	if cx.Distance > 0 {
+		dest += cx.Count
+	}
+	switch {
+	case dest != idx:
+		idx = cx.MapIndex(idx)
+	case caret.IsLeft && cx.Distance > 0:
+		idx -= cx.Count
+	case !caret.IsLeft && cx.Distance < 0:
+		idx += cx.Count
+	}
+	return idx
+}
+
 func (caret Caret) updateIndex(path Path, idx int, cx changes.Change) Ref {
 	switch cx := cx.(type) {
 	case changes.Replace:
 		return InvalidRef
 	case changes.Splice:
-		idx, _ := cx.MapIndex(idx)
-		return Caret{path, idx}
+		if cx.Offset != idx || !caret.IsLeft {
+			idx, _ = cx.MapIndex(idx)
+		}
 	case changes.Move:
-		return Caret{path, cx.MapIndex(idx)}
+		idx = caret.updateMoveIndex(path, idx, cx)
 	case changes.PathChange:
 		if len(cx.Path) == 0 {
 			return caret.updateIndex(path, idx, cx.Change)
@@ -59,9 +81,9 @@ func (caret Caret) updateIndex(path Path, idx int, cx changes.Change) Ref {
 			idx = ref.(Caret).Index
 		}
 	case caretMerger:
-		return cx.MergeCaret(Caret{path, idx})
+		return cx.MergeCaret(Caret{path, idx, caret.IsLeft})
 	}
-	return Caret{path, idx}
+	return Caret{path, idx, caret.IsLeft}
 }
 
 type caretMerger interface {
