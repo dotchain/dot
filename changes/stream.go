@@ -134,10 +134,13 @@ func (s *stream) merge(left, right Change, reverse bool) (lx, rx Change) {
 }
 
 // Branch represents the logical binding between a Master and Child
-// streams.  Changes made to the child stream are not immediately
+// streams.  Changes made to the child stream are not normally
 // reflected on the Master until a call to Push. Similarly, changes to
 // the Master stream are not reflected on the child branch until a
-// call to Pull.  Merge is a combination of Push and Pull
+// call to Pull. Merge is a combination of Push and Pull.
+//
+// Calling Connect() on a branch makes changes on one stream visible
+// to the other immediately. Disconnect() stops the auto merging
 //
 // Note that unlike Stream, Branch is mutable.
 //
@@ -146,6 +149,38 @@ func (s *stream) merge(left, right Change, reverse bool) (lx, rx Change) {
 // Branch is not safe for concurrent access.
 type Branch struct {
 	Master, Local Stream
+}
+
+// Connect automerges changes between Master and Local immediately
+// when they happen.  Explicit calls to Pull and Push are not
+// needed. It is not safe to call Connect from within the Nextf
+// callback of either Master or Local stream
+func (b *Branch) Connect() {
+	b.Merge()
+	merging := false
+	b.Master.Nextf(b, func(c Change, s Stream) {
+		if !merging {
+			merging = true
+			b.Local = b.Local.ReverseAppend(c)
+			b.Master = s
+			merging = false
+		}
+	})
+	b.Local.Nextf(b, func(c Change, s Stream) {
+		if !merging {
+			merging = true
+			b.Master = b.Master.Append(c)
+			b.Local = s
+			merging = false
+		}
+	})
+}
+
+// Disconnect removes the auto-emrge between Master and Local. All
+// merges will have to be attempted manually after this.
+func (b *Branch) Disconnect() {
+	b.Master.Nextf(b, nil)
+	b.Local.Nextf(b, nil)
 }
 
 func (b *Branch) merge(from, to Stream, reverse bool) (fromx, tox Stream) {

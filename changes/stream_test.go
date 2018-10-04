@@ -80,6 +80,43 @@ func TestBranch(t *testing.T) {
 	}
 }
 
+func TestConnectedBranches(t *testing.T) {
+	var master changes.Value = S("")
+	var local changes.Value = S("")
+
+	b := changes.Branch{changes.NewStream(), changes.NewStream()}
+	b.Master.Nextf("key", func(c changes.Change, _ changes.Stream) {
+		master = master.Apply(c)
+	})
+	b.Local.Nextf("key", func(c changes.Change, _ changes.Stream) {
+		local = local.Apply(c)
+	})
+
+	b.Connect()
+	b.Local.Append(changes.Splice{0, S(""), S("OK")})
+	if master != S("OK") || local != S("OK") {
+		t.Fatal("Unexpected master, local", master, local)
+	}
+
+	b.Master.Append(changes.Splice{2, S(""), S(" Computer")})
+	if master != S("OK Computer") || local != S("OK Computer") {
+		t.Fatal("Unexpected master, local", master, local)
+	}
+
+	b.Disconnect()
+	b.Master.Append(changes.Splice{2, S(""), S("!")})
+	b.Local.Append(changes.Splice{11, S(""), S("s")})
+
+	if master != S("OK! Computer") || local != S("OK Computers") {
+		t.Fatal("Unexpected master, local", master, local)
+	}
+
+	b.Connect()
+	if master != S("OK! Computers") || local != master {
+		t.Fatal("Unexpected master, local", master, local)
+	}		
+}
+
 func TestStreamNilChange(t *testing.T) {
 	initial := S("")
 	v := changes.Value(initial)
