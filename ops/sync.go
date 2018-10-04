@@ -13,7 +13,7 @@ import (
 //
 // All changes made on the stream are sent upstream to the Store
 // immediately.  Changes can be fetched from the store by an explicit
-// call to Pull. These are transformed and applied to the local
+// call to Fetch. These are transformed and applied to the local
 // stream.
 //
 // The newID function is used to create new IDs for the operation. See
@@ -26,7 +26,6 @@ func NewSync(transformed Store, version int, local changes.Stream, newID func() 
 	s := &Sync{tx: transformed, ver: version, local: local}
 	local.Nextf(s, func(c changes.Change, updated changes.Stream) {
 		if s.mergingID != "" {
-			s.IDs = append(s.IDs, s.mergingID)
 			return
 		}
 		id := newID()
@@ -72,7 +71,7 @@ func (s *Sync) Fetch(ctx context.Context, limit int) error {
 				_, s.local = s.local.Next()
 			} else {
 				s.mergingID = op.ID().(string)
-				s.local.ReverseAppend(op.Changes())
+				s.local = s.local.ReverseAppend(op.Changes())
 			}
 		}
 		s.mergingID = ""
