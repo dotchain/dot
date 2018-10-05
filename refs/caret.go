@@ -6,7 +6,7 @@ package refs
 
 import "github.com/dotchain/dot/changes"
 
-// Caret is a reference o a specific position in an array-like
+// Caret is a reference to a specific position in an array-like
 // object.
 //
 // This is an immutable type
