@@ -2,24 +2,28 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package changes_test
+package streams_test
 
 import (
 	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/streams"
+	"github.com/dotchain/dot/x/types"
 	"reflect"
 	"testing"
 )
 
+type S = types.S8
+
 func TestStream(t *testing.T) {
 	initial := S("")
-	var latest changes.Stream
+	var latest streams.Stream
 	v := changes.Value(initial)
 
-	ev := func(c changes.Change, l changes.Stream) {
+	ev := func(c changes.Change, l streams.Stream) {
 		v = v.Apply(c)
 		latest = l
 	}
-	s := changes.NewStream()
+	s := streams.New()
 	s.Nextf("boo", ev)
 	defer s.Nextf("boo", nil)
 
@@ -48,16 +52,16 @@ func TestBranch(t *testing.T) {
 	initial := S("")
 	v := changes.Value(initial)
 
-	ev := func(c changes.Change, l changes.Stream) {
+	ev := func(c changes.Change, l streams.Stream) {
 		v = v.Apply(c)
 	}
-	s := changes.NewStream()
+	s := streams.New()
 	s.Nextf("boo", ev)
 	defer s.Nextf("boo", nil)
 	s = s.Append(changes.Replace{changes.Nil, S("Hello World")})
 
-	child := changes.NewStream()
-	branch := &changes.Branch{s, child}
+	child := streams.New()
+	branch := &streams.Branch{s, child}
 	child1 := child.Append(changes.Splice{0, S(""), S("OK ")})
 	if v != S("Hello World") {
 		t.Fatal("Unexpected branch updated", v)
@@ -84,11 +88,11 @@ func TestConnectedBranches(t *testing.T) {
 	var master changes.Value = S("")
 	var local changes.Value = S("")
 
-	b := changes.Branch{changes.NewStream(), changes.NewStream()}
-	b.Master.Nextf("key", func(c changes.Change, _ changes.Stream) {
+	b := streams.Branch{streams.New(), streams.New()}
+	b.Master.Nextf("key", func(c changes.Change, _ streams.Stream) {
 		master = master.Apply(c)
 	})
-	b.Local.Nextf("key", func(c changes.Change, _ changes.Stream) {
+	b.Local.Nextf("key", func(c changes.Change, _ streams.Stream) {
 		local = local.Apply(c)
 	})
 
@@ -121,15 +125,15 @@ func TestStreamNilChange(t *testing.T) {
 	initial := S("")
 	v := changes.Value(initial)
 
-	ev := func(c changes.Change, l changes.Stream) {
+	ev := func(c changes.Change, l streams.Stream) {
 		v = v.Apply(c)
 	}
-	s := changes.NewStream()
+	s := streams.New()
 	s.Nextf("boo", ev)
 	defer s.Nextf("boo", nil)
 
-	child := changes.NewStream()
-	branch := changes.Branch{s, child}
+	child := streams.New()
+	branch := streams.Branch{s, child}
 
 	s.Append(nil)
 	child.Append(nil)

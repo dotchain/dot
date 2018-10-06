@@ -6,18 +6,19 @@ package undo_test
 
 import (
 	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/streams"
 	"github.com/dotchain/dot/x/types"
 	"github.com/dotchain/dot/x/undo"
 	"testing"
 )
 
 func TestNextf(t *testing.T) {
-	orig := changes.NewStream()
+	orig := streams.New()
 	downstream, stack := undo.New(orig)
 	defer stack.Close()
 
 	count := 0
-	downstream.Nextf("key", func(c changes.Change, _ changes.Stream) {
+	downstream.Nextf("key", func(c changes.Change, _ streams.Stream) {
 		count++
 	})
 	orig.Append(changes.Move{1, 2, 3})
@@ -30,9 +31,9 @@ func TestNextf(t *testing.T) {
 }
 
 func TestSimpleUndoRedo(t *testing.T) {
-	upstream := changes.NewStream()
-	downstream, stack := undo.New(changes.NewStream())
-	b := &changes.Branch{upstream, downstream}
+	upstream := streams.New()
+	downstream, stack := undo.New(streams.New())
+	b := &streams.Branch{upstream, downstream}
 
 	downstream.Append(changes.Splice{10, types.S8(""), types.S8("hello")})
 	upstream.Append(changes.Splice{0, types.S8(""), types.S8("abcde")})
@@ -123,10 +124,10 @@ func TestRedo(t *testing.T) {
 }
 
 func testUndo(t *testing.T, test string) {
-	upstream := changes.NewStream()
-	downstream, stack := undo.New(changes.NewStream())
+	upstream := streams.New()
+	downstream, stack := undo.New(streams.New())
 	defer stack.Close()
-	b := &changes.Branch{upstream, downstream}
+	b := &streams.Branch{upstream, downstream}
 	expected, _ := prepareBranch(b, stack, test)
 	stack.Undo()
 	c, _ := b.Local.Next()
@@ -148,10 +149,10 @@ func testUndo(t *testing.T, test string) {
 }
 
 func testRedo(t *testing.T, test string) {
-	upstream := changes.NewStream()
-	downstream, stack := undo.New(changes.NewStream())
+	upstream := streams.New()
+	downstream, stack := undo.New(streams.New())
 	defer stack.Close()
-	b := &changes.Branch{upstream, downstream}
+	b := &streams.Branch{upstream, downstream}
 	_, expected := prepareBranch(b, stack, test)
 	stack.Redo()
 
@@ -173,7 +174,7 @@ func testRedo(t *testing.T, test string) {
 	}
 }
 
-func prepareBranch(b *changes.Branch, stack undo.Stack, test string) (string, string) {
+func prepareBranch(b *streams.Branch, stack undo.Stack, test string) (string, string) {
 	letters := "abcdefghijklmnopqrstuvwxyz"
 	ops := []string{}
 	for kk, c := range test {

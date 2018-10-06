@@ -82,6 +82,19 @@ func (p Path) mergePathChange(c changes.PathChange) (Ref, changes.Change) {
 	return p, nil
 }
 
+// Equal implements equality comparison
+func (p Path) Equal(o Path) bool {
+	if len(p) != len(o) {
+		return false
+	}
+	for kk, elt := range p {
+		if o[kk] != elt {
+			return false
+		}
+	}
+	return true
+}
+
 type pathMerger interface {
 	MergePath(p Path) (Ref, changes.Change)
 }

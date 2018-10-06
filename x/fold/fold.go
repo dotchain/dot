@@ -17,7 +17,10 @@
 // yet implemented.
 package fold
 
-import "github.com/dotchain/dot/changes"
+import (
+	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/streams"
+)
 
 // New returns a new stream with a "folded" change. This change is not
 // applied onto the base stream but held back.  Any further changes on
@@ -26,16 +29,16 @@ import "github.com/dotchain/dot/changes"
 //
 // The folded change can be fetched back by calling Unfold on the
 // returned stream or any stream derived from it.
-func New(c changes.Change, base changes.Stream) changes.Stream {
+func New(c changes.Change, base streams.Stream) streams.Stream {
 	return stream{c, base}
 }
 
 type stream struct {
 	fold changes.Change
-	base changes.Stream
+	base streams.Stream
 }
 
-func (s stream) Append(c changes.Change) changes.Stream {
+func (s stream) Append(c changes.Change) streams.Stream {
 	fold := s.fold
 	if fold != nil {
 		fold, c = c.Merge(fold.Revert())
@@ -51,11 +54,11 @@ func (s stream) Append(c changes.Change) changes.Stream {
 	return stream{fold, s.base.Append(c)}
 }
 
-func (s stream) ReverseAppend(c changes.Change) changes.Stream {
+func (s stream) ReverseAppend(c changes.Change) streams.Stream {
 	panic("Folded streams do not support ReverseAppend")
 }
 
-func (s stream) Next() (changes.Change, changes.Stream) {
+func (s stream) Next() (changes.Change, streams.Stream) {
 	c, base := s.base.Next()
 	if base == nil {
 		return nil, nil
@@ -64,13 +67,13 @@ func (s stream) Next() (changes.Change, changes.Stream) {
 	return cx, &stream{fold, base}
 }
 
-func (s stream) Nextf(key interface{}, fn func(changes.Change, changes.Stream)) {
+func (s stream) Nextf(key interface{}, fn func(changes.Change, streams.Stream)) {
 	if fn == nil {
 		s.base.Nextf(key, nil)
 		return
 	}
 
-	s.base.Nextf(key, func(c changes.Change, base changes.Stream) {
+	s.base.Nextf(key, func(c changes.Change, base streams.Stream) {
 		foldx, cx := c.Merge(s.fold)
 		s = stream{foldx, base}
 		fn(cx, s)
@@ -82,7 +85,7 @@ func (s stream) Nextf(key interface{}, fn func(changes.Change, changes.Stream)) 
 // as well as the modified base stream.
 //
 // It panics if the provided stream is not derived from New().
-func Unfold(s changes.Stream) (changes.Change, changes.Stream) {
+func Unfold(s streams.Stream) (changes.Change, streams.Stream) {
 	x := s.(stream)
 	return x.fold, x.base
 }

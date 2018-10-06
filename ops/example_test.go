@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/ops"
+	"github.com/dotchain/dot/streams"
 	"github.com/dotchain/dot/x/idgen"
 	"github.com/dotchain/dot/x/types"
 )
@@ -17,7 +18,7 @@ func Example_sync() {
 	store := MemStore(nil)
 	xformed := ops.Transformed(store)
 
-	client1, client2 := changes.NewStream(), changes.NewStream()
+	client1, client2 := streams.New(), streams.New()
 
 	s1 := ops.NewSync(xformed, -1, client1, idgen.New)
 	s2 := ops.NewSync(xformed, -1, client2, idgen.New)

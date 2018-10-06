@@ -7,13 +7,14 @@ package fold_test
 import (
 	"fmt"
 	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/streams"
 	"github.com/dotchain/dot/x/fold"
 	"github.com/dotchain/dot/x/types"
 	"testing"
 )
 
 func Example_appendFolded() {
-	upstream := changes.NewStream()
+	upstream := streams.New()
 
 	// move [0 - 5] to the right by 10
 	folded := fold.New(changes.Move{0, 5, 10}, upstream)
@@ -35,7 +36,7 @@ func Example_appendFolded() {
 }
 
 func Example_appendUpstream() {
-	upstream := changes.NewStream()
+	upstream := streams.New()
 
 	// move [0 - 5] to the right by 10
 	folded := fold.New(changes.Move{0, 5, 10}, upstream)
@@ -51,8 +52,8 @@ func Example_appendUpstream() {
 }
 
 func Example_nilFold() {
-	upstream := changes.NewStream()
-	upstream.Nextf("mykey", func(c changes.Change, _ changes.Stream) {
+	upstream := streams.New()
+	upstream.Nextf("mykey", func(c changes.Change, _ streams.Stream) {
 		fmt.Println("Got Change:", c)
 	})
 	defer upstream.Nextf("mykey", nil)
@@ -70,9 +71,9 @@ func Example_nilFold() {
 }
 
 func Example_nextf() {
-	upstream := changes.NewStream()
+	upstream := streams.New()
 	folded := fold.New(changes.Splice{0, types.S8(""), types.S8("hello")}, upstream)
-	folded.Nextf("mykey", func(c changes.Change, _ changes.Stream) {
+	folded.Nextf("mykey", func(c changes.Change, _ streams.Stream) {
 		fmt.Println("Got Change:", c)
 	})
 	defer folded.Nextf("mykey", nil)
@@ -91,7 +92,7 @@ func TestPanic(t *testing.T) {
 		}
 	}()
 
-	upstream := changes.NewStream()
+	upstream := streams.New()
 	folded := fold.New(changes.Move{1, 2, 3}, upstream)
 	folded.ReverseAppend(changes.Move{3, 4, 5})
 }
