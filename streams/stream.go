@@ -183,22 +183,15 @@ type Branch struct {
 func (b *Branch) Connect() {
 	b.Merge()
 	merging := false
-	b.Master.Nextf(b, func(c changes.Change, s Stream) {
+	merge := func(_ changes.Change, _ Stream) {
 		if !merging {
 			merging = true
-			b.Local = b.Local.ReverseAppend(c)
-			b.Master = s
+			b.Merge()
 			merging = false
 		}
-	})
-	b.Local.Nextf(b, func(c changes.Change, s Stream) {
-		if !merging {
-			merging = true
-			b.Master = b.Master.Append(c)
-			b.Local = s
-			merging = false
-		}
-	})
+	}
+	b.Master.Nextf(b, merge)
+	b.Local.Nextf(b, merge)
 }
 
 // Disconnect removes the auto-emrge between Master and Local. All

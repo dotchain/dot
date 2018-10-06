@@ -43,3 +43,29 @@ func TestAsyncScheduler(t *testing.T) {
 		t.Fatal("Unexpected result", cx)
 	}
 }
+
+func TestAsyncMerge(t *testing.T) {
+	async := &streams.AsyncScheduler{}
+	up := streams.New().WithScheduler(async)
+	down := streams.New().WithScheduler(async)
+	b := &streams.Branch{up, down}
+	b.Connect()
+
+	up = up.Append(changes.Move{0, 2, 2})
+	down = down.Append(changes.Move{10, 2, 2})
+	if cx, x := up.Next(); x != nil {
+		t.Fatal("unexpected sync behavior", cx)
+	}
+	if cx, x := down.Next(); x != nil {
+		t.Fatal("unexpected sync behavior", cx)
+	}
+
+	async.Run(-1)
+	change1, _ := up.Next()
+	change2, _ := down.Next()
+	exp1 := changes.ChangeSet{nil, changes.Move{10, 2, 2}}
+	exp2 := changes.ChangeSet{nil, changes.Move{0, 2, 2}}
+	if !reflect.DeepEqual(change1, exp1) || !reflect.DeepEqual(change2, exp2) {
+		t.Fatal("Unexpected changes", change1, change2)
+	}
+}
