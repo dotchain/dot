@@ -11,27 +11,34 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Documentation
 
-This package provides the core stateless
-conflict-free transformations for a few composition-friendly
-operations on a virtual JSON type (i.e. the type can be composed using
-arrays and maps).  Please see the GoDoc reference.
+The DOT project is a blend of [Operational
+Transformation](https://en.wikipedia.org/wiki/Operational_transformation),
+[Persistent
+Datastructures](https://en.wikipedia.org/wiki/Persistent_data_structure)
+and [reactive](https://en.wikipedia.org/wiki/Reactive_programming)
+stream processing.
 
-## Status of the project
+## Features
 
-The project is mostly in active development but all of the core
-transformations are quite stable with only minor tweaks to the API
-expected going forward.  The support types of Log and ClientLog are a
-bit less stable in how they deal with error conditions.
+1. Small, well tested mutations that compose for rich JSON-like values
+2. Immutable, Persistent types for ease of use
+3. Rich builtin undo support
+4. Folding (committed changes on top of uncommitted changes)
+5. Strong references support that are automatically updated with changes
+6. Streams and Git-like branching, merging support
+7. Customizable rich types for values and changes
+8. Simple network support (Gob serialization)
 
-## Client and Server
+## Demos
 
-A native Golang client is available via the [Ver
-package](https://godoc.org/github.com/dotchain/ver). 
+See [Demos](https://github.com/dotchain/demos).
 
-A native Golang server implementation (with a variety of backend
-storage options) is avilable at
-[dotjs](https://github.com/dotchain/dots) 
+### Project status
 
-Please see the [stress
-test](https://github.com/dotchain/dots/blob/master/tests/journal_stress.go)
-for sample end-to-end usage.
+The whole project is in a refactoring state.  Work items needed before
+active release:
+
+1. Migrate storage solutions
+2. Complete streams (references list + ChildOf etc)
+3. Complete browser-based demo
+4. Add performance and stress
