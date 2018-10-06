@@ -2,7 +2,9 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package changes
+package streams
+
+import "github.com/dotchain/dot/changes"
 
 // Stream is an immutable type to manage a sequence of changes.
 //
@@ -44,14 +46,14 @@ type Stream interface {
 	//
 	// A listener on the stream can expect to get a change that is
 	// safe to apply on top of the last change emitted.
-	Append(Change) Stream
+	Append(changes.Change) Stream
 
 	// ReverseAppend is just like Append except ReverseMerge is
 	// used instead of Merge.  ReverseAppend is used to when a
 	// remote change is being appended -- with the newly appended
 	// change actually taking precedence over all other changes
 	// that have been applied on top of the current instance.
-	ReverseAppend(Change) Stream
+	ReverseAppend(changes.Change) Stream
 
 	// Next returns the change and the next stream. If no further
 	// changes exist, it returns nil for both. All related stream
@@ -59,34 +61,34 @@ type Stream interface {
 	// of which instance one holds, iterating over all the Next
 	// values and applying them will get them all to converge  to
 	// the same value.
-	Next() (Change, Stream)
+	Next() (changes.Change, Stream)
 
 	// Nextf is like Next except it use a callback and also adds a
 	// listener waiting for future changes.
 	//
 	// If the fn is  nil, the listener is removed instead
-	Nextf(key interface{}, fn func(Change, Stream))
+	Nextf(key interface{}, fn func(changes.Change, Stream))
 }
 
-// NewStream returns a Stream that propagates changes synchronously
-func NewStream() Stream {
-	return &stream{fns: map[interface{}]func(Change, Stream){}}
+// New returns a new Stream
+func New() Stream {
+	return &stream{fns: map[interface{}]func(changes.Change, Stream){}}
 }
 
 type stream struct {
-	c    Change
+	c    changes.Change
 	next *stream
-	fns  map[interface{}]func(c Change, latest Stream)
+	fns  map[interface{}]func(c changes.Change, latest Stream)
 }
 
-func (s *stream) Next() (Change, Stream) {
+func (s *stream) Next() (changes.Change, Stream) {
 	if s.next == nil {
 		return nil, nil
 	}
 	return s.c, s.next
 }
 
-func (s *stream) Nextf(key interface{}, fn func(c Change, latest Stream)) {
+func (s *stream) Nextf(key interface{}, fn func(c changes.Change, latest Stream)) {
 	if fn == nil {
 		delete(s.fns, key)
 	} else {
@@ -98,15 +100,15 @@ func (s *stream) Nextf(key interface{}, fn func(c Change, latest Stream)) {
 	}
 }
 
-func (s *stream) Append(c Change) Stream {
+func (s *stream) Append(c changes.Change) Stream {
 	return s.apply(c, false)
 }
 
-func (s *stream) ReverseAppend(c Change) Stream {
+func (s *stream) ReverseAppend(c changes.Change) Stream {
 	return s.apply(c, true)
 }
 
-func (s *stream) apply(c Change, reverse bool) *stream {
+func (s *stream) apply(c changes.Change, reverse bool) *stream {
 	result := &stream{fns: s.fns}
 	next := result
 	for s.next != nil {
@@ -122,9 +124,10 @@ func (s *stream) apply(c Change, reverse bool) *stream {
 	return result
 }
 
-func (s *stream) merge(left, right Change, reverse bool) (lx, rx Change) {
+func (s *stream) merge(left, right changes.Change, reverse bool) (lx, rx changes.Change) {
 	if reverse {
-		return swap(s.merge(right, left, false))
+		lx, rx = s.merge(right, left, false)
+		return rx, lx
 	}
 
 	if left == nil {
@@ -134,7 +137,7 @@ func (s *stream) merge(left, right Change, reverse bool) (lx, rx Change) {
 }
 
 // Branch represents the logical binding between a Master and Child
-// streams.  Changes made to the child stream are not normally
+// streams.  changes.Changes made to the child stream are not normally
 // reflected on the Master until a call to Push. Similarly, changes to
 // the Master stream are not reflected on the child branch until a
 // call to Pull. Merge is a combination of Push and Pull.
@@ -158,7 +161,7 @@ type Branch struct {
 func (b *Branch) Connect() {
 	b.Merge()
 	merging := false
-	b.Master.Nextf(b, func(c Change, s Stream) {
+	b.Master.Nextf(b, func(c changes.Change, s Stream) {
 		if !merging {
 			merging = true
 			b.Local = b.Local.ReverseAppend(c)
@@ -166,7 +169,7 @@ func (b *Branch) Connect() {
 			merging = false
 		}
 	})
-	b.Local.Nextf(b, func(c Change, s Stream) {
+	b.Local.Nextf(b, func(c changes.Change, s Stream) {
 		if !merging {
 			merging = true
 			b.Master = b.Master.Append(c)

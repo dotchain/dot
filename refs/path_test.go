@@ -205,6 +205,26 @@ func TestPathMerger(t *testing.T) {
 	}
 }
 
+func TestPathEqual(t *testing.T) {
+	if refs.Path(nil).Equal(refs.Path([]interface{}{1})) {
+		t.Error("Nil equals {1}")
+	}
+
+	if !refs.Path(nil).Equal(refs.Path([]interface{}{})) {
+		t.Error("Nil does not equal {}")
+	}
+
+	x := refs.Path([]interface{}{1, 2})
+	if !x.Equal(x) {
+		t.Error("x != x", x)
+	}
+
+	y := refs.Path([]interface{}{"hello", "world"})
+	if x.Equal(y) {
+		t.Error("x == y", x, y)
+	}
+}
+
 type myChange struct{}
 
 func (m myChange) Merge(o changes.Change) (changes.Change, changes.Change) {

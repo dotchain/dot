@@ -43,14 +43,6 @@
 //
 // See https://godoc.org/github.com/dotchain/dot/x/rt for a custom
 // type that has a specific custom change associated with it.
-//
-// Stream implements the idea of a sequence of change events. Using
-// OT, the events can be automatically merged even when the changes
-// are based on older versions.  A more explicit git-like branch
-// mechanism is also available via the Branch type.
-//
-// Undo/Folding and other extra features are available via the
-// corresponding packages in the dot/x/ directory.
 package changes
 
 // Change represents an OT-compatible mutation of the virtual JSON.

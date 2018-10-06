@@ -4,7 +4,10 @@
 
 package undo
 
-import "github.com/dotchain/dot/changes"
+import (
+	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/streams"
+)
 
 // New returns a new stream based on another stream but with added
 // ability to undo and redo actions that happened on the base stream.
@@ -18,8 +21,8 @@ import "github.com/dotchain/dot/changes"
 // only works if the newly returned stream is used in the branch, like
 // so:
 //
-//       original := changes.NewStream()
-//       upstream := changes.NewStream()
+//       original := streams.New()
+//       upstream := streams.New()
 //       downstream, stack := undo.New(original)
 //       branch := changes.Branch{upstream, downstream}
 //
@@ -29,21 +32,21 @@ import "github.com/dotchain/dot/changes"
 //
 // The undo setup can be terminated by calling Close() on the returned
 // stack. This will free up the resources associated with the stack
-func New(base changes.Stream) (changes.Stream, Stack) {
+func New(base streams.Stream) (streams.Stream, Stack) {
 	s := newStack(base)
 	return stream{base, s}, s
 }
 
 type stream struct {
-	base changes.Stream
+	base streams.Stream
 	*stack
 }
 
-func (s stream) Append(c changes.Change) changes.Stream {
+func (s stream) Append(c changes.Change) streams.Stream {
 	return stream{s.base.Append(c), s.stack}
 }
 
-func (s stream) ReverseAppend(c changes.Change) changes.Stream {
+func (s stream) ReverseAppend(c changes.Change) streams.Stream {
 	result := s
 	s.stack.changeType(upstream, func() {
 		result.base = s.base.Append(c)
@@ -51,7 +54,7 @@ func (s stream) ReverseAppend(c changes.Change) changes.Stream {
 	return result
 }
 
-func (s stream) Next() (changes.Change, changes.Stream) {
+func (s stream) Next() (changes.Change, streams.Stream) {
 	c, base := s.base.Next()
 	if base == nil {
 		return c, base
@@ -60,13 +63,13 @@ func (s stream) Next() (changes.Change, changes.Stream) {
 	return c, stream{base, s.stack}
 }
 
-func (s stream) Nextf(key interface{}, fn func(c changes.Change, base changes.Stream)) {
+func (s stream) Nextf(key interface{}, fn func(c changes.Change, base streams.Stream)) {
 	if fn == nil {
 		s.base.Nextf(key, nil)
 		return
 	}
 
-	s.base.Nextf(key, func(c changes.Change, base changes.Stream) {
+	s.base.Nextf(key, func(c changes.Change, base streams.Stream) {
 		fn(c, stream{base, s.stack})
 	})
 }

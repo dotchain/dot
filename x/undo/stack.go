@@ -4,7 +4,10 @@
 
 package undo
 
-import "github.com/dotchain/dot/changes"
+import (
+	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/streams"
+)
 
 type cType int
 
@@ -25,16 +28,16 @@ type Stack interface {
 
 type stack struct {
 	currentType cType
-	base        changes.Stream
+	base        streams.Stream
 	changes     []changes.Change
 	types       []cType
 }
 
 var key = struct{}{}
 
-func newStack(base changes.Stream) *stack {
+func newStack(base streams.Stream) *stack {
 	s := &stack{base: base}
-	base.Nextf(key, func(c changes.Change, base changes.Stream) {
+	base.Nextf(key, func(c changes.Change, base streams.Stream) {
 		s.base = base
 		s.changes = append(s.changes, c)
 		s.types = append(s.types, s.currentType)

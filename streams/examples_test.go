@@ -2,18 +2,19 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package changes_test
+package streams_test
 
 import (
 	"fmt"
 	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/streams"
 	"github.com/dotchain/dot/x/types"
 )
 
 func Example_newStream() {
 	latest := changes.Value(types.S8("Hello World"))
-	s := changes.NewStream()
-	s.Nextf("apply", func(c changes.Change, c_ changes.Stream) {
+	s := streams.New()
+	s.Nextf("apply", func(c changes.Change, c_ streams.Stream) {
 		latest = latest.Apply(c)
 		fmt.Println("Changed:", latest)
 	})
@@ -26,8 +27,8 @@ func Example_newStream() {
 
 func Example_streamMergeUsingNextfAndApply() {
 	latest := changes.Value(types.S8("Hello World"))
-	s := changes.NewStream()
-	s.Nextf("apply", func(c changes.Change, _ changes.Stream) {
+	s := streams.New()
+	s.Nextf("apply", func(c changes.Change, _ streams.Stream) {
 		latest = latest.Apply(c)
 		fmt.Println("Changed:", latest)
 	})
@@ -47,14 +48,14 @@ func Example_streamMergeUsingNextfAndApply() {
 
 func Example_streamBranching() {
 	latest := changes.Value(types.S8("Hello World"))
-	s := changes.NewStream()
-	s.Nextf("apply", func(c changes.Change, _ changes.Stream) {
+	s := streams.New()
+	s.Nextf("apply", func(c changes.Change, _ streams.Stream) {
 		latest = latest.Apply(c)
 	})
 
 	// create a new stream for the "child"
-	child := changes.NewStream()
-	branch := &changes.Branch{s, child}
+	child := streams.New()
+	branch := &streams.Branch{s, child}
 
 	// update child, the changes won't be reflected on latest
 	child.Append(changes.Splice{0, types.S8(""), types.S8("OK ")})

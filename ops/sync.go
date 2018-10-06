@@ -7,6 +7,7 @@ package ops
 import (
 	"context"
 	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/streams"
 )
 
 // NewSync connects a op Store to a Stream.
@@ -22,9 +23,9 @@ import (
 //
 // The provided store must fetch transformed operations. Use
 // Transformed() to convert a raw store for use with NewSync
-func NewSync(transformed Store, version int, local changes.Stream, newID func() string) *Sync {
+func NewSync(transformed Store, version int, local streams.Stream, newID func() string) *Sync {
 	s := &Sync{tx: transformed, ver: version, local: local}
-	local.Nextf(s, func(c changes.Change, updated changes.Stream) {
+	local.Nextf(s, func(c changes.Change, updated streams.Stream) {
 		if s.mergingID != "" {
 			return
 		}
@@ -44,7 +45,7 @@ func NewSync(transformed Store, version int, local changes.Stream, newID func() 
 type Sync struct {
 	tx         Store
 	ver        int
-	local      changes.Stream
+	local      streams.Stream
 	IDs        []string
 	lastSentID string
 	mergingID  string
