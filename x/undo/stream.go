@@ -73,3 +73,11 @@ func (s stream) Nextf(key interface{}, fn func(c changes.Change, base streams.St
 		fn(c, stream{base, s.stack})
 	})
 }
+
+func (s stream) Scheduler() streams.Scheduler {
+	return s.base.Scheduler()
+}
+
+func (s stream) WithScheduler(sch streams.Scheduler) streams.Stream {
+	return stream{s.base.WithScheduler(sch), s.stack}
+}

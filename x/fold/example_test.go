@@ -19,10 +19,10 @@ func Example_appendFolded() {
 	// move [0 - 5] to the right by 10
 	folded := fold.New(changes.Move{0, 5, 10}, upstream)
 
-	// move [1 - 2] to the right by 10 and see it on upstream
+	// move [1 - 2] to the right by 20 and see it on upstream
 	folded = folded.Append(changes.Move{1, 1, 20})
 	if _, x := folded.Next(); x != nil {
-		fmt.Println("Unexpected Next() behaavior", x)
+		fmt.Println("Unexpected Next() behavior", x)
 	}
 
 	c, _ := upstream.Next()

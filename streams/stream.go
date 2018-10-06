@@ -68,17 +68,26 @@ type Stream interface {
 	//
 	// If the fn is  nil, the listener is removed instead
 	Nextf(key interface{}, fn func(changes.Change, Stream))
+
+	// Scheduler returns any associated scheduler
+	Scheduler() Scheduler
+
+	// WithScheduler returns a new stream with the provided
+	// scheduler.
+	WithScheduler(s Scheduler) Stream
 }
 
 // New returns a new Stream
 func New() Stream {
-	return &stream{fns: map[interface{}]func(changes.Change, Stream){}}
+	fns := map[interface{}]func(changes.Change, Stream){}
+	return &stream{fns: fns, sch: SyncScheduler}
 }
 
 type stream struct {
 	c    changes.Change
 	next *stream
 	fns  map[interface{}]func(c changes.Change, latest Stream)
+	sch  Scheduler
 }
 
 func (s *stream) Next() (changes.Change, Stream) {
@@ -92,12 +101,25 @@ func (s *stream) Nextf(key interface{}, fn func(c changes.Change, latest Stream)
 	if fn == nil {
 		delete(s.fns, key)
 	} else {
-		s.fns[key] = fn
+		fnx := func(c changes.Change, s Stream) {
+			s.Scheduler().Schedule(func() { fn(c, s) })
+		}
+		s.fns[key] = fnx
 		for s.next != nil {
-			fn(s.c, s.next)
+			fnx(s.c, s.next)
 			s = s.next
 		}
 	}
+}
+
+func (s *stream) Scheduler() Scheduler {
+	return s.sch
+}
+
+func (s *stream) WithScheduler(sch Scheduler) Stream {
+	sx := *s
+	sx.sch = sch
+	return &sx
 }
 
 func (s *stream) Append(c changes.Change) Stream {
@@ -109,12 +131,12 @@ func (s *stream) ReverseAppend(c changes.Change) Stream {
 }
 
 func (s *stream) apply(c changes.Change, reverse bool) *stream {
-	result := &stream{fns: s.fns}
+	result := &stream{fns: s.fns, sch: s.sch}
 	next := result
 	for s.next != nil {
 		c, next.c = s.merge(s.c, c, reverse)
 		s = s.next
-		next.next = &stream{fns: s.fns}
+		next.next = &stream{fns: s.fns, sch: s.sch}
 		next = next.next
 	}
 	s.c, s.next = c, next

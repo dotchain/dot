@@ -80,6 +80,14 @@ func (s stream) Nextf(key interface{}, fn func(changes.Change, streams.Stream)) 
 	})
 }
 
+func (s stream) Scheduler() streams.Scheduler {
+	return s.base.Scheduler()
+}
+
+func (s stream) WithScheduler(sch streams.Scheduler) streams.Stream {
+	return stream{s.fold, s.base.WithScheduler(sch)}
+}
+
 // Unfold takes any stream derived from a folded stream (created by
 // New) and returns the current state of the "change" that is folded
 // as well as the modified base stream.
