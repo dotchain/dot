@@ -50,8 +50,8 @@ values as either being like *arrays* (in which case the first two
 operations apply) or *map like*.  The **Replace** change replaces any
 value with a new value and when combined with a **PathChange** it can
 replace any value within a map.  In addition to **PathChange**,
-changes can be composed with **ChangeSet**.  Custom changes can be
-implemented as well (such as for rich text, for instance).
+changes can be combined with **ChangeSet**.  Custom changes can be
+implemented as well for rich text, for instance).
 
 The core property of all changes is the ability to guarantee
 *convergence* when two mutations are attempted on the same state:
@@ -79,9 +79,9 @@ The core property of all changes is the ability to guarantee
 The ability to *merge* two independent changes done to the same
 initial state is central to operational transformation and all the
 changes defined in the
-[changes](http://godoc.org/github.com/dotchain/dot/changes) implement
-this with fairly intensive tests to cover them individually and in
-composition.
+[changes](http://godoc.org/github.com/dotchain/dot/changes) package
+implement this with fairly intensive tests to cover them individually
+and in composition.
 
 In addition to convergence, the set of change types are chosen
 carefully to make it easy to implement undo (inversion of the
@@ -95,16 +95,16 @@ implements standard value types (strings, arrays and maps) with which
 fairly rich types can be composed.
 
 Real world applications often have the need to work with non-tree data
-structures (such as graphs and such). To enable working with these,
-the [refs](https://godoc.org/github.com/dotchain/dot/refs) package
-defines a few types of *references*: **Path**, **Caret** and
+structures (such as graphs or with pointers). To enable working with
+these, the [refs](https://godoc.org/github.com/dotchain/dot/refs)
+package defines a few types of *references*: **Path**, **Caret** and
 **Range**.  For example, a text editor would need to track the current
 selection and if any remote change modifies the text, the selection
 would have to be carefully updated.  The
 [refs](https://godoc.org/github.com/dotchain/dot/refs) package provide
 the types needed to manage this.  In addition, it defines the concept
 of **List** of references: a value can maintain a reference to another
-part of the  vlue, like a pointer. This allows non-tree structures to
+part of the value, like a pointer. This allows non-tree structures to
 be represented.
 
 The [streams](https://godoc.org/github.com/dotchain/dot/streams)
@@ -137,9 +137,11 @@ same example of merging strings modeled with streams:
 Basically, a stream instance acts like an immutable object in that any
 changes `Appended` to it leave the original stream alone and produce a
 new instance.  So, two separate mutations on the same stream will not
-see the effect of the other.  But until immutable objects, streams
+see the effect of the other.  But unlike immutable objects, streams
 provide the ability to "navigate" the not-yet-merged changes using
-*Next()* and get to the converged state.
+*Next()* and get to the converged state: All streams in the same
+family (i.e created by a tree of *Append* calls) flow into the same
+final destination.
 
 The example above uses a **ValueStream** which has both the value and
 tracks changes but it is possible to just track changes.  One benefit
@@ -220,6 +222,18 @@ values) which would require replaying the log each time.
 It is also possible to implement cross-object merging (i.e. sharing a
 sub-object between two instances by using the OT merge approach to the
 shared instance).  This is not implemented here but 
+
+## Reactive computation, scheduler
+
+Streams in DOT also allow for change notifications for change that
+have not yet happened. These notifications are the same as following
+the changes from a particular stream that is guaranteed to converge.
+
+But streams programming with synchronous notification can get hairy
+with reentrancy and locking issues.  The
+[AsyncScheduler](https://godoc.org/github.com/dotchain/dot/streams#AsyncScheduler)
+provides for an elegant way to manage an event pump/loop and avoid
+re-entrancy issues. 
 
 ## Contributing
 
