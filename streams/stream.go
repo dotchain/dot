@@ -2,6 +2,8 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
+// Package streams defines the types for managing a sequence of
+// changes
 package streams
 
 import "github.com/dotchain/dot/changes"
