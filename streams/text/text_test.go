@@ -21,6 +21,7 @@ type textSuite bool
 
 func (s textSuite) Run(t *testing.T) {
 	t.Run("Cursors", s.testTextCursors)
+	t.Run("CaretRemoteInsertion", s.testCaretRemoteInsertion)
 	t.Run("InsertCollapsed", s.testTextInsertCollapsed)
 	t.Run("InsertNonCollapsed", s.testTextInsertNonCollapsed)
 	t.Run("PasteCollapsed", s.testTextPasteCollapsed)
@@ -34,9 +35,9 @@ func (s textSuite) Run(t *testing.T) {
 
 func (s textSuite) testTextCursors(t *testing.T) {
 	e := &text.Editable{Text: "Hello", Use16: bool(s)}
-	c, ex := e.SetCaret(3)
+	c, ex := e.SetSelection(3, 3, false)
 	e = validate(t, c, e, ex)
-	c, ex = e.SetEnd(5, true)
+	c, ex = e.SetSelection(3, 5, false)
 	e = validate(t, c, e, ex)
 
 	if x := e.Copy(); x != "lo" {
@@ -44,9 +45,7 @@ func (s textSuite) testTextCursors(t *testing.T) {
 	}
 
 	// make start > end
-	c, ex = e.SetCaret(5)
-	e = validate(t, c, e, ex)
-	c, ex = e.SetEnd(3, false)
+	c, ex = e.SetSelection(5, 3, true)
 	e = validate(t, c, e, ex)
 
 	if x := e.Copy(); x != "lo" {
@@ -54,9 +53,34 @@ func (s textSuite) testTextCursors(t *testing.T) {
 	}
 }
 
+func (s textSuite) testCaretRemoteInsertion(t *testing.T) {
+	e := &text.Editable{Text: "Hello", Use16: bool(s)}
+	c, ex := e.SetSelection(3, 3, true)
+	e = validate(t, c, e, ex)
+
+	insert := changes.Splice{3, types.S8(""), types.S8("book")}
+	if s {
+		insert = changes.Splice{3, types.S16(""), types.S16("book")}
+	}
+
+	cx := changes.PathChange{[]interface{}{"Value"}, insert}
+	ex = e.Apply(cx).(*text.Editable)
+	e = validate(t, cx, e, ex)
+	if start, _ := e.Start(); start != 3 {
+		t.Error("Unexpected start", start)
+	}
+
+	_, e = e.SetSelection(3, 3, false)
+	ex = e.Apply(cx).(*text.Editable)
+	e = validate(t, cx, e, ex)
+	if start, _ := e.Start(); start != 3+len("book") {
+		t.Error("Unexpected start", start)
+	}
+}
+
 func (s textSuite) testTextInsertCollapsed(t *testing.T) {
 	e := &text.Editable{Text: "Hello", Use16: bool(s)}
-	c, ex := e.SetCaret(3)
+	c, ex := e.SetSelection(3, 3, true)
 	e = validate(t, c, e, ex)
 
 	c, ex = e.Insert("<boo>")
@@ -77,9 +101,7 @@ func (s textSuite) testTextInsertCollapsed(t *testing.T) {
 
 func (s textSuite) testTextInsertNonCollapsed(t *testing.T) {
 	e := &text.Editable{Text: "HelOKlo", Use16: bool(s)}
-	c, ex := e.SetCaret(3)
-	e = validate(t, c, e, ex)
-	c, ex = e.SetEnd(5, true)
+	c, ex := e.SetSelection(3, 5, false)
 	e = validate(t, c, e, ex)
 
 	c, ex = e.Insert("<boo>")
@@ -100,7 +122,7 @@ func (s textSuite) testTextInsertNonCollapsed(t *testing.T) {
 
 func (s textSuite) testTextPasteCollapsed(t *testing.T) {
 	e := &text.Editable{Text: "Hello", Use16: bool(s)}
-	c, ex := e.SetCaret(3)
+	c, ex := e.SetSelection(3, 3, false)
 	e = validate(t, c, e, ex)
 
 	c, ex = e.Paste("<boo>")
@@ -121,9 +143,7 @@ func (s textSuite) testTextPasteCollapsed(t *testing.T) {
 
 func (s textSuite) testTextPasteNonCollapsed(t *testing.T) {
 	e := &text.Editable{Text: "HelOKlo", Use16: bool(s)}
-	c, ex := e.SetCaret(3)
-	e = validate(t, c, e, ex)
-	c, ex = e.SetEnd(5, true)
+	c, ex := e.SetSelection(3, 5, false)
 	e = validate(t, c, e, ex)
 
 	c, ex = e.Paste("<boo>")
@@ -144,7 +164,7 @@ func (s textSuite) testTextPasteNonCollapsed(t *testing.T) {
 
 func (s textSuite) testTextDeleteCollapsed(t *testing.T) {
 	e := &text.Editable{Text: "HelOKlo", Use16: bool(s)}
-	c, ex := e.SetCaret(3)
+	c, ex := e.SetSelection(3, 3, false)
 	e = validate(t, c, e, ex)
 
 	c, ex = e.Delete()
@@ -165,9 +185,7 @@ func (s textSuite) testTextDeleteCollapsed(t *testing.T) {
 
 func (s textSuite) testTextDeleteNonCollapsed(t *testing.T) {
 	e := &text.Editable{Text: "HelOKlo", Use16: bool(s)}
-	c, ex := e.SetCaret(3)
-	e = validate(t, c, e, ex)
-	c, ex = e.SetEnd(5, true)
+	c, ex := e.SetSelection(3, 5, false)
 	e = validate(t, c, e, ex)
 
 	c, ex = e.Delete()
@@ -188,9 +206,7 @@ func (s textSuite) testTextDeleteNonCollapsed(t *testing.T) {
 
 func (s textSuite) testEmptyDelete(t *testing.T) {
 	e := &text.Editable{Text: "HelOKlo", Use16: bool(s)}
-	c, ex := e.SetStart(0, false)
-	e = validate(t, c, e, ex)
-	c, ex = e.SetEnd(0, false)
+	c, ex := e.SetSelection(0, 0, false)
 	e = validate(t, c, e, ex)
 
 	c, ex = e.Delete()

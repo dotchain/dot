@@ -15,6 +15,21 @@ func StreamFromString(initialText string, use16 bool) *Stream {
 }
 
 // Stream implements the streams.Stream interface on top of Editable.
+//
+// Stream is an immutable type.  All mutations return an new instance
+//
+// There are two positions for each index: left or right. This is
+// relevant when considering text that has wrapped around. The
+// index in the text where wrapping occurs has two different positions
+// on the screen: at the end of the line before wrapping and at the
+// start of the line after wrapping.  The top position is considered
+// "left" and the bottom line position is considered "right".
+//
+// There is another consideration: when a remote change causes an
+// insertion at exactly the index of the cursor/caret, the caret can
+// either be left alone or the caret can be pushed to the right by the
+// inserted text.  The "left" position and "right" position match the
+// two behaviors (respectively)
 type Stream struct {
 	E *Editable
 	S streams.Stream
@@ -68,9 +83,8 @@ func (s *Stream) Nextf(key interface{}, fn func(c changes.Change, str streams.St
 
 // SetSelection sets the selection range for text
 func (s *Stream) SetSelection(start, end int, left bool) *Stream {
-	c1, e1 := s.E.SetStart(start, start > end || start == end && left)
-	c2, e2 := e1.SetEnd(end, start < end || start == end && left)
-	return &Stream{e2, s.S.Append(changes.ChangeSet{c1, c2})}
+	c, e := s.E.SetSelection(start, end, left)
+	return &Stream{e, s.S.Append(c)}
 }
 
 func (s Stream) mapChangeValue(c changes.Change, str streams.Stream) (changes.Change, streams.Stream) {
