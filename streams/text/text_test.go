@@ -30,6 +30,7 @@ func (s textSuite) Run(t *testing.T) {
 	t.Run("DeleteNonCollapsed", s.testTextDeleteNonCollapsed)
 	t.Run("EmptyDelete", s.testEmptyDelete)
 	t.Run("Replace", s.testReplace)
+	t.Run("CharWidths", s.testCharWidths)
 }
 
 func (s textSuite) testTextCursors(t *testing.T) {
@@ -206,6 +207,31 @@ func (s textSuite) testReplace(t *testing.T) {
 	result := e.Apply(changes.Replace{e, types.S8("boo")})
 	if result != types.S8("boo") {
 		t.Error("Unexpected Apply reult", result)
+	}
+}
+
+func (s textSuite) testCharWidths(t *testing.T) {
+	e := &text.Editable{Text: "bròwn", Use16: bool(s)}
+	w := e.NextCharWidth(2)
+	if e.Text[2:2+w] != "ò" {
+		t.Error("NextCharWidth unexpected", w)
+	}
+	if x := e.PrevCharWidth(2 + w); x != w {
+		t.Error("PrevCharWidth unexpected", x)
+	}
+
+	if e.PrevCharWidth(0) != 0 {
+		t.Error("PrevCharWidth(0)", e.PrevCharWidth(0))
+	}
+
+	// lets test out some agontek magic: a + ogonek + acute
+	e = &text.Editable{Text: "\u0061\u0328\u0301", Use16: bool(s)}
+	w = e.NextCharWidth(0)
+	if w != len(e.Text) {
+		t.Error("Unexpected char width", w)
+	}
+	if x := e.PrevCharWidth(w); x != w {
+		t.Error("PrevCharWidth unexpected", x)
 	}
 }
 

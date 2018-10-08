@@ -9,6 +9,7 @@ import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/refs"
 	"github.com/dotchain/dot/x/types"
+	"golang.org/x/text/unicode/norm"
 )
 
 // Editable implements text editing functionality.  The main state
@@ -79,9 +80,9 @@ func (e *Editable) Delete() (changes.Change, *Editable) {
 	caret := refs.Caret{p, offset, true}
 
 	if before.Count() == 0 {
-		// TODO: index-- is incorrect. Take care of UTF8
-		// encoding shit and find the right size
-		caret.Index--
+		idx := e.fromValueOffset(offset)
+		idx -= e.PrevCharWidth(idx)
+		caret.Index = e.toValueOffset(idx)
 		before = e.stringToValue(e.Text).Slice(caret.Index, caret.Index+1)
 	}
 
@@ -196,4 +197,21 @@ func (e *Editable) selection() (int, changes.Value) {
 		diff = end - start
 	}
 	return start, v.Slice(start, diff)
+}
+
+// NextCharWidth returns the width of a user-perceived character.  This
+// takes care of combining characters and such.
+func (e *Editable) NextCharWidth(idx int) int {
+	return norm.NFC.NextBoundaryInString(e.Text[idx:], true)
+}
+
+// PrevCharWidth returns the width of a user-perceived character
+// before the provided index.  This takes care of combining characters
+// and such.
+func (e *Editable) PrevCharWidth(idx int) int {
+	offset := norm.NFC.LastBoundary([]byte(e.Text[:idx]))
+	if offset < 0 {
+		return 0
+	}
+	return idx - offset
 }
