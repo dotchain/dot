@@ -21,6 +21,19 @@ var own = &struct{}{}
 //
 // Editable is an immutable type.  All mutations return a
 // change.Change and the updated value
+//
+// There are two positions for each index: left or right. This is
+// relevant when considering text that has wrapped around. The
+// index in the text where wrapping occurs has two different positions
+// on the screen: at the end of the line before wrapping and at the
+// start of the line after wrapping.  The top position is considered
+// "left" and the bottom line position is considered "right".
+//
+// There is another consideration: when a remote change causes an
+// insertion at exactly the index of the cursor/caret, the caret can
+// either be left alone or the caret can be pushed to the right by the
+// inserted text.  The "left" position and "right" position match the
+// two behaviors (respectively)
 type Editable struct {
 	Text   string
 	Cursor refs.Range
@@ -33,29 +46,14 @@ type Editable struct {
 
 var p = refs.Path{"Value"}
 
-// SetCaret sets the cursor to a specific index.
-func (e *Editable) SetCaret(idx int) (changes.Change, *Editable) {
-	idx = e.toValueOffset(idx)
-	left := idx == 0
-	r := refs.Range{refs.Caret{p, idx, left}, refs.Caret{p, idx, left}}
-	c, l := e.toList().Update(own, r)
+// SetSelection sets the selection range for text.
+func (e *Editable) SetSelection(start, end int, left bool) (changes.Change, *Editable) {
+	start, end = e.toValueOffset(start), e.toValueOffset(end)
+	startx := refs.Caret{p, start, start > end || start == end && left}
+	endx := refs.Caret{p, end, start < end || start == end && left}
+	c, l := e.toList().Update(own, refs.Range{startx, endx})
 	return c, e.fromList(l)
-}
 
-// SetStart sets the start index.
-func (e *Editable) SetStart(idx int, left bool) (changes.Change, *Editable) {
-	idx = e.toValueOffset(idx)
-	r := refs.Range{refs.Caret{p, idx, left}, e.cursor().End}
-	c, l := e.toList().Update(own, r)
-	return c, e.fromList(l)
-}
-
-// SetEnd sets the end index.
-func (e *Editable) SetEnd(idx int, left bool) (changes.Change, *Editable) {
-	idx = e.toValueOffset(idx)
-	r := refs.Range{e.cursor().Start, refs.Caret{p, idx, left}}
-	c, l := e.toList().Update(own, r)
-	return c, e.fromList(l)
 }
 
 // Insert inserts strings at the current cursor position.  If the
