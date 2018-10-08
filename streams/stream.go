@@ -14,7 +14,7 @@
 // "convergence" -- calling "Next" on a partiular instance and
 // iterating that way will guarantee all related streams will converge
 // to the same value.  Underneath the hood, streams use operational
-// transformation to gurantee this.
+// transformation to guarantee this.
 package streams
 
 import "github.com/dotchain/dot/changes"
