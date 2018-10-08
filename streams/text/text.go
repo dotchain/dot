@@ -12,6 +12,8 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
+var own = &struct{}{}
+
 // Editable implements text editing functionality.  The main state
 // maintained by Editable is the actual Text, the current location of
 // the cursor and a set of selections that can be maintained with the
@@ -36,7 +38,7 @@ func (e *Editable) SetCaret(idx int) (changes.Change, *Editable) {
 	idx = e.toValueOffset(idx)
 	left := idx == 0
 	r := refs.Range{refs.Caret{p, idx, left}, refs.Caret{p, idx, left}}
-	c, l := e.toList().Update(e, r)
+	c, l := e.toList().Update(own, r)
 	return c, e.fromList(l)
 }
 
@@ -44,7 +46,7 @@ func (e *Editable) SetCaret(idx int) (changes.Change, *Editable) {
 func (e *Editable) SetStart(idx int, left bool) (changes.Change, *Editable) {
 	idx = e.toValueOffset(idx)
 	r := refs.Range{refs.Caret{p, idx, left}, e.cursor().End}
-	c, l := e.toList().Update(e, r)
+	c, l := e.toList().Update(own, r)
 	return c, e.fromList(l)
 }
 
@@ -52,7 +54,7 @@ func (e *Editable) SetStart(idx int, left bool) (changes.Change, *Editable) {
 func (e *Editable) SetEnd(idx int, left bool) (changes.Change, *Editable) {
 	idx = e.toValueOffset(idx)
 	r := refs.Range{e.cursor().Start, refs.Caret{p, idx, left}}
-	c, l := e.toList().Update(e, r)
+	c, l := e.toList().Update(own, r)
 	return c, e.fromList(l)
 }
 
@@ -64,7 +66,7 @@ func (e *Editable) Insert(s string) (changes.Change, *Editable) {
 	splice := changes.PathChange{p, changes.Splice{offset, before, after}}
 	l := e.toList().Apply(splice).(refs.List)
 	caret := refs.Caret{p, offset + after.Count(), false}
-	cx, lx := l.Update(e, refs.Range{caret, caret})
+	cx, lx := l.Update(own, refs.Range{caret, caret})
 	return changes.ChangeSet{splice, cx}, e.fromList(lx)
 }
 
@@ -88,7 +90,7 @@ func (e *Editable) Delete() (changes.Change, *Editable) {
 
 	splice := changes.PathChange{p, changes.Splice{offset, before, after}}
 	l := e.toList().Apply(splice).(refs.List)
-	cx, lx := l.Update(e, refs.Range{caret, caret})
+	cx, lx := l.Update(own, refs.Range{caret, caret})
 	return changes.ChangeSet{splice, cx}, e.fromList(lx)
 }
 
@@ -120,7 +122,7 @@ func (e *Editable) Paste(s string) (changes.Change, *Editable) {
 	l := e.toList().Apply(splice).(refs.List)
 	start := refs.Caret{p, offset, after.Count() == 0}
 	end := refs.Caret{p, offset + after.Count(), true}
-	cx, lx := l.Update(e, refs.Range{start, end})
+	cx, lx := l.Update(own, refs.Range{start, end})
 	return changes.ChangeSet{splice, cx}, e.fromList(lx)
 }
 
@@ -176,14 +178,14 @@ func (e *Editable) fromValueOffset(idx int) int {
 
 func (e *Editable) toList() refs.List {
 	l := refs.List{e.stringToValue(e.Text), e.Refs}
-	_, l = l.Add(e, e.cursor())
+	_, l = l.Add(own, e.cursor())
 	return l
 }
 
 func (e *Editable) fromList(l refs.List) *Editable {
 	text := e.valueToString(l.V)
-	cursor := l.R[e].(refs.Range)
-	delete(l.R, e)
+	cursor := l.R[own].(refs.Range)
+	delete(l.R, own)
 	return &Editable{text, cursor, l.R, e.Use16, changes.Atomic{nil}}
 }
 
