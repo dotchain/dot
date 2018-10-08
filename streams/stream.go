@@ -4,6 +4,17 @@
 
 // Package streams defines the types for managing a sequence of
 // changes
+//
+// A stream is like an event emitter or source: it tracks a sequence
+// of changes on a value. It is an immutable value that logically maps
+// to a "Git commit".  Appending a change to an event is equivalent to
+// creating a new commit based on the previous stream.
+//
+// In addition to the immutable semantics, Streams implement
+// "convergence" -- calling "Next" on a partiular instance and
+// iterating that way will guarantee all related streams will converge
+// to the same value.  Underneath the hood, streams use operational
+// transformation to gurantee this.
 package streams
 
 import "github.com/dotchain/dot/changes"
