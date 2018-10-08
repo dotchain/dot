@@ -26,6 +26,21 @@ func (suite streamSuite) Run(t *testing.T) {
 	t.Run("Scheduler", suite.testScheduler)
 	t.Run("CollapsedSelection", suite.testCollapsedSelection)
 	t.Run("NonCollapsedSelection", suite.testNonCollapsedSelection)
+	t.Run("Paste", suite.testPaste)
+}
+
+func (suite streamSuite) testPaste(t *testing.T) {
+	s := text.StreamFromString("Hello", bool(suite))
+	sx := s.Paste("boo")
+	suite.validate(t, s, sx)
+	if sx.E.Text != "booHello" {
+		t.Error("Unexpected text", sx.E.Text)
+	}
+	s = sx.Paste("Hoo")
+	suite.validate(t, sx, s)
+	if s.E.Text != "HooHello" {
+		t.Error("Unexpected text", s.E.Text)
+	}
 }
 
 func (suite streamSuite) testAppend(t *testing.T) {

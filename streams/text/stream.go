@@ -87,6 +87,13 @@ func (s *Stream) SetSelection(start, end int, left bool) *Stream {
 	return &Stream{e, s.S.Append(c)}
 }
 
+// Paste inserts the provided string at current cursor (deleting any
+// text that might be selected).  It leaves the current text selected.
+func (s *Stream) Paste(str string) *Stream {
+	c, e := s.E.Paste(str)
+	return &Stream{e, s.S.Append(c)}
+}
+
 func (s Stream) mapChangeValue(c changes.Change, str streams.Stream) (changes.Change, streams.Stream) {
 	if str == nil {
 		return c, str
