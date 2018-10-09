@@ -25,7 +25,7 @@ func TestPathReplace(t *testing.T) {
 
 	p := refs.Path(nil)
 	p2, cx := p.Merge(replace)
-	if p2 != refs.InvalidRef || cx != nil {
+	if !reflect.DeepEqual(p2, p) || cx != replace {
 		t.Error("Unexpected Merge", p2, cx)
 	}
 
@@ -57,7 +57,7 @@ func TestPathSplice(t *testing.T) {
 		t.Error("Unexpected Merge", p2, cx)
 	}
 
-	p = refs.Path{}
+	p = refs.Path(nil)
 	p2, cx = p.Merge(splice)
 	if !reflect.DeepEqual(p2, p) || cx != splice {
 		t.Error("Unexpected Merge", p2, cx)
@@ -118,7 +118,7 @@ func TestPathMoveLeft(t *testing.T) {
 		t.Error("Unexpected Merge", p2, cx)
 	}
 
-	p = refs.Path{}
+	p = refs.Path(nil)
 	p2, cx = p.Merge(move)
 	if !reflect.DeepEqual(p2, p) || cx != move {
 		t.Error("Unexpected Merge", p2, cx)
@@ -134,7 +134,7 @@ func TestPathChangeSet(t *testing.T) {
 		t.Error("Unexpected merge", px, cx)
 	}
 
-	p = refs.Path{}
+	p = refs.Path(nil)
 	moves := changes.ChangeSet{move1, move2}
 	px, cx = p.Merge(moves)
 	if !reflect.DeepEqual(px, p) || !reflect.DeepEqual(cx, moves) {
@@ -142,7 +142,7 @@ func TestPathChangeSet(t *testing.T) {
 	}
 
 	px, cx = p.Merge(changes.ChangeSet{move1})
-	if !reflect.DeepEqual(px, p) || !reflect.DeepEqual(cx, move1) {
+	if !reflect.DeepEqual(px, p) || !reflect.DeepEqual(cx, changes.ChangeSet{move1}) {
 		t.Error("Unexpected merge", px, cx)
 	}
 }
@@ -158,7 +158,8 @@ func TestPathPathChange(t *testing.T) {
 
 	p = refs.Path{"hello"}
 	p2, cx = p.Merge(changes.PathChange{[]interface{}{"hello"}, splice})
-	if !reflect.DeepEqual(p2, p) || cx != splice {
+	exp := changes.PathChange{[]interface{}{}, splice}
+	if !reflect.DeepEqual(p2, p) || !reflect.DeepEqual(cx, exp) {
 		t.Error("Unexpected Merge", p2, cx)
 	}
 
@@ -189,15 +190,15 @@ func TestPathInvalidRef(t *testing.T) {
 }
 
 func TestPathUnknownChange(t *testing.T) {
-	p := refs.Path{}
+	p := refs.Path(nil)
 	px, cx := p.Merge(myChange{})
-	if !reflect.DeepEqual(px, p) || cx != nil {
+	if !reflect.DeepEqual(px, p) || cx != (myChange{}) {
 		t.Error("Unexpected merge with unknown change", px, cx)
 	}
 }
 
 func TestPathMerger(t *testing.T) {
-	p := refs.Path{}
+	p := refs.Path{"boo"}
 	pm := pathMerger{myChange{}}
 	px, cx := p.Merge(pm)
 	if !reflect.DeepEqual(px, refs.Path{"OK"}) || cx != pm {
@@ -243,6 +244,6 @@ type pathMerger struct {
 	myChange
 }
 
-func (p pathMerger) MergePath(path refs.Path) (refs.Ref, changes.Change) {
-	return refs.Path{"OK"}, p
+func (p pathMerger) MergePath(path []interface{}) *refs.MergeResult {
+	return &refs.MergeResult{P: refs.Path{"OK"}, Affected: p}
 }

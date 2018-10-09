@@ -94,6 +94,14 @@ func (s *Stream) Paste(str string) *Stream {
 	return &Stream{e, s.S.Append(c)}
 }
 
+// WithoutOwnCursor returns a stream that can be used to sync with
+// remote clients. The local stream contains changes pertaining to the
+// local cursor that is not meant to be shared across to remote
+// clients.
+func (s *Stream) WithoutOwnCursor() streams.Stream {
+	return streams.FilterOutPath(s.S, "Refs", own)
+}
+
 func (s Stream) mapChangeValue(c changes.Change, str streams.Stream) (changes.Change, streams.Stream) {
 	if str == nil {
 		return c, str

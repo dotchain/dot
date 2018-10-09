@@ -29,7 +29,7 @@ func TestChildOf_ModifyChild(t *testing.T) {
 		t.Error("unexpected change", cx)
 	}
 	cx, child2 := child.Next()
-	if cx != move {
+	if cx != move && !reflect.DeepEqual(cx, changes.PathChange{[]interface{}{}, move}) {
 		t.Error("unexpeced change", cx)
 	}
 	if _, next := child2.Next(); next != nil {
@@ -39,7 +39,8 @@ func TestChildOf_ModifyChild(t *testing.T) {
 	count := 0
 	child.Nextf("key", func(cx changes.Change, _ streams.Stream) {
 		count++
-		if cx != move {
+		if cx != move &&
+			!reflect.DeepEqual(cx, changes.PathChange{[]interface{}{}, move}) {
 			t.Error("Unexpected Nextf", cx)
 		}
 	})

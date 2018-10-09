@@ -13,7 +13,7 @@ import (
 )
 
 func TestRangeNil(t *testing.T) {
-	p := refs.Path{}
+	p := refs.Path(nil)
 	ref := refs.Range{refs.Caret{p, 5, false}, refs.Caret{p, 10, false}}
 	refx, cx := ref.Merge(nil)
 	if !reflect.DeepEqual(refx, ref) || cx != nil {
