@@ -245,5 +245,5 @@ type pathMerger struct {
 }
 
 func (p pathMerger) MergePath(path []interface{}) *refs.MergeResult {
-	return &refs.MergeResult{P: refs.Path{"OK"}, Affected: p}
+	return &refs.MergeResult{P: refs.Path{"OK"}, Scoped: p, Affected: p}
 }

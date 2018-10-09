@@ -136,7 +136,7 @@ func TestRunMergePathChange(t *testing.T) {
 
 func TestRunMergePath(t *testing.T) {
 	r := rt.Run{5, 10, changes.Replace{S("OK"), S("boo")}}
-	p := refs.Path{}
+	p := refs.Path(nil)
 	px, cx := p.Merge(r)
 	if !reflect.DeepEqual(px, p) || !reflect.DeepEqual(cx, r) {
 		t.Fatal("Empty refs.Path merge failed", px, cx)
@@ -154,7 +154,7 @@ func TestRunMergePath(t *testing.T) {
 		t.Fatal("Unaffected refs.Path merge failed", px, cx)
 	}
 
-	p = refs.Path{5}
+	p = refs.Path{5, 0}
 	px, cx = p.Merge(r)
 	if px != refs.InvalidRef || cx != nil {
 		t.Fatal("Affected refs.Path merge failed", px, cx)
@@ -164,7 +164,8 @@ func TestRunMergePath(t *testing.T) {
 	move := changes.Move{2, 3, 4}
 	r = rt.Run{5, 10, changes.PathChange{[]interface{}{"x"}, move}}
 	px, cx = p.Merge(r)
-	if !reflect.DeepEqual(px, p) || cx != move {
+	if !reflect.DeepEqual(px, p) ||
+		!reflect.DeepEqual(cx, changes.PathChange{[]interface{}{}, move}) {
 		t.Fatal("Affected refs.Path merge failed", px, cx)
 	}
 

@@ -30,7 +30,7 @@ func TestChildOf_ModifyChild(t *testing.T) {
 	}
 	cx, child2 := child.Next()
 	if cx != move && !reflect.DeepEqual(cx, changes.PathChange{[]interface{}{}, move}) {
-		t.Error("unexpeced change", cx)
+		t.Error("unexpected change", cx)
 	}
 	if _, next := child2.Next(); next != nil {
 		t.Error("Unexpected next", next)

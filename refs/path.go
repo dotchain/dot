@@ -22,7 +22,7 @@ type Path []interface{}
 // Merge implements Ref.Merge
 func (p Path) Merge(c changes.Change) (Ref, changes.Change) {
 	if result := Merge(p, c); result != nil {
-		return Path(result.P), result.Affected
+		return Path(result.P), result.Scoped
 	}
 	return InvalidRef, nil
 }
@@ -53,7 +53,7 @@ func (p Path) Equal(o Path) bool {
 // calling Merge.
 func Merge(p []interface{}, c changes.Change) *MergeResult {
 	if len(p) == 0 {
-		return &MergeResult{nil, c, nil}
+		return &MergeResult{nil, c, c, nil}
 	}
 
 	switch c := c.(type) {
@@ -73,8 +73,9 @@ func Merge(p []interface{}, c changes.Change) *MergeResult {
 			return &MergeResult{P: p, Unaffected: c}
 		}
 		if len(p) == idx {
+			unaff := c
 			c.Path = c.Path[idx:]
-			return &MergeResult{p, c, nil}
+			return &MergeResult{p, c, unaff, nil}
 		}
 
 		return Merge(p[idx:], c.Change).addPathPrefix(p[:idx])

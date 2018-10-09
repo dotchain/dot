@@ -275,7 +275,7 @@ func (cm caretMerger) Revert() changes.Change {
 }
 
 func (cm caretMerger) MergePath(p []interface{}) *refs.MergeResult {
-	return &refs.MergeResult{P: p, Affected: cm}
+	return &refs.MergeResult{P: p, Scoped: cm, Affected: cm}
 }
 
 func (cm caretMerger) MergeCaret(caret refs.Caret) refs.Ref {

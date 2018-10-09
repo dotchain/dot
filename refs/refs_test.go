@@ -39,11 +39,12 @@ func TestMerge(t *testing.T) {
 	r = refs.Merge([]interface{}{4}, c)
 	expected = &refs.MergeResult{
 		P:          []interface{}{4},
-		Affected:   changes.PathChange{[]interface{}{"key"}, replace},
+		Scoped:     changes.PathChange{[]interface{}{"key"}, replace},
+		Affected:   replace1,
 		Unaffected: replace2,
 	}
 	if r == nil || !reflect.DeepEqual(r, expected) {
-		t.Error("Merge failed", r)
+		t.Error("Merge failed", r.Affected)
 	}
 
 	move3 := changes.Move{2, 2, 2}
@@ -70,9 +71,18 @@ func TestMerge(t *testing.T) {
 		changes.PathChange{[]interface{}{}, move4},
 	}
 	expected = &refs.MergeResult{
-		P:        []interface{}{4},
-		Affected: cx,
+		P:      []interface{}{4},
+		Scoped: cx,
+		Affected: changes.ChangeSet{
+			changes.PathChange{[]interface{}{4}, move1},
+			changes.PathChange{[]interface{}{4}, move2},
+			changes.PathChange{[]interface{}{4}, move3},
+			changes.PathChange{[]interface{}{4}, move2},
+			changes.PathChange{[]interface{}{4}, move3},
+			changes.PathChange{[]interface{}{4}, move4},
+		},
 	}
+
 	if r == nil || !reflect.DeepEqual(r, expected) {
 		t.Error("Merge failed", r)
 	}

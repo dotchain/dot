@@ -47,6 +47,7 @@ type PathMerger interface {
 // change.
 type MergeResult struct {
 	P          []interface{}
+	Scoped     changes.Change
 	Affected   changes.Change
 	Unaffected changes.Change
 }
@@ -56,6 +57,7 @@ func (p *MergeResult) join(o *MergeResult) *MergeResult {
 		return nil
 	}
 	p.P = o.P
+	p.Scoped = p.joinChanges(p.Scoped, o.Scoped)
 	p.Affected = p.joinChanges(p.Affected, o.Affected)
 	p.Unaffected = p.joinChanges(p.Unaffected, o.Unaffected)
 	return p
@@ -80,13 +82,24 @@ func (p *MergeResult) joinChanges(c1, c2 changes.Change) changes.Change {
 	return changes.ChangeSet{c1, c2}
 }
 
-func (p *MergeResult) addPathPrefix(other []interface{}) *MergeResult {
+// Prefix updates the merge result to include the prefix to the path.
+// It does not update the Scoped field.
+func (p *MergeResult) Prefix(other []interface{}) *MergeResult {
 	if p != nil {
 		p.P = append(append([]interface{}(nil), other...), p.P...)
-	}
-
-	if p != nil && p.Unaffected != nil {
-		p.Unaffected = changes.PathChange{other, p.Unaffected}
+		p.Affected = p.pc(other, p.Affected)
+		p.Unaffected = p.pc(other, p.Unaffected)
 	}
 	return p
+}
+
+func (p *MergeResult) addPathPrefix(other []interface{}) *MergeResult {
+	return p.Prefix(other)
+}
+
+func (p *MergeResult) pc(path []interface{}, c changes.Change) changes.Change {
+	if c == nil {
+		return nil
+	}
+	return changes.PathChange{path, c}
 }
