@@ -46,21 +46,13 @@ func (r Run) ReverseMerge(o changes.Change) (changes.Change, changes.Change) {
 }
 
 // MergePath implements the method needed to work with refs.Merge
-func (r Run) MergePath(p refs.Path) (refs.Ref, changes.Change) {
-	if len(p) == 0 {
-		return p, r
-	}
-
+func (r Run) MergePath(p []interface{}) *refs.MergeResult {
 	idx := p[0].(int)
 	if idx < r.Offset || idx >= r.Offset+r.Count {
-		return p, nil
+		return &refs.MergeResult{P: p, Unaffected: r}
 	}
 
-	px, cx := p[1:].Merge(r.Change)
-	if path, ok := px.(refs.Path); ok {
-		return append(refs.Path{p[0]}, path...), cx
-	}
-	return px, cx
+	return refs.Merge(p[1:], r.Change).Prefix(p[:1])
 }
 
 func (r Run) merge(o changes.Change, reverse bool) (changes.Change, changes.Change) {

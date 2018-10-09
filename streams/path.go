@@ -14,11 +14,11 @@ import (
 // object, ChildOf(base, 5) refers to the changes applicable to the
 // 5th element in the array.
 func ChildOf(s Stream, keys ...interface{}) Stream {
-	toChild := func(c, cx changes.Change) changes.Change {
-		return cx
+	toChild := func(r *refs.MergeResult) changes.Change {
+		return r.Scoped
 	}
-	toParent := func(c changes.Change, p refs.Ref) changes.Change {
-		return changes.PathChange{p.(refs.Path), c}
+	toParent := func(c changes.Change, p []interface{}) changes.Change {
+		return changes.PathChange{p, c}
 	}
 	return &xform{s, refs.Path(keys), toChild, toParent}
 }
@@ -38,13 +38,10 @@ func ChildOf(s Stream, keys ...interface{}) Stream {
 // affecting the 5th element (now the 8th element) cannot be applied
 // without transformations.
 func FilterPath(s Stream, keys ...interface{}) Stream {
-	toChild := func(c, cx changes.Change) changes.Change {
-		if cx == nil {
-			return nil
-		}
-		return c
+	toChild := func(r *refs.MergeResult) changes.Change {
+		return r.Affected
 	}
-	toParent := func(c changes.Change, p refs.Ref) changes.Change {
+	toParent := func(c changes.Change, p []interface{}) changes.Change {
 		return c
 	}
 	return &xform{s, refs.Path(keys), toChild, toParent}
@@ -55,13 +52,10 @@ func FilterPath(s Stream, keys ...interface{}) Stream {
 // that affect the provided path are ignored.  Unlike
 // ChildOf, the changes themselves are not transformed, just filtered.
 func FilterOutPath(s Stream, keys ...interface{}) Stream {
-	toChild := func(c, cx changes.Change) changes.Change {
-		if cx == nil {
-			return c
-		}
-		return nil
+	toChild := func(r *refs.MergeResult) changes.Change {
+		return r.Unaffected
 	}
-	toParent := func(c changes.Change, p refs.Ref) changes.Change {
+	toParent := func(c changes.Change, p []interface{}) changes.Change {
 		return c
 	}
 	return &xform{s, refs.Path(keys), toChild, toParent}
@@ -73,12 +67,12 @@ func FilterOutPath(s Stream, keys ...interface{}) Stream {
 // that in the parent.
 type xform struct {
 	Stream
-	Path     refs.Ref
-	toChild  func(c, cx changes.Change) changes.Change
-	toParent func(c changes.Change, p refs.Ref) changes.Change
+	Path     []interface{}
+	toChild  func(r *refs.MergeResult) changes.Change
+	toParent func(c changes.Change, p []interface{}) changes.Change
 }
 
-func (x *xform) clone(s Stream, p refs.Ref) *xform {
+func (x *xform) clone(s Stream, p []interface{}) *xform {
 	return &xform{s, p, x.toChild, x.toParent}
 }
 
@@ -92,12 +86,12 @@ func (x *xform) ReverseAppend(c changes.Change) Stream {
 
 func (x *xform) Next() (changes.Change, Stream) {
 	c, s := x.Stream.Next()
-	p, cx := x.Path.Merge(c)
-	if p == refs.InvalidRef || s == nil {
+	r := refs.Merge(x.Path, c)
+	if r == nil || s == nil {
 		return nil, nil
 	}
 
-	return x.toChild(c, cx), x.clone(s, p)
+	return x.toChild(r), x.clone(s, r.P)
 }
 
 func (x *xform) Nextf(key interface{}, fn func(c changes.Change, s Stream)) {
@@ -107,13 +101,14 @@ func (x *xform) Nextf(key interface{}, fn func(c changes.Change, s Stream)) {
 	}
 
 	p := x.Path
+	finished := false
 	x.Stream.Nextf(key, func(c changes.Change, s Stream) {
-		var cx changes.Change
-		p, cx = p.Merge(c)
-		if p == refs.InvalidRef {
+		r := refs.Merge(p, c)
+		finished = finished || r == nil
+		if finished {
 			s.Nextf(key, nil)
 		} else {
-			fn(x.toChild(c, cx), x.clone(s, p))
+			fn(x.toChild(r), x.clone(s, p))
 		}
 	})
 }

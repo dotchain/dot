@@ -44,10 +44,10 @@ func TestCaretReplace(t *testing.T) {
 func TestCaretSplice(t *testing.T) {
 	splice := changes.Splice{2, types.S8("OK"), types.S8("Boo")}
 
-	ref := refs.Caret{refs.Path{}, 1, false}
+	ref := refs.Caret{nil, 1, false}
 	refx, cx := ref.Merge(splice)
 	if !reflect.DeepEqual(refx, ref) || cx != nil {
-		t.Error("Unexpected Merge", refx, cx)
+		t.Error("Unexpected Merge", refx, ref, cx)
 	}
 
 	ref = refs.Caret{refs.Path{2}, 5, false}
@@ -58,14 +58,14 @@ func TestCaretSplice(t *testing.T) {
 
 	ref = refs.Caret{refs.Path{}, 3, false}
 	refx, cx = ref.Merge(splice)
-	expected := refs.Caret{refs.Path{}, 2, false}
+	expected := refs.Caret{nil, 2, false}
 	if !reflect.DeepEqual(refx, expected) || cx != nil {
 		t.Error("Unexpected Merge", refx, cx)
 	}
 
 	ref = refs.Caret{refs.Path{}, 4, false}
 	refx, cx = ref.Merge(splice)
-	expected = refs.Caret{refs.Path{}, 5, false}
+	expected = refs.Caret{nil, 5, false}
 	if !reflect.DeepEqual(refx, expected) || cx != nil {
 		t.Error("Unexpected Merge", refx, cx)
 	}
@@ -75,14 +75,14 @@ func TestCaretSpliceAtIndex(t *testing.T) {
 	splice := changes.Splice{5, types.S8(""), types.S8("boo")}
 	ref := refs.Caret{refs.Path{}, splice.Offset, false}
 	refx, _ := ref.Merge(splice)
-	expected := refs.Caret{refs.Path{}, splice.Offset + splice.After.Count(), false}
+	expected := refs.Caret{nil, splice.Offset + splice.After.Count(), false}
 
 	if !reflect.DeepEqual(refx, expected) {
 		t.Error("Unexpected Merge", refx)
 	}
 
 	splice = changes.Splice{5, types.S8("a"), types.S8("boo")}
-	ref = refs.Caret{refs.Path{}, splice.Offset, false}
+	ref = refs.Caret{nil, splice.Offset, false}
 	refx, _ = ref.Merge(splice)
 	expected = ref
 
@@ -91,7 +91,7 @@ func TestCaretSpliceAtIndex(t *testing.T) {
 	}
 
 	splice = changes.Splice{5, types.S8(""), types.S8("boo")}
-	ref = refs.Caret{refs.Path{}, splice.Offset, true}
+	ref = refs.Caret{nil, splice.Offset, true}
 	refx, _ = ref.Merge(splice)
 	expected = ref
 
@@ -103,7 +103,7 @@ func TestCaretSpliceAtIndex(t *testing.T) {
 func TestCaretMoveRight(t *testing.T) {
 	move := changes.Move{2, 2, 2}
 
-	p := refs.Path{}
+	p := refs.Path(nil)
 	ref := refs.Caret{p, 1, false}
 	refx, cx := ref.Merge(move)
 	if !reflect.DeepEqual(refx, ref) || cx != nil {
@@ -131,7 +131,7 @@ func TestCaretMoveRight(t *testing.T) {
 
 func TestCaretMoveLeft(t *testing.T) {
 	move := changes.Move{2, 2, -1}
-	p := refs.Path{}
+	p := refs.Path(nil)
 	ref := refs.Caret{p, 1, false}
 	refx, cx := ref.Merge(move)
 	if !reflect.DeepEqual(refx, refs.Caret{p, 3, false}) || cx != nil {
@@ -160,7 +160,7 @@ func TestCaretMoveLeft(t *testing.T) {
 func TestCaretMoveAtIndex(t *testing.T) {
 	move := changes.Move{2, 2, 2}
 
-	p := refs.Path{}
+	p := refs.Path(nil)
 	ref := refs.Caret{p, 6, false}
 	refx, _ := ref.Merge(move)
 	if !reflect.DeepEqual(refx, ref) {
@@ -193,7 +193,7 @@ func TestCaretMoveAtIndex(t *testing.T) {
 func TestCaretChangeSet(t *testing.T) {
 	move1 := changes.Move{2, 2, 1}
 	move2 := changes.Move{3, 2, 5}
-	p := refs.Path{}
+	p := refs.Path(nil)
 	ref := refs.Caret{p, 2, false}
 	refx, cx := ref.Merge(changes.ChangeSet{move1, move2})
 	if !reflect.DeepEqual(refx, refs.Caret{p, 8, false}) || cx != nil {
@@ -206,12 +206,12 @@ func TestCaretPathChange(t *testing.T) {
 
 	p := refs.Path{"hello"}
 	ref := refs.Caret{p, 4, false}
-	refx, cx := ref.Merge(changes.PathChange{[]interface{}{"hello"}, splice})
+	refx, cx := ref.Merge(changes.PathChange{p, splice})
 	if !reflect.DeepEqual(refx, refs.Caret{p, 5, false}) || cx != nil {
 		t.Error("Unexpected Merge", refx, cx)
 	}
 
-	refx, cx = ref.Merge(changes.PathChange{[]interface{}{"hello"}, changes.PathChange{nil, splice}})
+	refx, cx = ref.Merge(changes.PathChange{p, changes.PathChange{nil, splice}})
 	if !reflect.DeepEqual(refx, refs.Caret{p, 5, false}) || cx != nil {
 		t.Error("Unexpected Merge", refx, cx)
 	}
@@ -241,7 +241,7 @@ func TestCaretInvalidRef(t *testing.T) {
 }
 
 func TestCaretUnknownChange(t *testing.T) {
-	ref := refs.Caret{refs.Path{}, 5, false}
+	ref := refs.Caret{nil, 5, false}
 	refx, cx := ref.Merge(myChange{})
 	if !reflect.DeepEqual(refx, ref) || cx != nil {
 		t.Error("Unexpected merge with unknown change", refx, cx)
@@ -254,7 +254,7 @@ func TestCaretMerger(t *testing.T) {
 	refx, cx := ref.Merge(caretMerger{})
 	expected := refs.Caret{p, 1029, false}
 	if !reflect.DeepEqual(refx, expected) || cx != nil {
-		t.Error("Unexpected Merge", refx, cx)
+		t.Errorf("Unexpected Merge %#v %#v", refx, cx)
 	}
 }
 
@@ -274,8 +274,8 @@ func (cm caretMerger) Revert() changes.Change {
 	return cm
 }
 
-func (cm caretMerger) MergePath(path refs.Path) (refs.Ref, changes.Change) {
-	return path, cm
+func (cm caretMerger) MergePath(p []interface{}) *refs.MergeResult {
+	return &refs.MergeResult{P: p, Scoped: cm, Affected: cm}
 }
 
 func (cm caretMerger) MergeCaret(caret refs.Caret) refs.Ref {

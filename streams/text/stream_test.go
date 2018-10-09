@@ -27,6 +27,30 @@ func (suite streamSuite) Run(t *testing.T) {
 	t.Run("CollapsedSelection", suite.testCollapsedSelection)
 	t.Run("NonCollapsedSelection", suite.testNonCollapsedSelection)
 	t.Run("Paste", suite.testPaste)
+	t.Run("WithoutOwnCursor", suite.testWithoutOwnCursor)
+}
+
+func (suite streamSuite) testWithoutOwnCursor(t *testing.T) {
+	s := text.StreamFromString("Hello", false)
+	sx := &streams.ValueStream{
+		types.M{"Value": types.S8("Hello")},
+		s.WithoutOwnCursor(),
+	}
+
+	s2 := s.Paste("Boo")
+	s2.Paste("Hoo")
+
+	c1, s3 := sx.Next()
+	c2, s3 := s3.Next()
+
+	if c1 == nil || c2 == nil {
+		t.Fatal("Unexpected issue", c1, c2)
+	}
+
+	v := s3.(*streams.ValueStream).Value
+	if !reflect.DeepEqual(v, types.M{"Value": types.S8("HooHello")}) {
+		t.Error("Unexpected value", v)
+	}
 }
 
 func (suite streamSuite) testPaste(t *testing.T) {
