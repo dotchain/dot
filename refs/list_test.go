@@ -88,11 +88,17 @@ func TestListApply(t *testing.T) {
 	}
 }
 
-func TestListApplyReplace(t *testing.T) {
+func TestListApplyReplaceAndNil(t *testing.T) {
 	l := refs.List{V: types.A{types.S8("")}}
 	lx := l.Apply(changes.Replace{l, types.S8("hello")})
 	if lx != types.S8("hello") {
 		t.Error("Replace didn't do its thing", lx)
+	}
+
+	p := []interface{}{"Refs"}
+	lx = l.Apply(changes.PathChange{p, nil})
+	if !reflect.DeepEqual(lx, l) {
+		t.Error("Nil change", lx)
 	}
 }
 
