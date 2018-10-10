@@ -46,12 +46,16 @@ type Editable struct {
 
 var p = refs.Path{"Value"}
 
+func (e *Editable) prioritize(c changes.Change, l refs.List) (changes.Change, refs.List) {
+	return prioritized{c}, l
+}
+
 // SetSelection sets the selection range for text.
 func (e *Editable) SetSelection(start, end int, left bool) (changes.Change, *Editable) {
 	start, end = e.toValueOffset(start), e.toValueOffset(end)
 	startx := refs.Caret{p, start, start > end || start == end && left}
 	endx := refs.Caret{p, end, start < end || start == end && left}
-	c, l := e.toList().Update(own, refs.Range{startx, endx})
+	c, l := e.prioritize(e.toList().Update(own, refs.Range{startx, endx}))
 	return c, e.fromList(l)
 
 }
@@ -64,7 +68,7 @@ func (e *Editable) Insert(s string) (changes.Change, *Editable) {
 	splice := changes.PathChange{p, changes.Splice{offset, before, after}}
 	l := e.toList().Apply(splice).(refs.List)
 	caret := refs.Caret{p, offset + after.Count(), false}
-	cx, lx := l.Update(own, refs.Range{caret, caret})
+	cx, lx := e.prioritize(l.Update(own, refs.Range{caret, caret}))
 	return changes.ChangeSet{splice, cx}, e.fromList(lx)
 }
 
@@ -83,13 +87,15 @@ func (e *Editable) Delete() (changes.Change, *Editable) {
 		idx := e.fromValueOffset(offset)
 		idx -= e.PrevCharWidth(idx)
 		caret.Index = e.toValueOffset(idx)
-		before = e.stringToValue(e.Text).Slice(caret.Index, caret.Index+1)
+		before = e.stringToValue(e.Text).Slice(caret.Index, offset-caret.Index)
+		offset = caret.Index
 	}
 
 	splice := changes.PathChange{p, changes.Splice{offset, before, after}}
-	l := e.toList().Apply(splice).(refs.List)
-	cx, lx := l.Update(own, refs.Range{caret, caret})
-	return changes.ChangeSet{splice, cx}, e.fromList(lx)
+	l := e.toList()
+	cx, lx := e.prioritize(l.Update(own, refs.Range{caret, caret}))
+	lx = lx.Apply(splice).(refs.List)
+	return changes.ChangeSet{cx, splice}, e.fromList(lx)
 }
 
 // Copy does not change editable.  It just returns the text currently
@@ -120,7 +126,7 @@ func (e *Editable) Paste(s string) (changes.Change, *Editable) {
 	l := e.toList().Apply(splice).(refs.List)
 	start := refs.Caret{p, offset, after.Count() == 0}
 	end := refs.Caret{p, offset + after.Count(), true}
-	cx, lx := l.Update(own, refs.Range{start, end})
+	cx, lx := e.prioritize(l.Update(own, refs.Range{start, end}))
 	return changes.ChangeSet{splice, cx}, e.fromList(lx)
 }
 
@@ -214,4 +220,39 @@ func (e *Editable) PrevCharWidth(idx int) int {
 		return 0
 	}
 	return idx - offset
+}
+
+// prioritized inverts the priority of operations
+type prioritized struct {
+	changes.Change
+}
+
+func (p prioritized) Merge(other changes.Change) (otherx, cx changes.Change) {
+	own := p.Change
+	if other != nil {
+		own, other = other.Merge(own)
+	}
+
+	return other, own
+}
+
+func (p prioritized) Revert() changes.Change {
+	return prioritized{p.Change.Revert()}
+}
+
+func (p prioritized) ReverseMerge(other changes.Change) (otherx, cx changes.Change) {
+	own := p.Change
+	if other != nil {
+		other, own = own.Merge(other)
+	}
+
+	return other, own
+}
+
+func (p prioritized) ApplyTo(v changes.Value) changes.Value {
+	return v.Apply(p.Change)
+}
+
+func (p prioritized) MergePath(path []interface{}) *refs.MergeResult {
+	return refs.Merge(path, p.Change)
 }

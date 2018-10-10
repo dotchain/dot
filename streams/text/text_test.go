@@ -6,6 +6,7 @@ package text_test
 
 import (
 	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/refs"
 	"github.com/dotchain/dot/streams/text"
 	"github.com/dotchain/dot/x/types"
 	"reflect"
@@ -33,8 +34,12 @@ func (s textSuite) Run(t *testing.T) {
 	t.Run("CharWidths", s.testCharWidths)
 }
 
+func (s textSuite) editable(txt string) *text.Editable {
+	return &text.Editable{Text: txt, Use16: bool(s), Refs: map[interface{}]refs.Ref{}}
+}
+
 func (s textSuite) testTextCursors(t *testing.T) {
-	e := &text.Editable{Text: "Hello", Use16: bool(s)}
+	e := s.editable("Hello")
 	c, ex := e.SetSelection(3, 3, false)
 	e = validate(t, c, e, ex)
 	c, ex = e.SetSelection(3, 5, false)
@@ -54,7 +59,7 @@ func (s textSuite) testTextCursors(t *testing.T) {
 }
 
 func (s textSuite) testCaretRemoteInsertion(t *testing.T) {
-	e := &text.Editable{Text: "Hello", Use16: bool(s)}
+	e := s.editable("Hello")
 	c, ex := e.SetSelection(3, 3, true)
 	e = validate(t, c, e, ex)
 
@@ -79,7 +84,7 @@ func (s textSuite) testCaretRemoteInsertion(t *testing.T) {
 }
 
 func (s textSuite) testTextInsertCollapsed(t *testing.T) {
-	e := &text.Editable{Text: "Hello", Use16: bool(s)}
+	e := s.editable("Hello")
 	c, ex := e.SetSelection(3, 3, true)
 	e = validate(t, c, e, ex)
 
@@ -100,7 +105,7 @@ func (s textSuite) testTextInsertCollapsed(t *testing.T) {
 }
 
 func (s textSuite) testTextInsertNonCollapsed(t *testing.T) {
-	e := &text.Editable{Text: "HelOKlo", Use16: bool(s)}
+	e := s.editable("HelOKlo")
 	c, ex := e.SetSelection(3, 5, false)
 	e = validate(t, c, e, ex)
 
@@ -121,7 +126,7 @@ func (s textSuite) testTextInsertNonCollapsed(t *testing.T) {
 }
 
 func (s textSuite) testTextPasteCollapsed(t *testing.T) {
-	e := &text.Editable{Text: "Hello", Use16: bool(s)}
+	e := s.editable("Hello")
 	c, ex := e.SetSelection(3, 3, false)
 	e = validate(t, c, e, ex)
 
@@ -142,7 +147,7 @@ func (s textSuite) testTextPasteCollapsed(t *testing.T) {
 }
 
 func (s textSuite) testTextPasteNonCollapsed(t *testing.T) {
-	e := &text.Editable{Text: "HelOKlo", Use16: bool(s)}
+	e := s.editable("HelOKlo")
 	c, ex := e.SetSelection(3, 5, false)
 	e = validate(t, c, e, ex)
 
@@ -163,14 +168,14 @@ func (s textSuite) testTextPasteNonCollapsed(t *testing.T) {
 }
 
 func (s textSuite) testTextDeleteCollapsed(t *testing.T) {
-	e := &text.Editable{Text: "HelOKlo", Use16: bool(s)}
+	e := s.editable("HelOKlo")
 	c, ex := e.SetSelection(3, 3, false)
 	e = validate(t, c, e, ex)
 
 	c, ex = e.Delete()
 	e = validate(t, c, e, ex)
 
-	if e.Text != "Helo" {
+	if e.Text != "HeOKlo" {
 		t.Error("Unexpected insert text", e.Text)
 	}
 
@@ -184,7 +189,7 @@ func (s textSuite) testTextDeleteCollapsed(t *testing.T) {
 }
 
 func (s textSuite) testTextDeleteNonCollapsed(t *testing.T) {
-	e := &text.Editable{Text: "HelOKlo", Use16: bool(s)}
+	e := s.editable("HelOKlo")
 	c, ex := e.SetSelection(3, 5, false)
 	e = validate(t, c, e, ex)
 
@@ -205,7 +210,7 @@ func (s textSuite) testTextDeleteNonCollapsed(t *testing.T) {
 }
 
 func (s textSuite) testEmptyDelete(t *testing.T) {
-	e := &text.Editable{Text: "HelOKlo", Use16: bool(s)}
+	e := s.editable("HelOKlo")
 	c, ex := e.SetSelection(0, 0, false)
 	e = validate(t, c, e, ex)
 
@@ -218,7 +223,7 @@ func (s textSuite) testEmptyDelete(t *testing.T) {
 }
 
 func (s textSuite) testReplace(t *testing.T) {
-	e := &text.Editable{Text: "HelOKlo", Use16: bool(s)}
+	e := s.editable("HelOKlo")
 	result := e.Apply(changes.Replace{e, types.S8("boo")})
 	if result != types.S8("boo") {
 		t.Error("Unexpected Apply reult", result)
@@ -226,7 +231,7 @@ func (s textSuite) testReplace(t *testing.T) {
 }
 
 func (s textSuite) testCharWidths(t *testing.T) {
-	e := &text.Editable{Text: "bròwn", Use16: bool(s)}
+	e := s.editable("bròwn")
 	w := e.NextCharWidth(2)
 	if e.Text[2:2+w] != "ò" {
 		t.Error("NextCharWidth unexpected", w)
@@ -240,7 +245,7 @@ func (s textSuite) testCharWidths(t *testing.T) {
 	}
 
 	// lets test out some agontek magic: a + ogonek + acute
-	e = &text.Editable{Text: "\u0061\u0328\u0301", Use16: bool(s)}
+	e = s.editable("\u0061\u0328\u0301")
 	w = e.NextCharWidth(0)
 	if w != len(e.Text) {
 		t.Error("Unexpected char width", w)
@@ -253,6 +258,23 @@ func (s textSuite) testCharWidths(t *testing.T) {
 func validate(t *testing.T, c changes.Change, before, after *text.Editable) *text.Editable {
 	if !reflect.DeepEqual(before.Apply(c), after) {
 		t.Fatal("change diverged", c)
+	}
+	if c != nil {
+		reverted := after.Apply(c.Revert()).(*text.Editable)
+		if reverted.Text != before.Text {
+			t.Fatal("revert diverged", reverted.Text, before.Text, c)
+		}
+		start, left := before.Start()
+		rstart, rleft := reverted.Start()
+		if start != rstart || left != rleft {
+			t.Fatal("revert diverged", start, left, rstart, rleft, c)
+		}
+
+		end, left := before.End()
+		rend, rleft := reverted.End()
+		if end != rend || left != rleft {
+			t.Fatal("revert diverged", end, left, rend, rleft, c)
+		}
 	}
 	return after
 }

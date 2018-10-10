@@ -94,6 +94,19 @@ func (s *Stream) Paste(str string) *Stream {
 	return &Stream{e, s.S.Append(c)}
 }
 
+// Insert inserts a string
+func (s *Stream) Insert(str string) *Stream {
+	c, e := s.E.Insert(str)
+	return &Stream{e, s.S.Append(c)}
+}
+
+// Delete deletes the current selection or the last caret before the
+// caret.
+func (s *Stream) Delete() *Stream {
+	c, e := s.E.Delete()
+	return &Stream{e, s.S.Append(c)}
+}
+
 // WithoutOwnCursor returns a stream that can be used to sync with
 // remote clients. The local stream contains changes pertaining to the
 // local cursor that is not meant to be shared across to remote
