@@ -2,26 +2,23 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-// +build !js jsreflect
+// +build js,!jsreflect
 
 package nw
 
 import (
 	"bytes"
 	"context"
-	"errors"
 	"github.com/dotchain/dot/ops"
-	"log"
-	"net/http"
+	"github.com/gopherjs/gopherjs/js"
+	"honnef.co/go/js/xhr"
 	"time"
 )
 
 // Client implements the ops.Store interface by making network calls
 // to the provided Url.  All other fields of the Client are optional.
 type Client struct {
-	URL string
-	*http.Client
-	http.Header
+	URL         string
 	ContentType string
 	Codecs      map[string]Codec
 }
@@ -29,11 +26,6 @@ type Client struct {
 func (c *Client) call(ctx context.Context, r *request) ([]ops.Op, error) {
 	if deadline, ok := ctx.Deadline(); ok {
 		r.Duration = time.Until(deadline)
-	}
-
-	client := c.Client
-	if client == nil {
-		client = &http.Client{}
 	}
 
 	contentType := c.ContentType
@@ -53,33 +45,17 @@ func (c *Client) call(ctx context.Context, r *request) ([]ops.Op, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", c.URL, &buf)
-	if err != nil {
+	req := xhr.NewRequest("POST", c.URL)
+	req.Timeout = int(r.Duration / time.Millisecond)
+	req.ResponseType = xhr.ArrayBuffer
+	req.SetRequestHeader("Content-Type", contentType)
+	if err := req.Send(buf.Bytes()); err != nil {
 		return nil, err
 	}
 
-	req.Header.Add("Content-Type", contentType)
-	for key := range c.Header {
-		req.Header.Add(key, c.Header.Get(key))
-	}
-
-	resp, err := client.Do(req.WithContext(ctx))
-	if err != nil || resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if err == nil {
-			err = errors.New(resp.Status)
-		}
-		return nil, err
-	}
-
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			log.Println("Unexpected close failure", err)
-		}
-	}()
+	body := js.Global.Get("Uint8Array").New(req.Response).Interface().([]byte)
 	var res response
-
-	err = codec.Decode(&res, resp.Body)
-	if err != nil {
+	if err := codec.Decode(&res, bytes.NewReader(body)); err != nil {
 		return nil, err
 	}
 	return res.Ops, res.Error

@@ -27,6 +27,7 @@ func (suite streamSuite) Run(t *testing.T) {
 	t.Run("CollapsedSelection", suite.testCollapsedSelection)
 	t.Run("NonCollapsedSelection", suite.testNonCollapsedSelection)
 	t.Run("Paste", suite.testPaste)
+	t.Run("Delete", suite.testDelete)
 	t.Run("WithoutOwnCursor", suite.testWithoutOwnCursor)
 }
 
@@ -63,6 +64,30 @@ func (suite streamSuite) testPaste(t *testing.T) {
 	s = sx.Paste("Hoo")
 	suite.validate(t, sx, s)
 	if s.E.Text != "HooHello" {
+		t.Error("Unexpected text", s.E.Text)
+	}
+}
+
+func (suite streamSuite) testDelete(t *testing.T) {
+	s := text.StreamFromString("Hello", bool(suite))
+	s = s.SetSelection(3, 5, false)
+
+	sx := s.Delete()
+	suite.validate(t, s, sx)
+	start, _ := sx.E.Start()
+	end, _ := sx.E.End()
+	if sx.E.Text != "Hel" || start != 3 || end != 3 {
+		t.Error("Unexpected text", sx.E.Text, start, end)
+	}
+
+	// the unicode chars below = a + agontek + acute. They should
+	// be treated as one grapheme cluster
+	s = text.StreamFromString("\u0061\u0328\u0301", bool(suite))
+	s = s.SetSelection(len(s.E.Text), len(s.E.Text), false)
+
+	sx = s.Delete()
+	suite.validate(t, s, sx)
+	if sx.E.Text != "" {
 		t.Error("Unexpected text", s.E.Text)
 	}
 }

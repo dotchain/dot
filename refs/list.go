@@ -125,6 +125,10 @@ func (l List) cloneRefs() map[interface{}]Ref {
 }
 
 func (l List) applyRef(path []interface{}, c changes.Change) changes.Value {
+	if c == nil {
+		return l
+	}
+
 	refs := l.cloneRefs()
 	after := c.(changes.Replace).After
 	if after == changes.Nil {
