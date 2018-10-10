@@ -47,6 +47,8 @@ package changes
 
 // Change represents an OT-compatible mutation of the virtual JSON.
 //
+// The methods provided here are the core methods.  Custom changes
+// should implement the Custom interface in addition to this.
 // Note that it is legal for a change to be nil. It represents a
 // noop.
 type Change interface {
