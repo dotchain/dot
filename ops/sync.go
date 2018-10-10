@@ -45,10 +45,16 @@ func NewSync(transformed Store, version int, local streams.Stream, newID func() 
 type Sync struct {
 	tx         Store
 	ver        int
+	pending    []Op
 	local      streams.Stream
 	IDs        []string
 	lastSentID string
 	mergingID  string
+}
+
+// Version returns the latest server version
+func (s *Sync) Version() int {
+	return s.ver
 }
 
 // Close terminates synchronization
@@ -57,25 +63,44 @@ func (s *Sync) Close() {
 	*s = Sync{}
 }
 
-// Fetch synchronously fetches the operations from a store and merges
-// them with the local stream.
-func (s *Sync) Fetch(ctx context.Context, limit int) error {
-	ops, err := s.tx.GetSince(ctx, s.ver+1, limit)
-	if err == nil {
-		for _, op := range ops {
-			s.ver = op.Version()
-			if len(s.IDs) > 0 && s.IDs[0] == op.ID() {
-				if s.lastSentID == s.IDs[0] {
-					s.lastSentID = ""
-				}
-				s.IDs = s.IDs[1:]
-				_, s.local = s.local.Next()
-			} else {
-				s.mergingID = op.ID().(string)
-				s.local = s.local.ReverseAppend(op.Changes())
-			}
-		}
-		s.mergingID = ""
+// Prefetch synchronously fetches the next batch of operations. It
+// returns if it found any new operations.  It does not actually
+// update the local stream.  This is useful as it is a slow blocking
+// network call.  The prefetched operations are stashed until a call
+// to ApplyPrefetched
+func (s *Sync) Prefetch(ctx context.Context, limit int) (bool, error) {
+	var err error
+	if len(s.pending) == 0 {
+		s.pending, err = s.tx.GetSince(ctx, s.Version()+1, limit)
 	}
+	return len(s.pending) > 0, err
+}
+
+// ApplyPrefetched is guaranteed to not make any blocking calls. It
+// only looks at any prefetched operations and applies them.
+func (s *Sync) ApplyPrefetched() {
+	for _, op := range s.pending {
+		s.ver = op.Version()
+		if len(s.IDs) > 0 && s.IDs[0] == op.ID() {
+			if s.lastSentID == s.IDs[0] {
+				s.lastSentID = ""
+			}
+			s.IDs = s.IDs[1:]
+			_, s.local = s.local.Next()
+		} else {
+			s.mergingID = op.ID().(string)
+			s.local = s.local.ReverseAppend(op.Changes())
+		}
+	}
+	s.mergingID = ""
+	s.pending = nil
+}
+
+// Fetch synchronously fetches the operations from a store and merges
+// them with the local stream.  This is a simple combination of
+// Prefetch and ApplyPrefetched
+func (s *Sync) Fetch(ctx context.Context, limit int) error {
+	_, err := s.Prefetch(ctx, limit)
+	s.ApplyPrefetched()
 	return err
 }
