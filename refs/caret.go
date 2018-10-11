@@ -86,6 +86,12 @@ func (caret Caret) updateIndex(path Path, idx int, cx changes.Change) Ref {
 	return Caret{path, idx, caret.IsLeft}
 }
 
+// Equal impements Ref.Equal
+func (caret Caret) Equal(other Ref) bool {
+	o, ok := other.(Caret)
+	return ok && caret.Path.Equal(o.Path) && caret.Index == o.Index && caret.IsLeft == o.IsLeft
+}
+
 type caretMerger interface {
 	MergeCaret(caret Caret) Ref
 }

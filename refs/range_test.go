@@ -21,6 +21,24 @@ func TestRangeNil(t *testing.T) {
 	}
 }
 
+func TestRangeEqual(t *testing.T) {
+	c := refs.Caret{refs.Path{2}, 5, false}
+	x := refs.Range{c, c}
+	if !x.Equal(x) {
+		t.Error("x != x")
+	}
+	if x.Equal(c) {
+		t.Error("refs.Caret equals refs.Path")
+	}
+	cx := refs.Caret{nil, 5, false}
+	if x.Equal(refs.Range{c, cx}) {
+		t.Error("End not tested")
+	}
+	if x.Equal(refs.Range{cx, c}) {
+		t.Error("start not tested")
+	}
+}
+
 func TestRangeReplace(t *testing.T) {
 	replace := changes.Replace{types.S8("OK"), types.S8("goop")}
 
