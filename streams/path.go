@@ -94,23 +94,18 @@ func (x *xform) Next() (changes.Change, Stream) {
 	return x.toChild(r), x.clone(s, r.P)
 }
 
-func (x *xform) Nextf(key interface{}, fn func(c changes.Change, s Stream)) {
-	if fn == nil {
-		x.Stream.Nextf(key, nil)
-		return
-	}
-
-	p := x.Path
-	finished := false
-	x.Stream.Nextf(key, func(c changes.Change, s Stream) {
-		r := refs.Merge(p, c)
-		finished = finished || r == nil
-		if finished {
-			s.Nextf(key, nil)
-		} else {
-			fn(x.toChild(r), x.clone(s, p))
+func (x *xform) Nextf(key interface{}, fn func()) {
+	if fn != nil {
+		last, prev := x, fn
+		fn = func() {
+			_, l := last.Next()
+			if l != nil {
+				last = l.(*xform)
+				prev()
+			}
 		}
-	})
+	}
+	x.Stream.Nextf(key, fn)
 }
 
 func (x *xform) Scheduler() Scheduler {

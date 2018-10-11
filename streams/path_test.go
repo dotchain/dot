@@ -37,7 +37,10 @@ func TestChildOf_ModifyChild(t *testing.T) {
 	}
 
 	count := 0
-	child.Nextf("key", func(cx changes.Change, _ streams.Stream) {
+	var latest streams.Stream = child
+	child.Nextf("key", func() {
+		var cx changes.Change
+		cx, latest = latest.Next()
 		count++
 		if cx != move &&
 			!reflect.DeepEqual(cx, changes.PathChange{[]interface{}{}, move}) {
@@ -59,8 +62,8 @@ func TestChildOf_InvalidRef(t *testing.T) {
 		t.Error("Unexpected next value", c, s)
 	}
 
-	child.Nextf("key", func(c changes.Change, s streams.Stream) {
-		t.Fatal("Unexpected callback", c, s)
+	child.Nextf("key", func() {
+		t.Fatal("Unexpected callback")
 	})
 	child.Nextf("key", nil)
 }

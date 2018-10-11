@@ -15,7 +15,10 @@ func TestAsyncScheduler(t *testing.T) {
 	async := &streams.AsyncScheduler{}
 	s := streams.New().WithScheduler(async)
 	cx := []changes.Change{}
-	s.Nextf(struct{}{}, func(c changes.Change, _ streams.Stream) {
+	var latest streams.Stream = s
+	s.Nextf(struct{}{}, func() {
+		var c changes.Change
+		c, latest = latest.Next()
 		cx = append(cx, c)
 	})
 
@@ -48,7 +51,7 @@ func TestAsyncMerge(t *testing.T) {
 	async := &streams.AsyncScheduler{}
 	up := streams.New().WithScheduler(async)
 	down := streams.New().WithScheduler(async)
-	b := &streams.Branch{up, down}
+	b := &streams.Branch{up, down, false}
 	b.Connect()
 
 	up = up.Append(changes.Move{0, 2, 2})

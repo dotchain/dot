@@ -67,17 +67,8 @@ func (s stream) Next() (changes.Change, streams.Stream) {
 	return cx, &stream{fold, base}
 }
 
-func (s stream) Nextf(key interface{}, fn func(changes.Change, streams.Stream)) {
-	if fn == nil {
-		s.base.Nextf(key, nil)
-		return
-	}
-
-	s.base.Nextf(key, func(c changes.Change, base streams.Stream) {
-		foldx, cx := c.Merge(s.fold)
-		s = stream{foldx, base}
-		fn(cx, s)
-	})
+func (s stream) Nextf(key interface{}, fn func()) {
+	s.base.Nextf(key, fn)
 }
 
 func (s stream) Scheduler() streams.Scheduler {

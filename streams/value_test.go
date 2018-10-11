@@ -16,12 +16,12 @@ func TestValueStream(t *testing.T) {
 	s := &streams.ValueStream{types.S8(""), streams.New()}
 	splice := changes.Splice{0, types.S8(""), types.S8("Hello")}
 	var cx changes.Change
-	var sx streams.Stream
-	s.Nextf("key", func(c changes.Change, s streams.Stream) {
+	var sx streams.Stream = s
+	s.Nextf("key", func() {
 		if cx != nil {
 			t.Fatal("Unexpected multiple call to Nextf")
 		}
-		cx, sx = c, s
+		cx, sx = sx.Next()
 	})
 
 	s2 := s.Append(splice)

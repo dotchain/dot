@@ -212,9 +212,9 @@ func (suite streamSuite) validate(t *testing.T, before, after *text.Stream) {
 		t.Error("Divergent change", next.(*text.Stream).E, "x", after.E)
 	}
 	var next streams.Stream
-	before.Nextf("validate", func(_ changes.Change, str streams.Stream) {
+	before.Nextf("validate", func() {
 		before.Nextf("validate", nil)
-		next = str
+		_, next = before.Next()
 	})
 	if !reflect.DeepEqual(next, after) {
 		t.Error("Divergent change")
