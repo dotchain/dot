@@ -18,6 +18,16 @@ type Container struct {
 	refs map[interface{}]Ref
 }
 
+// NewContainer wraps the value and refs into a Container
+func NewContainer(v changes.Value, refs map[interface{}]Ref) Container {
+	return Container{v, refs}
+}
+
+// Refs returns the internal set of refs associated with the container
+func (con Container) Refs() map[interface{}]Ref {
+	return con.refs
+}
+
 // UpdateRef updates a ref. If r is nil, the reference is deleted.
 // All references should have "Value" as a prefix to the path.
 func (con Container) UpdateRef(key interface{}, r Ref) (Container, changes.Change) {

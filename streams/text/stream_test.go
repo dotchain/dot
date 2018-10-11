@@ -29,6 +29,7 @@ func (suite streamSuite) Run(t *testing.T) {
 	t.Run("Paste", suite.testPaste)
 	t.Run("Delete", suite.testDelete)
 	t.Run("WithoutOwnCursor", suite.testWithoutOwnCursor)
+	t.Run("CursorAdjustment", suite.testCursorAdjustment)
 }
 
 func (suite streamSuite) testWithoutOwnCursor(t *testing.T) {
@@ -51,6 +52,23 @@ func (suite streamSuite) testWithoutOwnCursor(t *testing.T) {
 	v := s3.(*streams.ValueStream).Value
 	if !reflect.DeepEqual(v, types.M{"Value": types.S8("HooHello")}) {
 		t.Error("Unexpected value", v)
+	}
+}
+
+func (suite streamSuite) testCursorAdjustment(t *testing.T) {
+	s := text.StreamFromString("Hello", bool(suite))
+	s.Paste("boo")
+	s.SetSelection(2, 2, false)
+
+	for _, v := s.Next(); v != nil; _, v = s.Next() {
+		s = v.(*text.Stream)
+	}
+
+	start, _ := s.E.Start()
+	end, _ := s.E.End()
+
+	if end != 5 || start != 5 || s.E.Text != "booHello" {
+		t.Error("Unexpected caret", start, end, s.E.Text)
 	}
 }
 

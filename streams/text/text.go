@@ -46,16 +46,12 @@ type Editable struct {
 
 var p = refs.Path{"Value"}
 
-func (e *Editable) prioritize(c changes.Change, l refs.List) (changes.Change, refs.List) {
-	return prioritized{c}, l
-}
-
 // SetSelection sets the selection range for text.
 func (e *Editable) SetSelection(start, end int, left bool) (changes.Change, *Editable) {
 	start, end = e.toValueOffset(start), e.toValueOffset(end)
 	startx := refs.Caret{p, start, start > end || start == end && left}
 	endx := refs.Caret{p, end, start < end || start == end && left}
-	c, l := e.prioritize(e.toList().Update(own, refs.Range{startx, endx}))
+	l, c := e.toList().UpdateRef(own, refs.Range{startx, endx})
 	return c, e.fromList(l)
 
 }
@@ -66,9 +62,9 @@ func (e *Editable) Insert(s string) (changes.Change, *Editable) {
 	offset, before := e.selection()
 	after := e.stringToValue(s)
 	splice := changes.PathChange{p, changes.Splice{offset, before, after}}
-	l := e.toList().Apply(splice).(refs.List)
+	l := e.toList().Apply(splice).(refs.Container)
 	caret := refs.Caret{p, offset + after.Count(), false}
-	cx, lx := e.prioritize(l.Update(own, refs.Range{caret, caret}))
+	lx, cx := l.UpdateRef(own, refs.Range{caret, caret})
 	return changes.ChangeSet{splice, cx}, e.fromList(lx)
 }
 
@@ -93,8 +89,8 @@ func (e *Editable) Delete() (changes.Change, *Editable) {
 
 	splice := changes.PathChange{p, changes.Splice{offset, before, after}}
 	l := e.toList()
-	cx, lx := e.prioritize(l.Update(own, refs.Range{caret, caret}))
-	lx = lx.Apply(splice).(refs.List)
+	lx, cx := l.UpdateRef(own, refs.Range{caret, caret})
+	lx = lx.Apply(splice).(refs.Container)
 	return changes.ChangeSet{cx, splice}, e.fromList(lx)
 }
 
@@ -123,17 +119,17 @@ func (e *Editable) Paste(s string) (changes.Change, *Editable) {
 	offset, before := e.selection()
 	after := e.stringToValue(s)
 	splice := changes.PathChange{p, changes.Splice{offset, before, after}}
-	l := e.toList().Apply(splice).(refs.List)
+	l := e.toList().Apply(splice).(refs.Container)
 	start := refs.Caret{p, offset, after.Count() == 0}
 	end := refs.Caret{p, offset + after.Count(), true}
-	cx, lx := e.prioritize(l.Update(own, refs.Range{start, end}))
+	lx, cx := l.UpdateRef(own, refs.Range{start, end})
 	return changes.ChangeSet{splice, cx}, e.fromList(lx)
 }
 
 // Apply implements the changes.Value interface
 func (e *Editable) Apply(c changes.Change) changes.Value {
 	result := e.toList().Apply(c)
-	l, ok := result.(refs.List)
+	l, ok := result.(refs.Container)
 	if !ok {
 		return result
 	}
@@ -180,17 +176,18 @@ func (e *Editable) fromValueOffset(idx int) int {
 	return idx
 }
 
-func (e *Editable) toList() refs.List {
-	l := refs.List{e.stringToValue(e.Text), e.Refs}
-	_, l = l.Add(own, e.cursor())
+func (e *Editable) toList() refs.Container {
+	l := refs.NewContainer(e.stringToValue(e.Text), e.Refs)
+	l, _ = l.UpdateRef(own, e.cursor())
 	return l
 }
 
-func (e *Editable) fromList(l refs.List) *Editable {
-	text := e.valueToString(l.V)
-	cursor := l.R[own].(refs.Range)
-	delete(l.R, own)
-	return &Editable{text, cursor, l.R, e.Use16, changes.Atomic{nil}}
+func (e *Editable) fromList(l refs.Container) *Editable {
+	text := e.valueToString(l.Value)
+	cursor := l.GetRef(own).(refs.Range)
+	refs := l.Refs()
+	delete(refs, own)
+	return &Editable{text, cursor, refs, e.Use16, changes.Atomic{nil}}
 }
 
 func (e *Editable) selection() (int, changes.Value) {
@@ -220,39 +217,4 @@ func (e *Editable) PrevCharWidth(idx int) int {
 		return 0
 	}
 	return idx - offset
-}
-
-// prioritized inverts the priority of operations
-type prioritized struct {
-	changes.Change
-}
-
-func (p prioritized) Merge(other changes.Change) (otherx, cx changes.Change) {
-	own := p.Change
-	if other != nil {
-		own, other = other.Merge(own)
-	}
-
-	return other, own
-}
-
-func (p prioritized) Revert() changes.Change {
-	return prioritized{p.Change.Revert()}
-}
-
-func (p prioritized) ReverseMerge(other changes.Change) (otherx, cx changes.Change) {
-	own := p.Change
-	if other != nil {
-		other, own = own.Merge(other)
-	}
-
-	return other, own
-}
-
-func (p prioritized) ApplyTo(v changes.Value) changes.Value {
-	return v.Apply(p.Change)
-}
-
-func (p prioritized) MergePath(path []interface{}) *refs.MergeResult {
-	return refs.Merge(path, p.Change)
 }
