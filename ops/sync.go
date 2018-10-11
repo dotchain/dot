@@ -25,7 +25,10 @@ import (
 // Transformed() to convert a raw store for use with NewSync
 func NewSync(transformed Store, version int, local streams.Stream, newID func() string) *Sync {
 	s := &Sync{tx: transformed, ver: version, local: local}
-	local.Nextf(s, func(c changes.Change, updated streams.Stream) {
+	local.Nextf(s, func() {
+		var c changes.Change
+		c, local = local.Next()
+		
 		if s.mergingID != "" {
 			return
 		}

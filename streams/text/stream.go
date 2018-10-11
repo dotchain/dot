@@ -72,19 +72,8 @@ func (s *Stream) Next() (changes.Change, streams.Stream) {
 }
 
 // Nextf implements streams.Stream.Nextf
-func (s *Stream) Nextf(key interface{}, fn func(c changes.Change, str streams.Stream)) {
-	if fn == nil {
-		s.S.Nextf(key, fn)
-	} else {
-		var last streams.Stream = s
-		s.S.Nextf(key, func(c changes.Change, str streams.Stream) {
-			if l, ok := last.(*Stream); ok {
-				c, str = l.mapChangeValue(c, str)
-				last = str
-			}
-			fn(c, str)
-		})
-	}
+func (s *Stream) Nextf(key interface{}, fn func()) {
+	s.S.Nextf(key, fn)
 }
 
 // SetSelection sets the selection range for text
@@ -181,8 +170,8 @@ func (f filterChange) Next() (changes.Change, streams.Stream) {
 	return f.mapChange(f.base.Next())
 }
 
-func (f filterChange) Nextf(key interface{}, fn func(c changes.Change, s streams.Stream)) {
-	f.base.Nextf(key, f.mapFn(fn))
+func (f filterChange) Nextf(key interface{}, fn func()) {
+	f.base.Nextf(key, fn)
 }
 
 func (f filterChange) mapChange(c changes.Change, s streams.Stream) (changes.Change, streams.Stream) {
@@ -190,14 +179,4 @@ func (f filterChange) mapChange(c changes.Change, s streams.Stream) (changes.Cha
 		s = filterChange{f.filter, s}
 	}
 	return f.filter(c), s
-}
-
-func (f filterChange) mapFn(fn func(changes.Change, streams.Stream)) func(changes.Change, streams.Stream) {
-	if fn != nil {
-		old := fn
-		fn = func(c changes.Change, s streams.Stream) {
-			old(f.mapChange(c, s))
-		}
-	}
-	return fn
 }

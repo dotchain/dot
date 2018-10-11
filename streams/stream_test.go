@@ -19,11 +19,13 @@ func TestStream(t *testing.T) {
 	var latest streams.Stream
 	v := changes.Value(initial)
 
-	ev := func(c changes.Change, l streams.Stream) {
+	ev := func() {
+		var c changes.Change
+		c, latest = latest.Next()
 		v = v.Apply(c)
-		latest = l
 	}
 	s := streams.New()
+	latest = s
 	s.Nextf("boo", ev)
 	defer s.Nextf("boo", nil)
 
@@ -52,16 +54,20 @@ func TestBranch(t *testing.T) {
 	initial := S("")
 	v := changes.Value(initial)
 
-	ev := func(c changes.Change, l streams.Stream) {
+	var latest streams.Stream
+	ev := func() {
+		var c changes.Change
+		c, latest = latest.Next()
 		v = v.Apply(c)
 	}
 	s := streams.New()
+	latest = s
 	s.Nextf("boo", ev)
 	defer s.Nextf("boo", nil)
 	s = s.Append(changes.Replace{changes.Nil, S("Hello World")})
 
 	child := streams.New()
-	branch := &streams.Branch{s, child}
+	branch := &streams.Branch{s, child, false}
 	child1 := child.Append(changes.Splice{0, S(""), S("OK ")})
 	if v != S("Hello World") {
 		t.Fatal("Unexpected branch updated", v)
@@ -77,6 +83,7 @@ func TestBranch(t *testing.T) {
 	child1.Append(changes.Splice{len("OK Hello World"), S(""), S("**")})
 	branch.Pull()
 	v = changes.Value(S("Hello World"))
+	latest = child
 	child.Nextf("boq", ev)
 	child.Nextf("boq", nil)
 	if v != S("Oh OK Hello World!**") {
@@ -88,11 +95,16 @@ func TestConnectedBranches(t *testing.T) {
 	var master changes.Value = S("")
 	var local changes.Value = S("")
 
-	b := streams.Branch{streams.New(), streams.New()}
-	b.Master.Nextf("key", func(c changes.Change, _ streams.Stream) {
+	b := streams.Branch{streams.New(), streams.New(), false}
+	bm, bl := b.Master, b.Local
+	b.Master.Nextf("key", func() {
+		var c changes.Change
+		c, bm = bm.Next()
 		master = master.Apply(c)
 	})
-	b.Local.Nextf("key", func(c changes.Change, _ streams.Stream) {
+	b.Local.Nextf("key", func() {
+		var c changes.Change
+		c, bl = bl.Next()
 		local = local.Apply(c)
 	})
 
@@ -125,15 +137,19 @@ func TestStreamNilChange(t *testing.T) {
 	initial := S("")
 	v := changes.Value(initial)
 
-	ev := func(c changes.Change, l streams.Stream) {
+	var latest streams.Stream
+	ev := func() {
+		var c changes.Change
+		c, latest = latest.Next()
 		v = v.Apply(c)
 	}
 	s := streams.New()
+	latest = s
 	s.Nextf("boo", ev)
 	defer s.Nextf("boo", nil)
 
 	child := streams.New()
-	branch := streams.Branch{s, child}
+	branch := streams.Branch{s, child, false}
 
 	s.Append(nil)
 	child.Append(nil)

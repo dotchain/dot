@@ -2,19 +2,38 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-// Package streams defines the types for managing a sequence of
-// changes
+// Package streams defines convergent streams of changes
 //
 // A stream is like an event emitter or source: it tracks a sequence
 // of changes on a value. It is an immutable value that logically maps
 // to a "Git commit".  Appending a change to an event is equivalent to
 // creating a new commit based on the previous stream.
 //
-// In addition to the immutable semantics, Streams implement
-// "convergence" -- calling "Next" on a partiular instance and
-// iterating that way will guarantee all related streams will converge
-// to the same value.  Underneath the hood, streams use operational
-// transformation to guarantee this.
+// Streams differ from event emitters or immutable values in a
+// fundamental way: they are convergent.  All streams from the same
+// family converge to the same value
+//
+// For example, consider two changes on the same initial stream value.
+//
+//     s := ...stream...
+//     s1 := s.Append(change1)
+//     s2 := s.Append(change2)
+//
+// The two output streams converge in the following sense:
+//
+//     c1Next, s1Next := s1.Next()
+//     c2Next, s2Next := s2.Next()
+//     initialValue.Apply(c1).Apply(c1Next) == initialValue.Apply(c2).Apply(c2Next)
+//
+// Basically, just chasing the sequence of changes from a particular
+// stream instance is guaranteed to end with the same value as any
+// other stream in that family.
+//
+// A "family" is any stream derived from another in by means of any
+// number of "Append" calls.
+//
+// A branch is just a derived stream with ability to Commit and Cancel
+// local changes.
 package streams
 
 import "github.com/dotchain/dot/changes"
@@ -76,11 +95,13 @@ type Stream interface {
 	// the same value.
 	Next() (changes.Change, Stream)
 
-	// Nextf is like Next except it use a callback and also adds a
-	// listener waiting for future changes.
+	// Nextf calls the provided callback whenever a next value
+	// appears in the current stream. If the current stream
+	// instance already has a next, the callback is called
+	// immediately.
 	//
 	// If the fn is  nil, the listener is removed instead
-	Nextf(key interface{}, fn func(changes.Change, Stream))
+	Nextf(key interface{}, fn func())
 
 	// Scheduler returns any associated scheduler
 	Scheduler() Scheduler
@@ -92,14 +113,14 @@ type Stream interface {
 
 // New returns a new Stream
 func New() Stream {
-	fns := map[interface{}]func(changes.Change, Stream){}
+	fns := map[interface{}]func(){}
 	return &stream{fns: fns, sch: SyncScheduler}
 }
 
 type stream struct {
 	c    changes.Change
 	next *stream
-	fns  map[interface{}]func(c changes.Change, latest Stream)
+	fns  map[interface{}]func()
 	sch  Scheduler
 }
 
@@ -110,17 +131,15 @@ func (s *stream) Next() (changes.Change, Stream) {
 	return s.c, s.next
 }
 
-func (s *stream) Nextf(key interface{}, fn func(c changes.Change, latest Stream)) {
+func (s *stream) Nextf(key interface{}, fn func()) {
 	if fn == nil {
 		delete(s.fns, key)
 	} else {
-		fnx := func(c changes.Change, s Stream) {
-			s.Scheduler().Schedule(func() { fn(c, s) })
-		}
-		s.fns[key] = fnx
-		for s.next != nil {
-			fnx(s.c, s.next)
-			s = s.next
+		s.fns[key] = fn
+		for next := s.next; next != nil; next = next.next {
+			if fn := s.fns[key]; fn != nil {
+				s.sch.Schedule(fn)
+			}
 		}
 	}
 }
@@ -154,7 +173,7 @@ func (s *stream) apply(c changes.Change, reverse bool) *stream {
 	}
 	s.c, s.next = c, next
 	for _, fn := range s.fns {
-		fn(c, next)
+		s.sch.Schedule(fn)
 	}
 	return result
 }
@@ -187,6 +206,7 @@ func (s *stream) merge(left, right changes.Change, reverse bool) (lx, rx changes
 // Branch is not safe for concurrent access.
 type Branch struct {
 	Master, Local Stream
+	Merging       bool
 }
 
 // Connect automerges changes between Master and Local immediately
@@ -194,17 +214,8 @@ type Branch struct {
 // needed. It is not safe to call Connect from within the Nextf
 // callback of either Master or Local stream
 func (b *Branch) Connect() {
-	b.Merge()
-	merging := false
-	merge := func(_ changes.Change, _ Stream) {
-		if !merging {
-			merging = true
-			b.Merge()
-			merging = false
-		}
-	}
-	b.Master.Nextf(b, merge)
-	b.Local.Nextf(b, merge)
+	b.Master.Nextf(b, b.Merge)
+	b.Local.Nextf(b, b.Merge)
 }
 
 // Disconnect removes the auto-emrge between Master and Local. All
@@ -215,6 +226,11 @@ func (b *Branch) Disconnect() {
 }
 
 func (b *Branch) merge(from, to Stream, reverse bool) (fromx, tox Stream) {
+	if b.Merging {
+		return from, to
+	}
+
+	b.Merging = true
 	c, next := from.Next()
 	for next != nil {
 		if reverse {
@@ -225,6 +241,7 @@ func (b *Branch) merge(from, to Stream, reverse bool) (fromx, tox Stream) {
 		from = next
 		c, next = from.Next()
 	}
+	b.Merging = false
 	return from, to
 }
 

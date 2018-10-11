@@ -53,7 +53,10 @@ func Example_appendUpstream() {
 
 func Example_nilFold() {
 	upstream := streams.New()
-	upstream.Nextf("mykey", func(c changes.Change, _ streams.Stream) {
+	latest := upstream
+	upstream.Nextf("mykey", func() {
+		var c changes.Change
+		c, latest = latest.Next()
 		fmt.Println("Got Change:", c)
 	})
 	defer upstream.Nextf("mykey", nil)
@@ -73,7 +76,10 @@ func Example_nilFold() {
 func Example_nextf() {
 	upstream := streams.New()
 	folded := fold.New(changes.Splice{0, types.S8(""), types.S8("hello")}, upstream)
-	folded.Nextf("mykey", func(c changes.Change, _ streams.Stream) {
+	var latest streams.Stream = folded
+	folded.Nextf("mykey", func() {
+		var c changes.Change
+		c, latest = latest.Next()
 		fmt.Println("Got Change:", c)
 	})
 	defer folded.Nextf("mykey", nil)

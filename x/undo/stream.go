@@ -56,22 +56,14 @@ func (s stream) ReverseAppend(c changes.Change) streams.Stream {
 
 func (s stream) Next() (changes.Change, streams.Stream) {
 	c, base := s.base.Next()
-	if base == nil {
-		return c, base
+	if base != nil {
+		base = stream{base, s.stack}
 	}
-
-	return c, stream{base, s.stack}
+	return c, base
 }
 
-func (s stream) Nextf(key interface{}, fn func(c changes.Change, base streams.Stream)) {
-	if fn == nil {
-		s.base.Nextf(key, nil)
-		return
-	}
-
-	s.base.Nextf(key, func(c changes.Change, base streams.Stream) {
-		fn(c, stream{base, s.stack})
-	})
+func (s stream) Nextf(key interface{}, fn func()) {
+	s.base.Nextf(key, fn)
 }
 
 func (s stream) Scheduler() streams.Scheduler {

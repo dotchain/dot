@@ -14,7 +14,10 @@ import (
 func Example_newStream() {
 	latest := changes.Value(types.S8("Hello World"))
 	s := streams.New()
-	s.Nextf("apply", func(c changes.Change, c_ streams.Stream) {
+	sLatest := s
+	s.Nextf("apply", func() {
+		var c changes.Change
+		c, sLatest = sLatest.Next()
 		latest = latest.Apply(c)
 		fmt.Println("Changed:", latest)
 	})
@@ -28,7 +31,10 @@ func Example_newStream() {
 func Example_streamMergeUsingNextfAndApply() {
 	latest := changes.Value(types.S8("Hello World"))
 	s := streams.New()
-	s.Nextf("apply", func(c changes.Change, _ streams.Stream) {
+	sLatest := s
+	s.Nextf("apply", func() {
+		var c changes.Change
+		c, sLatest = sLatest.Next()
 		latest = latest.Apply(c)
 		fmt.Println("Changed:", latest)
 	})
@@ -49,13 +55,16 @@ func Example_streamMergeUsingNextfAndApply() {
 func Example_streamBranching() {
 	latest := changes.Value(types.S8("Hello World"))
 	s := streams.New()
-	s.Nextf("apply", func(c changes.Change, _ streams.Stream) {
+	sLatest := s
+	s.Nextf("apply", func() {
+		var c changes.Change
+		c, sLatest = sLatest.Next()
 		latest = latest.Apply(c)
 	})
 
 	// create a new stream for the "child"
 	child := streams.New()
-	branch := &streams.Branch{s, child}
+	branch := &streams.Branch{s, child, false}
 
 	// update child, the changes won't be reflected on latest
 	child.Append(changes.Splice{0, types.S8(""), types.S8("OK ")})

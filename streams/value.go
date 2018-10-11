@@ -34,12 +34,6 @@ func (vs *ValueStream) Next() (changes.Change, Stream) {
 
 // Nextf implements Stream.Nextf. The stream provided in the callback
 // is of type ValueStream
-func (vs *ValueStream) Nextf(key interface{}, fn func(changes.Change, Stream)) {
-	if fn == nil {
-		vs.Stream.Nextf(key, nil)
-	} else {
-		vs.Stream.Nextf(key, func(c changes.Change, s Stream) {
-			fn(c, &ValueStream{vs.Value.Apply(c), s})
-		})
-	}
+func (vs *ValueStream) Nextf(key interface{}, fn func()) {
+	vs.Stream.Nextf(key, fn)
 }
