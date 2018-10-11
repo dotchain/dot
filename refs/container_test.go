@@ -13,14 +13,15 @@ import (
 )
 
 func TestUpdateMerge(t *testing.T) {
-	initial := refs.Container{
-		Value: types.M{
+	initial := refs.NewContainer(
+		types.M{
 			"ok":    changes.Nil,
 			"bok":   changes.Nil,
 			"loki":  changes.Nil,
 			"array": types.A{changes.Nil, changes.Nil, changes.Nil, changes.Nil, changes.Nil},
 		},
-	}
+		nil,
+	)
 	initial, _ = initial.UpdateRef("goo", refs.Path{"Value", "ok"})
 	initial, _ = initial.UpdateRef("array", refs.Path{"Value", "array", 1})
 
@@ -186,7 +187,7 @@ func TestContainer(t *testing.T) {
 	}
 
 	v, _ = v.UpdateRef("boo", nil)
-	if !reflect.DeepEqual(v, initial) {
+	if !reflect.DeepEqual(v.Refs(), initial.Refs()) {
 		t.Error("Removing refs failed", v)
 	}
 }
