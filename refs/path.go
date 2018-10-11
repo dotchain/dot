@@ -27,8 +27,13 @@ func (p Path) Merge(c changes.Change) (Ref, changes.Change) {
 	return InvalidRef, nil
 }
 
-// Equal implements equality comparison
-func (p Path) Equal(o Path) bool {
+// Equal implements Ref.Equal
+func (p Path) Equal(other Ref) bool {
+	o, ok := other.(Path)
+	if !ok {
+		return false
+	}
+
 	if len(p) != len(o) {
 		return false
 	}

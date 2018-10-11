@@ -20,6 +20,14 @@ func TestInvalidRef(t *testing.T) {
 	if r != refs.InvalidRef || cx != nil {
 		t.Error("InvalidRef failed merge", r, cx)
 	}
+
+	if !refs.InvalidRef.Equal(refs.InvalidRef) {
+		t.Error("InvalidRef does not equal itself")
+	}
+
+	if refs.InvalidRef.Equal(refs.Path{5}) {
+		t.Error("InvalidRef equals something else")
+	}
 }
 
 func TestMerge(t *testing.T) {

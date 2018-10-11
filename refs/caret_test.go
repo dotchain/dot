@@ -20,6 +20,25 @@ func TestCaretNil(t *testing.T) {
 	}
 }
 
+func TestCaretEqual(t *testing.T) {
+	x := refs.Caret{refs.Path{2}, 5, false}
+	if !x.Equal(x) {
+		t.Error("x != x")
+	}
+	if x.Equal(x.Path) {
+		t.Error("refs.Caret equals refs.Path")
+	}
+	if x.Equal(refs.Caret{refs.Path{5}, 5, false}) {
+		t.Error("path not tested")
+	}
+	if x.Equal(refs.Caret{x.Path, 6, false}) {
+		t.Error("index not tested")
+	}
+	if x.Equal(refs.Caret{x.Path, 5, true}) {
+		t.Error("index not tested")
+	}
+}
+
 func TestCaretReplace(t *testing.T) {
 	replace := changes.Replace{types.S8("OK"), types.S8("goop")}
 

@@ -224,6 +224,10 @@ func TestPathEqual(t *testing.T) {
 	if x.Equal(y) {
 		t.Error("x == y", x, y)
 	}
+
+	if x.Equal(refs.Caret{x, 0, false}) {
+		t.Error("refs.Path equals refs.Caret")
+	}
 }
 
 type myChange struct{}

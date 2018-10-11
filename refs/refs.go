@@ -20,6 +20,9 @@ type Ref interface {
 	// specified by the Ref, it returns a modified version of the
 	// change that can be applied to the value at the Ref.
 	Merge(c changes.Change) (Ref, changes.Change)
+
+	// Equal tests if two refs are the same.
+	Equal(other Ref) bool
 }
 
 // InvalidRef refers to a ref that no longer exists.
@@ -29,6 +32,11 @@ type invalidRef struct{}
 
 func (r invalidRef) Merge(c changes.Change) (Ref, changes.Change) {
 	return r, nil
+}
+
+func (r invalidRef) Equal(other Ref) bool {
+	_, ok := other.(invalidRef)
+	return ok
 }
 
 // PathMerger is the interface that custom Change types should

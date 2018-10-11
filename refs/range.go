@@ -48,3 +48,9 @@ func (r Range) Merge(c changes.Change) (Ref, changes.Change) {
 
 	return Range{sy, ey}, nil
 }
+
+// Equal implements Ref.Equal
+func (r Range) Equal(other Ref) bool {
+	o, ok := other.(Range)
+	return ok && r.Start.Equal(o.Start) && r.End.Equal(o.End)
+}
