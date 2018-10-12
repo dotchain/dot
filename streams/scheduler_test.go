@@ -11,9 +11,9 @@ import (
 	"testing"
 )
 
-func TestAsyncScheduler(t *testing.T) {
-	async := &streams.AsyncScheduler{}
-	s := streams.New().WithScheduler(async)
+func TestAsync(t *testing.T) {
+	async := &streams.Async{}
+	s := async.Wrap(streams.New())
 	cx := []changes.Change{}
 	var latest streams.Stream = s
 	s.Nextf(struct{}{}, func() {
@@ -48,9 +48,9 @@ func TestAsyncScheduler(t *testing.T) {
 }
 
 func TestAsyncMerge(t *testing.T) {
-	async := &streams.AsyncScheduler{}
-	up := streams.New().WithScheduler(async)
-	down := streams.New().WithScheduler(async)
+	async := &streams.Async{}
+	up := async.Wrap(streams.New())
+	down := async.Wrap(streams.New())
 	b := &streams.Branch{up, down, false}
 	b.Connect()
 

@@ -68,15 +68,6 @@ func TestChildOf_InvalidRef(t *testing.T) {
 	child.Nextf("key", nil)
 }
 
-func TestChildOf_Scheduler(t *testing.T) {
-	async := &streams.AsyncScheduler{}
-	base := streams.New()
-	child := streams.ChildOf(base, 5, 2).WithScheduler(async)
-	if child.Scheduler() != async {
-		t.Error("Could not update scheduler")
-	}
-}
-
 func TestFilterPath(t *testing.T) {
 	base := streams.New()
 	child := streams.FilterPath(base, "hello", "world")

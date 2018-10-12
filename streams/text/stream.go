@@ -56,16 +56,6 @@ func (s *Stream) ReverseAppend(c changes.Change) streams.Stream {
 	return &streams.ValueStream{v, sx}
 }
 
-// Scheduler implements streams.Stream:Scheduler
-func (s *Stream) Scheduler() streams.Scheduler {
-	return s.S.Scheduler()
-}
-
-// WithScheduler implements streams.Stream:WithScheduler
-func (s *Stream) WithScheduler(sch streams.Scheduler) streams.Stream {
-	return &Stream{s.E, s.S.WithScheduler(sch)}
-}
-
 // Next implements streams.Stream.Next
 func (s *Stream) Next() (changes.Change, streams.Stream) {
 	return s.mapChangeValue(s.S.Next())
@@ -156,14 +146,6 @@ func (f filterChange) Append(c changes.Change) streams.Stream {
 
 func (f filterChange) ReverseAppend(c changes.Change) streams.Stream {
 	return filterChange{f.filter, f.base.ReverseAppend(c)}
-}
-
-func (f filterChange) Scheduler() streams.Scheduler {
-	return f.base.Scheduler()
-}
-
-func (f filterChange) WithScheduler(sch streams.Scheduler) streams.Stream {
-	return filterChange{f.filter, f.base.WithScheduler(sch)}
 }
 
 func (f filterChange) Next() (changes.Change, streams.Stream) {

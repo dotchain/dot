@@ -4,35 +4,17 @@
 
 package streams
 
-// Scheduler is the interface that Streams use to schedule
-// calls to the function provided as argument to Nextf.
-type Scheduler interface {
-	Schedule(fn func())
-}
-
-type syncScheduler struct{}
-
-func (s *syncScheduler) Schedule(fn func()) {
-	fn()
-}
-
-// SyncScheduler is the default scheduler used with streams. The
-// function provided as argument to Stream.Nextf is called
-// synchronously via this scheduler.
-var SyncScheduler = &syncScheduler{}
-
-// AsyncScheduler queues any callbacks without executing them
+// Async queues any callbacks without executing them
 // synchronously. These queued callbacks can be executed with a call
 // to Run()
-type AsyncScheduler struct {
-	Pending []func()
+type Async struct {
+	pending []func()
 }
 
-// Schedule queues the provided callback. This is not safe for
-// concurrent access but it is rentrant (i.e. one of the callbacks can
-// schedule more callbacks)
-func (as *AsyncScheduler) Schedule(fn func()) {
-	as.Pending = append(as.Pending, fn)
+// Wrap wraps a stream with an updated scheduler. Any calls to Nextf
+// on the returned stream will have the callback scheduled.
+func (as *Async) Wrap(s Stream) Stream {
+	return async{as, s}
 }
 
 // Run executes pending callbacks.  The number of callbacks to execute
@@ -41,13 +23,28 @@ func (as *AsyncScheduler) Schedule(fn func()) {
 //
 // The return value is the number of queued functions that were
 // executed.
-func (as *AsyncScheduler) Run(count int) int {
+func (as *Async) Run(count int) int {
 	run := 0
-	for len(as.Pending) > 0 && count != 0 {
+	for len(as.pending) > 0 && count != 0 {
 		count--
 		run++
-		as.Pending[0]()
-		as.Pending = as.Pending[1:]
+		as.pending[0]()
+		as.pending = as.pending[1:]
 	}
 	return run
+}
+
+type async struct {
+	as *Async
+	Stream
+}
+
+func (a async) Nextf(key interface{}, fn func()) {
+	if fn != nil {
+		old := fn
+		fn = func() {
+			a.as.pending = append(a.as.pending, old)
+		}
+	}
+	a.Stream.Nextf(key, fn)
 }
