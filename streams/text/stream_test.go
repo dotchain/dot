@@ -23,7 +23,6 @@ type streamSuite bool
 func (suite streamSuite) Run(t *testing.T) {
 	t.Run("Append", suite.testAppend)
 	t.Run("ReverseAppend", suite.testReverseAppend)
-	t.Run("Scheduler", suite.testScheduler)
 	t.Run("CollapsedSelection", suite.testCollapsedSelection)
 	t.Run("NonCollapsedSelection", suite.testNonCollapsedSelection)
 	t.Run("Paste", suite.testPaste)
@@ -149,14 +148,6 @@ func (suite streamSuite) testReverseAppend(t *testing.T) {
 	}
 	if _, x := sx.Next(); !reflect.DeepEqual(after, x) {
 		t.Error("Unexpected divergence", x)
-	}
-}
-
-func (suite streamSuite) testScheduler(t *testing.T) {
-	s := text.StreamFromString("Hello", bool(suite))
-	async := &streams.AsyncScheduler{}
-	if x := s.WithScheduler(async).Scheduler(); x != async {
-		t.Error("Scheduler change didn't take", x)
 	}
 }
 

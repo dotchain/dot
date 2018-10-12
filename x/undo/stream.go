@@ -65,11 +65,3 @@ func (s stream) Next() (changes.Change, streams.Stream) {
 func (s stream) Nextf(key interface{}, fn func()) {
 	s.base.Nextf(key, fn)
 }
-
-func (s stream) Scheduler() streams.Scheduler {
-	return s.base.Scheduler()
-}
-
-func (s stream) WithScheduler(sch streams.Scheduler) streams.Stream {
-	return stream{s.base.WithScheduler(sch), s.stack}
-}

@@ -107,11 +107,3 @@ func (x *xform) Nextf(key interface{}, fn func()) {
 	}
 	x.Stream.Nextf(key, fn)
 }
-
-func (x *xform) Scheduler() Scheduler {
-	return x.Stream.Scheduler()
-}
-
-func (x *xform) WithScheduler(sch Scheduler) Stream {
-	return x.clone(x.Stream.WithScheduler(sch), x.Path)
-}

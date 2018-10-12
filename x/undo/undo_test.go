@@ -207,14 +207,3 @@ func prepareBranch(b *streams.Branch, stack undo.Stack, test string) (string, st
 	return last, next
 }
 
-func TestScheduler(t *testing.T) {
-	orig := streams.New()
-	downstream, stack := undo.New(orig)
-	defer stack.Close()
-
-	sch := &streams.AsyncScheduler{}
-	sch2 := downstream.WithScheduler(sch).Scheduler()
-	if sch2 != sch {
-		t.Error("Scheduler did not get passed through", sch2)
-	}
-}
