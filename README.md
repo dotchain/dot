@@ -27,9 +27,7 @@ persistent datastrutures.
 8. Customizable rich types for values and changes
 
 
-See [Demos](https://dotchain.github.io/demos/). Currently, this
-requires running the client from a command line but a browser-based
-demo is in the works.
+See [Demos](https://dotchain.github.io/demos/).
 
 ## Walkthrough of the project
 

@@ -2,32 +2,40 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-// Package dot is a placeholder.
+// Package dot is currently a documentation placeholder.
 //
 // The core functionality is spread out between dot/changes,
 // dot/refs, dot.streams and dot/x.
 //
-// At some point this package will provide a simple interface
-// to the whole project.
+// At some point this package will provide a much simpler interface to
+// the commonly used features to enable quick bootstrapping.
 //
 // Please see [github](https://gitbub.com/dotchain/dot) for
 // details about the project
 //
 // Features and demos
 //
-// 1. Small, well tested mutations that compose for rich JSON-like values
+// 1. Small, well tested mutations that compose for rich JSON-like
+// values
+//
 // 2. Immutable, Persistent types for ease of use
-// 3. Strong references support that are automatically updated with changes
+//
+// 3. Strong references support that are automatically updated with
+// changes
+//
 // 4. Streams and **Git-like** branching, merging support
+//
 // 5. Simple network support (Gob serialization)
+//
 // 6. Rich builtin undo support
+//
 // 7. Folding (committed changes on top of uncommitted changes)
+//
 // 8. Customizable rich types for values and changes
 //
-// See [Demos](https://dotchain.github.io/demos/). Currently, this
-// requires running the client from a command line but a browser-based
-// demo is in the works.
+// Walkthrough
 //
+// See [Demos](https://dotchain.github.io/demos/).
 //
 // The DOT project is based on *immutable* or *persistent* **values** and
 // **changes**. For example, inserting a character into a string would
