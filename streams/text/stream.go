@@ -137,23 +137,19 @@ func (s Stream) mapChangeValue(str streams.Stream, c changes.Change) (streams.St
 
 type filterChange struct {
 	filter func(c changes.Change) changes.Change
-	base   streams.Stream
+	streams.Stream
 }
 
 func (f filterChange) Append(c changes.Change) streams.Stream {
-	return filterChange{f.filter, f.base.Append(c)}
+	return filterChange{f.filter, f.Stream.Append(c)}
 }
 
 func (f filterChange) ReverseAppend(c changes.Change) streams.Stream {
-	return filterChange{f.filter, f.base.ReverseAppend(c)}
+	return filterChange{f.filter, f.Stream.ReverseAppend(c)}
 }
 
 func (f filterChange) Next() (streams.Stream, changes.Change) {
-	return f.mapChange(f.base.Next())
-}
-
-func (f filterChange) Nextf(key interface{}, fn func()) {
-	f.base.Nextf(key, fn)
+	return f.mapChange(f.Stream.Next())
 }
 
 func (f filterChange) mapChange(s streams.Stream, c changes.Change) (streams.Stream, changes.Change) {
