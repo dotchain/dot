@@ -54,12 +54,12 @@ func (s stream) ReverseAppend(c changes.Change) streams.Stream {
 	return result
 }
 
-func (s stream) Next() (changes.Change, streams.Stream) {
-	c, base := s.base.Next()
+func (s stream) Next() (streams.Stream, changes.Change) {
+	base, c := s.base.Next()
 	if base != nil {
 		base = stream{base, s.stack}
 	}
-	return c, base
+	return base, c
 }
 
 func (s stream) Nextf(key interface{}, fn func()) {

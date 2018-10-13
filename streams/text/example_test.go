@@ -9,7 +9,7 @@ import (
 	"github.com/dotchain/dot/streams/text"
 )
 
-func ExampleStream_confluence() {
+func Example_stream_confluence() {
 	s := text.StreamFromString("Hello", true)
 	s = s.SetSelection(3, 3, true)
 
@@ -28,7 +28,7 @@ func ExampleStream_confluence() {
 	// Text: HelABClo 6 6
 }
 
-func ExampleStream_confluenceWithCursors() {
+func Example_stream_confluenceWithCursors() {
 	s := text.StreamFromString("Hello", true)
 
 	// setting a selection at the same time as insert
@@ -46,7 +46,7 @@ func ExampleStream_confluenceWithCursors() {
 }
 
 func latestValue(s *text.Stream) *text.Stream {
-	for _, v := s.Next(); v != nil; _, v = s.Next() {
+	for v, _ := s.Next(); v != nil; v, _ = s.Next() {
 		s = v.(*text.Stream)
 	}
 	return s

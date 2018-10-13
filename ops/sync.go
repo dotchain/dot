@@ -27,8 +27,8 @@ func NewSync(transformed Store, version int, local streams.Stream, newID func() 
 	s := &Sync{tx: transformed, ver: version, local: local}
 	local.Nextf(s, func() {
 		var c changes.Change
-		c, local = local.Next()
-		
+		local, c = local.Next()
+
 		if s.mergingID != "" {
 			return
 		}
@@ -89,7 +89,7 @@ func (s *Sync) ApplyPrefetched() {
 				s.lastSentID = ""
 			}
 			s.IDs = s.IDs[1:]
-			_, s.local = s.local.Next()
+			s.local, _ = s.local.Next()
 		} else {
 			s.mergingID = op.ID().(string)
 			s.local = s.local.ReverseAppend(op.Changes())

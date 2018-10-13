@@ -21,11 +21,11 @@ func Example_appendFolded() {
 
 	// move [1 - 2] to the right by 20 and see it on upstream
 	folded = folded.Append(changes.Move{1, 1, 20})
-	if _, x := folded.Next(); x != nil {
+	if x, _ := folded.Next(); x != nil {
 		fmt.Println("Unexpected Next() behavior", x)
 	}
 
-	c, _ := upstream.Next()
+	_, c := upstream.Next()
 
 	cx, _ := fold.Unfold(folded)
 	fmt.Printf("%#v\n%#v\n", c, cx)
@@ -43,7 +43,7 @@ func Example_appendUpstream() {
 
 	// move [1 - 2] to the right by 1 and see it on the folded
 	upstream.Append(changes.Move{1, 1, 1})
-	c, _ := folded.Next()
+	_, c := folded.Next()
 
 	fmt.Printf("%#v\n", c)
 
@@ -56,7 +56,7 @@ func Example_nilFold() {
 	latest := upstream
 	upstream.Nextf("mykey", func() {
 		var c changes.Change
-		c, latest = latest.Next()
+		latest, c = latest.Next()
 		fmt.Println("Got Change:", c)
 	})
 	defer upstream.Nextf("mykey", nil)
@@ -79,7 +79,7 @@ func Example_nextf() {
 	var latest streams.Stream = folded
 	folded.Nextf("mykey", func() {
 		var c changes.Change
-		c, latest = latest.Next()
+		latest, c = latest.Next()
 		fmt.Println("Got Change:", c)
 	})
 	defer folded.Nextf("mykey", nil)

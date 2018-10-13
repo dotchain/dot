@@ -20,6 +20,9 @@ func TestNextf(t *testing.T) {
 	count := 0
 	downstream.Nextf("key", func() {
 		count++
+		if count > 2 {
+			panic("wa")
+		}
 	})
 	orig.Append(changes.Move{1, 2, 3})
 	orig.Append(changes.Move{2, 3, 4})
@@ -33,15 +36,15 @@ func TestNextf(t *testing.T) {
 func TestSimpleUndoRedo(t *testing.T) {
 	upstream := streams.New()
 	downstream, stack := undo.New(streams.New())
-	b := &streams.Branch{upstream, downstream, false}
+	streams.Connect(upstream, downstream)
 
 	downstream.Append(changes.Splice{10, types.S8(""), types.S8("hello")})
 	upstream.Append(changes.Splice{0, types.S8(""), types.S8("abcde")})
-	b.Merge()
 
 	// now undo should rewrite downstream to remove at index 15
+	downstream = latest(downstream)
 	stack.Undo()
-	c, _ := b.Local.Next()
+	downstream, c := downstream.Next()
 	expected := changes.Splice{15, types.S8("hello"), types.S8("")}
 	if c != expected {
 		t.Fatal("Undo failed", c)
@@ -49,11 +52,11 @@ func TestSimpleUndoRedo(t *testing.T) {
 
 	// now sneak in another upstream op increasing the offset again
 	upstream.Append(changes.Splice{0, types.S8(""), types.S8("abcde")})
-	b.Merge()
 
 	// now redo and confirm that the redo offset is bumped up by 5more
+	downstream = latest(downstream)
 	stack.Redo()
-	c, _ = b.Local.Next()
+	_, c = downstream.Next()
 	expected = changes.Splice{20, types.S8(""), types.S8("hello")}
 	if c != expected {
 		t.Fatal("Redo failed", c)
@@ -127,10 +130,12 @@ func testUndo(t *testing.T, test string) {
 	upstream := streams.New()
 	downstream, stack := undo.New(streams.New())
 	defer stack.Close()
-	b := &streams.Branch{upstream, downstream, false}
-	expected, _ := prepareBranch(b, stack, test)
+	streams.Connect(upstream, downstream)
+	expected, _ := prepareBranch(upstream, downstream, stack, test)
+
+	downstream = latest(downstream)
 	stack.Undo()
-	c, _ := b.Local.Next()
+	_, c := downstream.Next()
 	if expected == "" {
 		if c != nil {
 			t.Error("Unexpected non-nil response", c)
@@ -152,11 +157,13 @@ func testRedo(t *testing.T, test string) {
 	upstream := streams.New()
 	downstream, stack := undo.New(streams.New())
 	defer stack.Close()
-	b := &streams.Branch{upstream, downstream, false}
-	_, expected := prepareBranch(b, stack, test)
+	streams.Connect(upstream, downstream)
+	_, expected := prepareBranch(upstream, downstream, stack, test)
+
+	downstream = latest(downstream)
 	stack.Redo()
 
-	c, _ := b.Local.Next()
+	_, c := downstream.Next()
 	if expected == "" {
 		if c != nil {
 			t.Error("Unexpected non-nil response", c)
@@ -174,7 +181,7 @@ func testRedo(t *testing.T, test string) {
 	}
 }
 
-func prepareBranch(b *streams.Branch, stack undo.Stack, test string) (string, string) {
+func prepareBranch(upstream, downstream streams.Stream, stack undo.Stack, test string) (string, string) {
 	letters := "abcdefghijklmnopqrstuvwxyz"
 	ops := []string{}
 	for kk, c := range test {
@@ -182,7 +189,7 @@ func prepareBranch(b *streams.Branch, stack undo.Stack, test string) (string, st
 		splice := changes.Splice{0, types.S8(""), types.S8(next)}
 		switch c {
 		case 'C':
-			b.Local.Append(splice)
+			latest(downstream).Append(splice)
 			ops = append(ops, next)
 		case 'U':
 			stack.Undo()
@@ -191,9 +198,8 @@ func prepareBranch(b *streams.Branch, stack undo.Stack, test string) (string, st
 			stack.Redo()
 			ops = ops[:len(ops)+1]
 		case 'S':
-			b.Master.Append(splice)
+			latest(upstream).Append(splice)
 		}
-		b.Merge()
 	}
 	last, next := "", ""
 	if len(ops) > 0 {
@@ -207,3 +213,9 @@ func prepareBranch(b *streams.Branch, stack undo.Stack, test string) (string, st
 	return last, next
 }
 
+func latest(s streams.Stream) streams.Stream {
+	for v, _ := s.Next(); v != nil; v, _ = s.Next() {
+		s = v
+	}
+	return s
+}

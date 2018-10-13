@@ -25,15 +25,9 @@ func (vs *ValueStream) ReverseAppend(c changes.Change) Stream {
 
 // Next implements Stream.Next.  The stream returned is either nil or
 // a ValueStream, so the updated value can be obtained by casting it.
-func (vs *ValueStream) Next() (changes.Change, Stream) {
-	if c, s := vs.Stream.Next(); s != nil {
-		return c, &ValueStream{vs.Value.Apply(c), s}
+func (vs *ValueStream) Next() (Stream, changes.Change) {
+	if s, c := vs.Stream.Next(); s != nil {
+		return &ValueStream{vs.Value.Apply(c), s}, c
 	}
 	return nil, nil
-}
-
-// Nextf implements Stream.Nextf. The stream provided in the callback
-// is of type ValueStream
-func (vs *ValueStream) Nextf(key interface{}, fn func()) {
-	vs.Stream.Nextf(key, fn)
 }
