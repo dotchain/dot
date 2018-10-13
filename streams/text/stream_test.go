@@ -41,8 +41,8 @@ func (suite streamSuite) testWithoutOwnCursor(t *testing.T) {
 	s2 := s.Paste("Boo")
 	s2.Paste("Hoo")
 
-	c1, s3 := sx.Next()
-	c2, s3 := s3.Next()
+	s3, c1 := sx.Next()
+	s3, c2 := s3.Next()
 
 	if c1 == nil || c2 == nil {
 		t.Fatal("Unexpected issue", c1, c2)
@@ -59,7 +59,7 @@ func (suite streamSuite) testCursorAdjustment(t *testing.T) {
 	s.Paste("boo")
 	s.SetSelection(2, 2, false)
 
-	for _, v := s.Next(); v != nil; _, v = s.Next() {
+	for v, _ := s.Next(); v != nil; v, _ = s.Next() {
 		s = v.(*text.Stream)
 	}
 
@@ -115,8 +115,8 @@ func (suite streamSuite) testAppend(t *testing.T) {
 	after := s.Append(change)
 	suite.validate(t, s, after.(*text.Stream))
 
-	_, sx := s.Next()
-	if _, x := sx.Next(); x != nil {
+	sx, _ := s.Next()
+	if x, _ := sx.Next(); x != nil {
 		t.Error("Unexpected non-nil next", x)
 	}
 
@@ -125,7 +125,7 @@ func (suite streamSuite) testAppend(t *testing.T) {
 	if !ok || vs.Value != types.S8("okok") {
 		t.Error("Unexpected replace result", after)
 	}
-	if _, x := sx.Next(); !reflect.DeepEqual(after, x) {
+	if x, _ := sx.Next(); !reflect.DeepEqual(after, x) {
 		t.Error("Unexpected divergence", x)
 	}
 }
@@ -136,8 +136,8 @@ func (suite streamSuite) testReverseAppend(t *testing.T) {
 	after := s.ReverseAppend(change)
 	suite.validate(t, s, after.(*text.Stream))
 
-	_, sx := s.Next()
-	if _, x := sx.Next(); x != nil {
+	sx, _ := s.Next()
+	if x, _ := sx.Next(); x != nil {
 		t.Error("Unexpected non-nil next", x)
 	}
 
@@ -146,7 +146,7 @@ func (suite streamSuite) testReverseAppend(t *testing.T) {
 	if !ok || vs.Value != types.S8("okok") {
 		t.Error("Unexpected replace result", after)
 	}
-	if _, x := sx.Next(); !reflect.DeepEqual(after, x) {
+	if x, _ := sx.Next(); !reflect.DeepEqual(after, x) {
 		t.Error("Unexpected divergence", x)
 	}
 }
@@ -199,13 +199,13 @@ func (suite streamSuite) testNonCollapsedSelection(t *testing.T) {
 }
 
 func (suite streamSuite) validate(t *testing.T, before, after *text.Stream) {
-	if _, next := before.Next(); !reflect.DeepEqual(next, after) {
+	if next, _ := before.Next(); !reflect.DeepEqual(next, after) {
 		t.Error("Divergent change", next.(*text.Stream).E, "x", after.E)
 	}
 	var next streams.Stream
 	before.Nextf("validate", func() {
 		before.Nextf("validate", nil)
-		_, next = before.Next()
+		next, _ = before.Next()
 	})
 	if !reflect.DeepEqual(next, after) {
 		t.Error("Divergent change")

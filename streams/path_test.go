@@ -17,22 +17,22 @@ func TestChildOf_ModifyChild(t *testing.T) {
 	child := streams.ChildOf(base, 5, 2)
 	move := changes.Move{2, 2, 2}
 	child = child.Append(move)
-	cx, base := base.Next()
+	base, cx := base.Next()
 	expected := changes.PathChange{[]interface{}{5, 2}, move}
 	if !reflect.DeepEqual(cx, expected) {
 		t.Error("unexpected change", cx)
 	}
 
 	child.ReverseAppend(move)
-	cx, _ = base.Next()
+	_, cx = base.Next()
 	if !reflect.DeepEqual(cx, expected) {
 		t.Error("unexpected change", cx)
 	}
-	cx, child2 := child.Next()
+	child2, cx := child.Next()
 	if cx != move && !reflect.DeepEqual(cx, changes.PathChange{[]interface{}{}, move}) {
 		t.Error("unexpected change", cx)
 	}
-	if _, next := child2.Next(); next != nil {
+	if next, _ := child2.Next(); next != nil {
 		t.Error("Unexpected next", next)
 	}
 
@@ -40,7 +40,7 @@ func TestChildOf_ModifyChild(t *testing.T) {
 	var latest streams.Stream = child
 	child.Nextf("key", func() {
 		var cx changes.Change
-		cx, latest = latest.Next()
+		latest, cx = latest.Next()
 		count++
 		if cx != move &&
 			!reflect.DeepEqual(cx, changes.PathChange{[]interface{}{}, move}) {
@@ -58,7 +58,7 @@ func TestChildOf_InvalidRef(t *testing.T) {
 	base = base.Append(changes.Replace{types.S8("OK"), changes.Nil})
 	base.Append(changes.PathChange{[]interface{}{5, 2}, changes.Move{2, 2, 2}})
 
-	if c, s := child.Next(); c != nil || s != nil {
+	if s, c := child.Next(); c != nil || s != nil {
 		t.Error("Unexpected next value", c, s)
 	}
 
@@ -76,20 +76,20 @@ func TestFilterPath(t *testing.T) {
 	}
 
 	base = base.Append(pc(changes.Move{2, 2, 2}, "bloomy"))
-	cx, child := child.Next()
+	child, cx := child.Next()
 	if cx != nil {
 		t.Error("Unexpected filter failure", cx)
 	}
 
 	change := pc(changes.Move{2, 2, 2}, "hello", "world", "ok")
 	base = base.Append(change)
-	if cx, _ := child.Next(); !reflect.DeepEqual(cx, change) {
+	if _, cx := child.Next(); !reflect.DeepEqual(cx, change) {
 		t.Error("Unexpected next change", cx)
 	}
 
 	change = pc(changes.Move{3, 3, 3}, "goop")
 	child.Append(change)
-	if cx, _ := base.Next(); !reflect.DeepEqual(cx, change) {
+	if _, cx := base.Next(); !reflect.DeepEqual(cx, change) {
 		t.Error("Unexpected next change", cx)
 	}
 }
@@ -102,20 +102,20 @@ func TestFilterOutPath(t *testing.T) {
 	}
 
 	base = base.Append(pc(changes.Move{2, 2, 2}, "hello", "world", "ok"))
-	cx, child := child.Next()
+	child, cx := child.Next()
 	if cx != nil {
 		t.Error("Unexpected filter failure", cx)
 	}
 
 	change := pc(changes.Move{2, 2, 2}, "boop")
 	base = base.Append(change)
-	if cx, _ := child.Next(); !reflect.DeepEqual(cx, change) {
+	if _, cx := child.Next(); !reflect.DeepEqual(cx, change) {
 		t.Error("Unexpected next change", cx)
 	}
 
 	change = pc(changes.Move{3, 3, 3}, "goop")
 	child.Append(change)
-	if cx, _ := base.Next(); !reflect.DeepEqual(cx, change) {
+	if _, cx := base.Next(); !reflect.DeepEqual(cx, change) {
 		t.Error("Unexpected next change", cx)
 	}
 }

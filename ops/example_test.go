@@ -33,12 +33,12 @@ func Example_sync() {
 		panic(err)
 	}
 
-	c, _ := client1.Next()
+	_, c := client1.Next()
 	if c != (changes.Splice{6, types.S8(""), types.S8("World")}) {
 		fmt.Println("Unexpected client1 change", c)
 	}
 
-	c, _ = client2.Next()
+	_, c = client2.Next()
 	if c != nil {
 		fmt.Println("Sync fetched before calling Fetch", c)
 	}
@@ -47,7 +47,7 @@ func Example_sync() {
 		panic(err)
 	}
 
-	c, _ = client2.Next()
+	_, c = client2.Next()
 	if c != (changes.Splice{0, types.S8(""), types.S8("Hello ")}) {
 		fmt.Println("Unexpected client2  change", c)
 	}

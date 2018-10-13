@@ -21,7 +21,7 @@ func TestStream(t *testing.T) {
 
 	ev := func() {
 		var c changes.Change
-		c, latest = latest.Next()
+		latest, c = latest.Next()
 		v = v.Apply(c)
 	}
 	s := streams.New()
@@ -38,7 +38,7 @@ func TestStream(t *testing.T) {
 	c2_1_merged := latest
 
 	c2_2 := c2_1.Append(changes.Splice{2, S(""), S("Y ")})
-	_, c2_2_with_c1_1 := c2_2.Next()
+	c2_2_with_c1_1, _ := c2_2.Next()
 
 	c1_3 := c2_1_merged.Append(changes.Splice{6, S(""), S("C ")})
 	c2_3 := c2_2_with_c1_1.Append(changes.Splice{6, S(""), S("Z ")})
@@ -57,7 +57,7 @@ func TestBranch(t *testing.T) {
 	var latest streams.Stream
 	ev := func() {
 		var c changes.Change
-		c, latest = latest.Next()
+		latest, c = latest.Next()
 		v = v.Apply(c)
 	}
 	s := streams.New()
@@ -66,8 +66,7 @@ func TestBranch(t *testing.T) {
 	defer s.Nextf("boo", nil)
 	s = s.Append(changes.Replace{changes.Nil, S("Hello World")})
 
-	child := streams.New()
-	branch := &streams.Branch{s, child, false}
+	child := streams.Branch(s)
 	child1 := child.Append(changes.Splice{0, S(""), S("OK ")})
 	if v != S("Hello World") {
 		t.Fatal("Unexpected branch updated", v)
@@ -75,13 +74,13 @@ func TestBranch(t *testing.T) {
 	s = s.Append(changes.Splice{0, S(""), S("Oh ")})
 	s.Append(changes.Splice{len("Oh Hello World"), S(""), S("!")})
 
-	branch.Push()
+	streams.Push(child)
 	if v != S("Oh OK Hello World!") {
 		t.Fatal("Unexpected branch updated", v)
 	}
 
 	child1.Append(changes.Splice{len("OK Hello World"), S(""), S("**")})
-	branch.Pull()
+	streams.Pull(child)
 	v = changes.Value(S("Hello World"))
 	latest = child
 	child.Nextf("boq", ev)
@@ -95,41 +94,65 @@ func TestConnectedBranches(t *testing.T) {
 	var master changes.Value = S("")
 	var local changes.Value = S("")
 
-	b := streams.Branch{streams.New(), streams.New(), false}
-	bm, bl := b.Master, b.Local
-	b.Master.Nextf("key", func() {
+	bm := streams.New()
+	bl := streams.New()
+	bm.Nextf("key", func() {
 		var c changes.Change
-		c, bm = bm.Next()
+		bm, c = bm.Next()
 		master = master.Apply(c)
 	})
-	b.Local.Nextf("key", func() {
+	bl.Nextf("key", func() {
 		var c changes.Change
-		c, bl = bl.Next()
+		bl, c = bl.Next()
 		local = local.Apply(c)
 	})
 
-	b.Connect()
-	b.Local.Append(changes.Splice{0, S(""), S("OK")})
+	streams.Connect(bm, bl)
+	bl.Append(changes.Splice{0, S(""), S("OK")})
 	if master != S("OK") || local != S("OK") {
 		t.Fatal("Unexpected master, local", master, local)
 	}
 
-	b.Master.Append(changes.Splice{2, S(""), S(" Computer")})
+	bm.Append(changes.Splice{2, S(""), S(" Computer")})
 	if master != S("OK Computer") || local != S("OK Computer") {
 		t.Fatal("Unexpected master, local", master, local)
 	}
+}
 
-	b.Disconnect()
-	b.Master.Append(changes.Splice{2, S(""), S("!")})
-	b.Local.Append(changes.Splice{11, S(""), S("s")})
+func TestBranchReverseAppend(t *testing.T) {
+	master := streams.New()
+	child := streams.Branch(master)
 
-	if master != S("OK! Computer") || local != S("OK Computers") {
-		t.Fatal("Unexpected master, local", master, local)
+	child2 := child.Append(changes.Move{2, 2, 2})
+	replace := changes.Replace{types.S8("1234567"), types.S8("boo")}
+	child.ReverseAppend(replace)
+
+	_, c1 := child2.Next()
+	_, expected := replace.Merge(changes.Move{2, 2, 2})
+	if c1 != expected {
+		t.Error("Unexpected branch behavior", c1, expected)
+	}
+}
+
+func TestDoubleBranches(t *testing.T) {
+	master := streams.New()
+	child := streams.Branch(master)
+	grandChild := streams.Branch(child)
+
+	master.Append(changes.Move{2, 2, 2})
+
+	if x, _ := child.Next(); x != nil {
+		t.Error("Branch merged too soon", x)
 	}
 
-	b.Connect()
-	if master != S("OK! Computers") || local != master {
-		t.Fatal("Unexpected master, local", master, local)
+	streams.Pull(child)
+	if _, c := child.Next(); c != (changes.Move{2, 2, 2}) {
+		t.Error("Branch move unexpected change", c)
+	}
+
+	streams.Pull(grandChild)
+	if _, c := grandChild.Next(); c != (changes.Move{2, 2, 2}) {
+		t.Error("Branch move unexpected change", c)
 	}
 }
 
@@ -140,7 +163,7 @@ func TestStreamNilChange(t *testing.T) {
 	var latest streams.Stream
 	ev := func() {
 		var c changes.Change
-		c, latest = latest.Next()
+		latest, c = latest.Next()
 		v = v.Apply(c)
 	}
 	s := streams.New()
@@ -148,12 +171,12 @@ func TestStreamNilChange(t *testing.T) {
 	s.Nextf("boo", ev)
 	defer s.Nextf("boo", nil)
 
-	child := streams.New()
-	branch := streams.Branch{s, child, false}
+	child := streams.Branch(s)
 
 	s.Append(nil)
 	child.Append(nil)
-	branch.Merge()
+	streams.Push(child)
+	streams.Pull(child)
 
 	if v != S("") {
 		t.Fatal("Failed merging nil changes", v)

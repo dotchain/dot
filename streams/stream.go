@@ -21,8 +21,8 @@
 //
 // The two output streams converge in the following sense:
 //
-//     c1Next, s1Next := s1.Next()
-//     c2Next, s2Next := s2.Next()
+//     s1Next, c1Next := s1.Next()
+//     s2Next, c2Next := s2.Next()
 //     initialValue.Apply(c1).Apply(c1Next) == initialValue.Apply(c2).Apply(c2Next)
 //
 // Basically, just chasing the sequence of changes from a particular
@@ -93,7 +93,7 @@ type Stream interface {
 	// of which instance one holds, iterating over all the Next
 	// values and applying them will get them all to converge  to
 	// the same value.
-	Next() (changes.Change, Stream)
+	Next() (Stream, changes.Change)
 
 	// Nextf calls the provided callback whenever a next value
 	// appears in the current stream. If the current stream
@@ -116,11 +116,11 @@ type stream struct {
 	fns  map[interface{}]func()
 }
 
-func (s *stream) Next() (changes.Change, Stream) {
+func (s *stream) Next() (Stream, changes.Change) {
 	if s.next == nil {
 		return nil, nil
 	}
-	return s.c, s.next
+	return s.next, s.c
 }
 
 func (s *stream) Nextf(key interface{}, fn func()) {
@@ -170,75 +170,4 @@ func (s *stream) merge(left, right changes.Change, reverse bool) (lx, rx changes
 		return right, left
 	}
 	return left.Merge(right)
-}
-
-// Branch represents the logical binding between a Master and Child
-// streams.  changes.Changes made to the child stream are not normally
-// reflected on the Master until a call to Push. Similarly, changes to
-// the Master stream are not reflected on the child branch until a
-// call to Pull. Merge is a combination of Push and Pull.
-//
-// Calling Connect() on a branch makes changes on one stream visible
-// to the other immediately. Disconnect() stops the auto merging
-//
-// Note that unlike Stream, Branch is mutable.
-//
-// Concurrency
-//
-// Branch is not safe for concurrent access.
-type Branch struct {
-	Master, Local Stream
-	Merging       bool
-}
-
-// Connect automerges changes between Master and Local immediately
-// when they happen.  Explicit calls to Pull and Push are not
-// needed. It is not safe to call Connect from within the Nextf
-// callback of either Master or Local stream
-func (b *Branch) Connect() {
-	b.Master.Nextf(b, b.Merge)
-	b.Local.Nextf(b, b.Merge)
-}
-
-// Disconnect removes the auto-emrge between Master and Local. All
-// merges will have to be attempted manually after this.
-func (b *Branch) Disconnect() {
-	b.Master.Nextf(b, nil)
-	b.Local.Nextf(b, nil)
-}
-
-func (b *Branch) merge(from, to Stream, reverse bool) (fromx, tox Stream) {
-	if b.Merging {
-		return from, to
-	}
-
-	b.Merging = true
-	c, next := from.Next()
-	for next != nil {
-		if reverse {
-			to = to.ReverseAppend(c)
-		} else {
-			to = to.Append(c)
-		}
-		from = next
-		c, next = from.Next()
-	}
-	b.Merging = false
-	return from, to
-}
-
-// Push updates all local changes on the Master branch
-func (b *Branch) Push() {
-	b.Local, b.Master = b.merge(b.Local, b.Master, false)
-}
-
-// Pull updates all master changes onto the local branch
-func (b *Branch) Pull() {
-	b.Master, b.Local = b.merge(b.Master, b.Local, true)
-}
-
-// Merge is shorthand for Push and Pull combined.
-func (b *Branch) Merge() {
-	b.Push()
-	b.Pull()
 }

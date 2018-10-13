@@ -58,13 +58,13 @@ func (s stream) ReverseAppend(c changes.Change) streams.Stream {
 	panic("Folded streams do not support ReverseAppend")
 }
 
-func (s stream) Next() (changes.Change, streams.Stream) {
-	c, base := s.base.Next()
+func (s stream) Next() (streams.Stream, changes.Change) {
+	base, c := s.base.Next()
 	if base == nil {
 		return nil, nil
 	}
 	fold, cx := c.Merge(s.fold)
-	return cx, &stream{fold, base}
+	return &stream{fold, base}, cx
 }
 
 func (s stream) Nextf(key interface{}, fn func()) {

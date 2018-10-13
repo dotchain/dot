@@ -84,22 +84,21 @@ func (x *xform) ReverseAppend(c changes.Change) Stream {
 	return x.clone(x.Stream.ReverseAppend(x.toParent(c, x.Path)), x.Path)
 }
 
-func (x *xform) Next() (changes.Change, Stream) {
-	c, s := x.Stream.Next()
+func (x *xform) Next() (Stream, changes.Change) {
+	s, c := x.Stream.Next()
 	r := refs.Merge(x.Path, c)
 	if r == nil || s == nil {
 		return nil, nil
 	}
 
-	return x.toChild(r), x.clone(s, r.P)
+	return x.clone(s, r.P), x.toChild(r)
 }
 
 func (x *xform) Nextf(key interface{}, fn func()) {
 	if fn != nil {
 		last, prev := x, fn
 		fn = func() {
-			_, l := last.Next()
-			if l != nil {
+			if l, _ := last.Next(); l != nil {
 				last = l.(*xform)
 				prev()
 			}

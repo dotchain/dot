@@ -18,7 +18,7 @@ func TestAsync(t *testing.T) {
 	var latest streams.Stream = s
 	s.Nextf(struct{}{}, func() {
 		var c changes.Change
-		c, latest = latest.Next()
+		latest, c = latest.Next()
 		cx = append(cx, c)
 	})
 
@@ -51,21 +51,20 @@ func TestAsyncMerge(t *testing.T) {
 	async := &streams.Async{}
 	up := async.Wrap(streams.New())
 	down := async.Wrap(streams.New())
-	b := &streams.Branch{up, down, false}
-	b.Connect()
+	streams.Connect(up, down)
 
 	up = up.Append(changes.Move{0, 2, 2})
 	down = down.Append(changes.Move{10, 2, 2})
-	if cx, x := up.Next(); x != nil {
+	if x, cx := up.Next(); x != nil {
 		t.Fatal("unexpected sync behavior", cx)
 	}
-	if cx, x := down.Next(); x != nil {
+	if x, cx := down.Next(); x != nil {
 		t.Fatal("unexpected sync behavior", cx)
 	}
 
 	async.Run(-1)
-	change1, _ := up.Next()
-	change2, _ := down.Next()
+	_, change1 := up.Next()
+	_, change2 := down.Next()
 	exp1 := changes.ChangeSet{nil, changes.Move{10, 2, 2}}
 	exp2 := changes.ChangeSet{nil, changes.Move{0, 2, 2}}
 	if !reflect.DeepEqual(change1, exp1) || !reflect.DeepEqual(change2, exp2) {

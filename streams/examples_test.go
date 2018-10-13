@@ -17,7 +17,7 @@ func Example_newStream() {
 	sLatest := s
 	s.Nextf("apply", func() {
 		var c changes.Change
-		c, sLatest = sLatest.Next()
+		sLatest, c = sLatest.Next()
 		latest = latest.Apply(c)
 		fmt.Println("Changed:", latest)
 	})
@@ -34,7 +34,7 @@ func Example_streamMergeUsingNextfAndApply() {
 	sLatest := s
 	s.Nextf("apply", func() {
 		var c changes.Change
-		c, sLatest = sLatest.Next()
+		sLatest, c = sLatest.Next()
 		latest = latest.Apply(c)
 		fmt.Println("Changed:", latest)
 	})
@@ -58,20 +58,19 @@ func Example_streamBranching() {
 	sLatest := s
 	s.Nextf("apply", func() {
 		var c changes.Change
-		c, sLatest = sLatest.Next()
+		sLatest, c = sLatest.Next()
 		latest = latest.Apply(c)
 	})
 
 	// create a new stream for the "child"
-	child := streams.New()
-	branch := &streams.Branch{s, child, false}
+	child := streams.Branch(s)
 
 	// update child, the changes won't be reflected on latest
 	child.Append(changes.Splice{0, types.S8(""), types.S8("OK ")})
 	fmt.Println("Latest:", latest)
 
 	// merge child and parent, change will get reflected
-	branch.Merge()
+	streams.Push(child)
 	fmt.Println("Latest:", latest)
 
 	// Output:

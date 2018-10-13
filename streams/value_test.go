@@ -21,14 +21,14 @@ func TestValueStream(t *testing.T) {
 		if cx != nil {
 			t.Fatal("Unexpected multiple call to Nextf")
 		}
-		cx, sx = sx.Next()
+		sx, cx = sx.Next()
 	})
 
 	s2 := s.Append(splice)
 	if s2.(*streams.ValueStream).Value != splice.After {
 		t.Fatal("Append does not have the right value")
 	}
-	c, s3 := s.Next()
+	s3, c := s.Next()
 	if c != splice || !reflect.DeepEqual(s3, s2) {
 		t.Error("Next returned unexpected values", c, s3 == s2)
 	}

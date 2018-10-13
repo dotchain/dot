@@ -57,7 +57,7 @@ func (s *Stream) ReverseAppend(c changes.Change) streams.Stream {
 }
 
 // Next implements streams.Stream.Next
-func (s *Stream) Next() (changes.Change, streams.Stream) {
+func (s *Stream) Next() (streams.Stream, changes.Change) {
 	return s.mapChangeValue(s.S.Next())
 }
 
@@ -123,16 +123,16 @@ func (s *Stream) WithoutOwnCursor() streams.Stream {
 	return filterChange{filter, s}
 }
 
-func (s Stream) mapChangeValue(c changes.Change, str streams.Stream) (changes.Change, streams.Stream) {
+func (s Stream) mapChangeValue(str streams.Stream, c changes.Change) (streams.Stream, changes.Change) {
 	if str == nil {
-		return c, str
+		return str, c
 	}
 
 	v := s.E.Apply(c)
 	if e, ok := v.(*Editable); ok {
-		return c, &Stream{e, str}
+		return &Stream{e, str}, c
 	}
-	return c, &streams.ValueStream{v, str}
+	return &streams.ValueStream{v, str}, c
 }
 
 type filterChange struct {
@@ -148,7 +148,7 @@ func (f filterChange) ReverseAppend(c changes.Change) streams.Stream {
 	return filterChange{f.filter, f.base.ReverseAppend(c)}
 }
 
-func (f filterChange) Next() (changes.Change, streams.Stream) {
+func (f filterChange) Next() (streams.Stream, changes.Change) {
 	return f.mapChange(f.base.Next())
 }
 
@@ -156,9 +156,9 @@ func (f filterChange) Nextf(key interface{}, fn func()) {
 	f.base.Nextf(key, fn)
 }
 
-func (f filterChange) mapChange(c changes.Change, s streams.Stream) (changes.Change, streams.Stream) {
+func (f filterChange) mapChange(s streams.Stream, c changes.Change) (streams.Stream, changes.Change) {
 	if s != nil {
 		s = filterChange{f.filter, s}
 	}
-	return f.filter(c), s
+	return s, f.filter(c)
 }
