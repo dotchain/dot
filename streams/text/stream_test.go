@@ -52,6 +52,32 @@ func (suite streamSuite) testWithoutOwnCursor(t *testing.T) {
 	if !reflect.DeepEqual(v, types.M{"Value": types.S8("HooHello")}) {
 		t.Error("Unexpected value", v)
 	}
+
+	pc := func(path []interface{}, c changes.Change) changes.Change {
+		return changes.PathChange{path, c}
+	}
+
+	s = text.StreamFromString("Hello", false)
+	stream := s.WithoutOwnCursor()
+	splice := changes.Splice{0, types.S8(""), types.S8("Aha")}
+	c := pc(nil, pc([]interface{}{"Value"}, splice))
+	stream.Append(c)
+	sz, _ := streams.Latest(s)
+	if x := sz.(*text.Stream).E.Text; x != "AhaHello" {
+		t.Error("Unexpected merge", x)
+	}
+	_, c = stream.Next()
+	if !reflect.DeepEqual(c, pc([]interface{}{"Value"}, splice)) {
+		t.Error("Unexpected merge", c)
+	}
+
+	splice = changes.Splice{0, types.S8(""), types.S8("Boo")}
+	c = pc(nil, pc([]interface{}{"Value"}, splice))
+	stream.ReverseAppend(c)
+	sz, _ = streams.Latest(s)
+	if x := sz.(*text.Stream).E.Text; x != "BooAhaHello" {
+		t.Error("Unexpected merge", x)
+	}
 }
 
 func (suite streamSuite) testCursorAdjustment(t *testing.T) {
