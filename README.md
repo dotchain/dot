@@ -12,27 +12,28 @@ Datastructures](https://en.wikipedia.org/wiki/Persistent_data_structure)
 and [reactive](https://en.wikipedia.org/wiki/Reactive_programming)
 stream processing.
 
-The whole project is in the middle of a refactoring and as such isn't
-stable yet.
+The project marries conflict-free merging with eventually convergent
+persistent datastrutures.
 
 ## Features and demos
 
 1. Small, well tested mutations that compose for rich JSON-like values
 2. Immutable, Persistent types for ease of use
-3. Rich builtin undo support
-4. Folding (committed changes on top of uncommitted changes)
-5. Strong references support that are automatically updated with changes
-6. Streams and **Git-like** branching, merging support
-7. Customizable rich types for values and changes
-8. Simple network support (Gob serialization)
+3. Strong references support that are automatically updated with changes
+4. Streams and **Git-like** branching, merging support
+5. Simple network support (Gob serialization)
+6. Rich builtin undo support
+7. Folding (committed changes on top of uncommitted changes)
+8. Customizable rich types for values and changes
 
-See [Demos](https://github.com/dotchain/demos). Currently, this
+
+See [Demos](https://dotchain.github.io/demos/). Currently, this
 requires running the client from a command line but a browser-based
 demo is in the works.
 
-## Tutorial
+## Walkthrough of the project
 
-The DOT project is based on *immutable* **values** and
+The DOT project is based on *immutable* or *persistent* **values** and
 **changes**. For example, inserting a character into a string would
 look like this:
 
@@ -48,10 +49,20 @@ package implements the core changes: **Splice**, **Move** and
 **Replace**.  The logical model for these changes is to treat all
 values as either being like *arrays* (in which case the first two
 operations apply) or *map like*.  The **Replace** change replaces any
-value with a new value and when combined with a **PathChange** it can
-replace any value within a map.  In addition to **PathChange**,
-changes can be combined with **ChangeSet**.  Custom changes can be
-implemented as well for rich text, for instance).
+value with a new value.
+
+Changes can be *composed*.  For example, the **PathChange** type
+allows modifying the value at a specific path in the value:
+
+```golang
+        initial := types.A{types.S8("hello"), types.S8("world")}
+        insert := changes.Splice{5, types.S8(""), types.S8(" world")}
+        change := changes.PathChange{[]interface{}{0}, insert}
+        updated := initial.Apply(change)
+```
+
+The other composition is combining a sequence of changes using
+**ChangeSet**.
 
 The core property of all changes is the ability to guarantee
 *convergence* when two mutations are attempted on the same state:
@@ -77,41 +88,51 @@ The core property of all changes is the ability to guarantee
 ```
 
 The ability to *merge* two independent changes done to the same
-initial state is central to operational transformation and all the
-changes defined in the
-[changes](http://godoc.org/github.com/dotchain/dot/changes) package
-implement this with fairly intensive tests to cover them individually
-and in composition.
+initial state is the basis for the eventual convergence of the data
+structures.  The
+[changes](http://godoc.org/github.com/dotchain/dot/changes) package 
+has fairly intensive tests to cover the change types defined there,
+both individually and in composition. 
 
 In addition to convergence, the set of change types are chosen
-carefully to make it easy to implement undo (inversion of the
-change). This allows the ability to build
-[folding](https://godoc.org/github.com/dotchain/dot/x/fold) as well as
-a general purpose
-[undo](https://godoc.org/github.com/dotchain/dot/x/undo) stack.
+carefully to make it easy to implement *Revert()* (undo of the
+change). This allows the ability to build a generic
+[undo stack](https://godoc.org/github.com/dotchain/dot/x/undo) as well
+as somewhat fancy features like
+[folding](https://godoc.org/github.com/dotchain/dot/x/fold).
+
 
 The [types](https://godoc.org/github.com/dotchain/dot/x/types) package
 implements standard value types (strings, arrays and maps) with which
-fairly rich types can be composed.
+arbitrary json-like value can be created.
 
-Real world applications often have the need to work with non-tree data
-structures (such as graphs or with pointers). To enable working with
-these, the [refs](https://godoc.org/github.com/dotchain/dot/refs)
-package defines a few types of *references*: **Path**, **Caret** and
-**Range**.  For example, a text editor would need to track the current
-selection and if any remote change modifies the text, the selection
-would have to be carefully updated.  The
-[refs](https://godoc.org/github.com/dotchain/dot/refs) package provide
-the types needed to manage this.  In addition, it defines the concept
-of **List** of references: a value can maintain a reference to another
-part of the value, like a pointer. This allows non-tree structures to
-be represented.
+### References
+
+There are two broad cases where a JSON-like structure is not quite
+enough.
+
+1. Editors often need to track the cursor or selection which can be
+thought of as offsets in the editor text.  When changes happen, these
+need to be **merged**.
+2. Objects often need to refer to other parts of the JSON-tree. When
+changes happen, these would need to be updated
+
+The [refs](https://godoc.org/github.com/dotchain/dot/refs) package
+implements a set of types that help work with these.  In particular,
+it defines a
+[Container](https://godoc.org/github.com/dotchain/dot/refs#Container)
+value that allows elements within to refer to other elements.
+
+## Streams
 
 The [streams](https://godoc.org/github.com/dotchain/dot/streams)
-package provides the basic abstraction of a **stream**.  This is
-similar to event emitters and such with a twist: it works with
-immutable objects and can capture the idea of merging. Consider the
-same example of merging strings modeled with streams:
+package defines the Stream type which is best thought of as a
+"convergent persistent data structure".  It is persistent in the sense
+that mutations simply return new values leaving the existing values as
+is. It is convergent in the sense that all mutations from an initial
+value are considered part of the same "family" and iterating on its
+**Next()** values will converge all the values to an identical final
+value: 
 
 ```golang
 
@@ -121,64 +142,57 @@ same example of merging strings modeled with streams:
        insert := changes.Splice{5, types.S8(""), types.S8(" world")}
        remove := changes.Splice{3, types.S8("lo"), types.S8("")}
 
-       // two versions
+       // two versions directly on top of the initial value
        inserted := initial.Append(insert)
        removed := initial.Append(remove)
 
-       // latest can be obtained from inserted or removed
-       final1 := inserted
-       for _, next := latest.Next(); next != nil; _ next = latest.Next() {
-           latest = next
-       }
+       // like persistent types,
+       //    inserted == "helloworld" and removed = "hel"
 
-       // final2 iterates on removed and is guranteed to have the same result
+       // the converged value can be obtained from both:
+       final1 := streams.Latest(inserted).(streams.ValueStream)
+       final2 := streams.Latest(removed).(streams.ValueStream)
+
+       // or even from the initial value
+       final1 := streams.Latest(initial).(streams.ValueStream)
+
+       // all three are: "helworld"
 ```
-
-Basically, a stream instance acts like an immutable object in that any
-changes `Appended` to it leave the original stream alone and produce a
-new instance.  So, two separate mutations on the same stream will not
-see the effect of the other.  But unlike immutable objects, streams
-provide the ability to "navigate" the not-yet-merged changes using
-*Next()* and get to the converged state: All streams in the same
-family (i.e created by a tree of *Append* calls) flow into the same
-final destination.
 
 The example above uses a **ValueStream** which has both the value and
 tracks changes but it is possible to just track changes.  One benefit
-of doing so is the ability to "scope" changes down.  For example, to
-only listen for changes at a particular path, say "rows/id:99k", we
-can do `streams.ChildOf(baseStream, "rows", "id:99k")`.  It is also
-possible to filter out paths etc.
+of doing so is the ability to "scope" changes down, say to a specific
+path. This allows removing all unnecessary storage for parts one is
+not interested in.
 
-The *streams* approach also provides a few powerful tools: the ability
-to branch and merge.  For instance, a version of a particular *value*
-can be branched off and changes made to it and eventually merged in:
+Those familiar with [ReactiveX](http://reactivex.io/) will find the
+streams approach quite similar -- except that streams are guaranteed
+to converge.
+
+### Branching of streams
+
+Streams can also be branched a la Git. Changes made in branches do not
+affect the master or vice-versa -- until one of Pull or Push are
+called.
 
 ```golang
 
-        branch := streams.Branch{streams.New(), streams.New()}
-        master := streams.ValueStream{initial, branch.Master}
-        local := streams.ValueStream{initial, branch.Local}
-
+        master := streams.New()
+        local := streams.Branch(master)
 
         // changes will not be reflected on master yet
         local = local.Append(insert)
 
-        // merge will push local up to master and pull down
-        // any changes from master
-        branch.Merge()
+        // push local changes up to master
+        streams.Push(local)
 ```
-
-This powerful functionality is quite similar to
-[Git](https://en.wikipedia.org/wiki/Git) and other source control
-systems except it is applied to **data structures**
 
 There are other neat benefits to the branching model: it provides a
 fine grained control for pulling changes from the network on demand
 and suspending it as well as providing a way for making local
 changes.
 
-## Network synchronization
+### Network synchronization
 
 DOT uses a fairly simple backend
 [Store](https://godoc.org/github.com/dotchain/dot/ops#Store)
@@ -193,6 +207,37 @@ The [ops](https://godoc.org/github.com/dotchain/dot/ops) package takes
 these raw entries in the log and provides the synchronization
 mechanism to connect it to a stream which allows much of the
 client/app logic to be written agnostic of the network.
+
+```golang
+
+import (
+       "github.com/dotchain/dot/x/nw"
+       "github.com/dotchain/dot/ops"
+       "github.com/dotchain/dot/streams"
+       "github.com/dotchain/dot/x/idgen"       
+)
+
+func connect() streams.Straem {
+    c := nw.Client{URL: ...}`
+    defer c.Close()
+
+    stream := streams.New()
+    sync := ops.NewSync(ops.Transformed(c), -1, stream, idgen.New)
+
+    go func() {
+       version := 0
+       for {
+            ctx := context.WithTimeout(context.Background(), time.Second*30)
+            sync.Poll(ctx, version)
+            sync.Fetch(ctx, version, 1000)
+            version = sync.Version()
+       }
+    }()
+
+    return stream
+}
+    
+```
 
 ## Undo log, folding and extras
 
@@ -214,7 +259,8 @@ The storage layer is an in-memory version though it is relatively
 simple to build storage backends given the very trivial storage
 interface. 
 
-The network API does not include authentication and authorization.
+The network API requires a careful management of event loops. This
+should be simplified.
 
 There is no snapshot storage mechanism (for operations as well as full
 values) which would require replaying the log each time.
@@ -222,18 +268,6 @@ values) which would require replaying the log each time.
 It is also possible to implement cross-object merging (i.e. sharing a
 sub-object between two instances by using the OT merge approach to the
 shared instance).  This is not implemented here but 
-
-## Reactive computation, scheduler
-
-Streams in DOT also allow for change notifications for change that
-have not yet happened. These notifications are the same as following
-the changes from a particular stream that is guaranteed to converge.
-
-But streams programming with synchronous notification can get hairy
-with reentrancy and locking issues.  The
-[AsyncScheduler](https://godoc.org/github.com/dotchain/dot/streams#AsyncScheduler)
-provides for an elegant way to manage an event pump/loop and avoid
-re-entrancy issues. 
 
 ## Contributing
 
