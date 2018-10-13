@@ -171,3 +171,17 @@ func (s *stream) merge(left, right changes.Change, reverse bool) (lx, rx changes
 	}
 	return left.Merge(right)
 }
+
+// Latest returns the latest stream instance and the set of changes
+// that have taken place until then
+func Latest(s Stream) (Stream, changes.Change) {
+	cs := changes.ChangeSet(nil)
+	sx := s
+	for v, c := sx.Next(); v != nil; v, c = sx.Next() {
+		sx = v
+		if c != nil {
+			cs = append(cs, c)
+		}
+	}
+	return sx, cs
+}
