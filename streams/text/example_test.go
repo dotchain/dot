@@ -6,6 +6,7 @@ package text_test
 
 import (
 	"fmt"
+	"github.com/dotchain/dot/streams"
 	"github.com/dotchain/dot/streams/text"
 )
 
@@ -19,7 +20,8 @@ func Example_stream_confluence() {
 	s.Insert("C")
 
 	// now validate that the latest has HelABC^lo
-	latest := latestValue(s)
+	l, _ := streams.Latest(s)
+	latest := l.(*text.Stream)
 	start, _ := latest.E.Start()
 	end, _ := latest.E.End()
 	fmt.Println("Text:", latest.E.Text, start, end)
@@ -36,18 +38,12 @@ func Example_stream_confluenceWithCursors() {
 	s.SetSelection(3, 3, true)
 
 	// now validate that the latest has AHel^lo
-	latest := latestValue(s)
+	l, _ := streams.Latest(s)
+	latest := l.(*text.Stream)
 	start, _ := latest.E.Start()
 	end, _ := latest.E.End()
 	fmt.Println("Text:", latest.E.Text, start, end)
 
 	// Output:
 	// Text: AHello 4 4
-}
-
-func latestValue(s *text.Stream) *text.Stream {
-	for v, _ := s.Next(); v != nil; v, _ = s.Next() {
-		s = v.(*text.Stream)
-	}
-	return s
 }
