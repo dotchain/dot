@@ -14,6 +14,7 @@ import (
 	"github.com/dotchain/dot/x/nw"
 	"reflect"
 	"testing"
+	"time"
 )
 
 var sourceName = "user=postgres dbname=dot_test sslmode=disable"
@@ -26,21 +27,23 @@ func dropTable() {
 
 func TestSetup(t *testing.T) {
 	defer dropTable()
-	s := &pg.Store{DataSourceName: sourceName, ID: []byte("hello")}
-	if err := s.Setup(); err != nil {
+	if err := pg.Setup(sourceName); err != nil {
 		t.Error("setup failure", err)
 	}
 
-	s = &pg.Store{DataSourceName: "user=postgres dbname=none sslmode=disable", ID: []byte("hello")}
-	if err := s.Setup(); err == nil {
+	name := "user=postgres dbname=none sslmode=disable"
+	if err := pg.Setup(name); err == nil {
 		t.Error("setup failure", err)
 	}
 }
 
 func TestSimple(t *testing.T) {
 	defer dropTable()
-	s := &pg.Store{DataSourceName: sourceName, ID: []byte("hello")}
-	s.Setup()
+	pg.Setup(sourceName)
+	s, err := pg.New(sourceName, "hello", nil)
+	if err != nil {
+		t.Fatal("failed to initialize", err)
+	}
 	defer s.Close()
 
 	c := changes.PathChange{[]interface{}{5}, changes.Move{2, 2, 2}}
@@ -64,29 +67,51 @@ func TestSimple(t *testing.T) {
 
 func TestPoll(t *testing.T) {
 	defer dropTable()
-	s := &pg.Store{DataSourceName: sourceName, ID: []byte("hello")}
-	s.Setup()
+	pg.Setup(sourceName)
+	s, err := pg.New(sourceName, "hello", nil)
+	if err != nil {
+		t.Fatal("failed to initialize", err)
+	}
 	defer s.Close()
 
-	if err := s.Poll(context.Background(), 0); err != nil {
+	go func() {
+		time.Sleep(time.Millisecond * 100)
+		s.Append(context.Background(), []ops.Op{ops.Operation{OpID: "ok"}})
+	}()
+
+	wait, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	before := time.Now()
+	if err := s.Poll(wait, 0); err != nil {
 		t.Error("unexpected error", err)
 	}
+	if time.Since(before) > time.Second*2/3 {
+		t.Error("Waited too long")
+	}
+	cancel()
+
+	wait, cancel = context.WithTimeout(context.Background(), time.Second)
+	before = time.Now()
+	if err := s.Poll(wait, 1); err != wait.Err() {
+		t.Error("unexpected error", err)
+	}
+	if time.Since(before) < time.Second*2/3 {
+		t.Error("Waited too little")
+	}
+	cancel()
 }
 
 func TestErrors(t *testing.T) {
-	s := &pg.Store{DataSourceName: "\u2312", ID: []byte("hello")}
-	if err := s.Append(context.Background(), nil); err == nil {
-		t.Error("succeeded with invalid db", err)
-	}
-
-	if _, err := s.GetSince(context.Background(), 0, 5); err == nil {
+	s, err := pg.New("\u2312", "hello", nil)
+	if err == nil {
 		t.Error("succeeded with invalid db", err)
 	}
 
 	defer dropTable()
-	s = &pg.Store{DataSourceName: sourceName, ID: []byte("hello")}
-	s.Codec = nw.DefaultCodecs["application/x-gob"]
-	s.Setup()
+	pg.Setup(sourceName)
+	s, err = pg.New(sourceName, "hello", nw.DefaultCodecs["application/x-gob"])
+	if err != nil {
+		t.Fatal("failed to initialize", err)
+	}
 	defer s.Close()
 
 	// encode error due to myChange
@@ -100,9 +125,9 @@ func TestErrors(t *testing.T) {
 	}
 
 	// write a fake op with bad data
-	db, _ := sql.Open("postgres", s.DataSourceName)
+	db, _ := sql.Open("postgres", sourceName)
 	db.Exec("INSERT into operations (id, op_id, data) VALUES ($1, $2, $3);",
-		s.ID, []byte("opid"), []byte("data"))
+		"hello", []byte("opid"), []byte("data"))
 	db.Close()
 
 	if _, err := s.GetSince(context.Background(), 0, 100); err == nil {
