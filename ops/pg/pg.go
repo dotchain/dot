@@ -6,9 +6,7 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-// Package pg implements the database storage layer for DOT
-//
-// TODO: optimize the inefficient implementation of Append
+// Package pg implements the dot storage for postgres 9.5+
 package pg
 
 import (
@@ -18,16 +16,53 @@ import (
 	"fmt"
 	"github.com/dotchain/dot/ops"
 	"github.com/dotchain/dot/x/nw"
-	_ "github.com/lib/pq" // pq registers with sql
+	"github.com/lib/pq"
+	"log"
 	"sync"
+	"time"
 )
 
-// Store implements ops.Store
-type Store struct {
-	DataSourceName string
-	ID             []byte
-	db             *sql.DB
-	lock           sync.Mutex
+// New returns a store connected to the provided data stource
+func New(dataSourceName, id string, codec nw.Codec) (ops.Store, error) {
+	s := &store{id: id, Codec: codec}
+	if err := s.init(dataSourceName); err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
+func (s *store) init(name string) error {
+	var err error
+	delay := time.Second * 30
+
+	s.db, err = sql.Open("postgres", name)
+	if err == nil {
+		err = s.db.Ping()
+	}
+	if err == nil {
+		s.l = pq.NewListener(name, delay, delay, nil)
+		err = s.l.Listen(s.id)
+	}
+
+	if err != nil {
+		s.Close()
+	} else {
+		ch := s.l.NotificationChannel()
+		go func() {
+			for range ch {
+				s.broadcast()
+			}
+		}()
+	}
+	return err
+}
+
+type store struct {
+	id      string
+	db      *sql.DB
+	l       *pq.Listener
+	waiters []chan struct{}
+	lock    sync.Mutex
 	nw.Codec
 }
 
@@ -49,8 +84,8 @@ ORDER BY seq
 `
 
 // Setup creates the tables and indices
-func (s *Store) Setup() error {
-	db, err := sql.Open("postgres", s.DataSourceName)
+func Setup(dataSourceName string) error {
+	db, err := sql.Open("postgres", dataSourceName)
 	if err == nil {
 		_, err = db.Exec(createTableCommand)
 	}
@@ -63,39 +98,22 @@ func (s *Store) Setup() error {
 	return err
 }
 
-func (s *Store) getDB() (*sql.DB, error) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	var err error
-	if s.db == nil {
-		s.db, err = sql.Open("postgres", s.DataSourceName)
-		if s.db != nil {
-			err = s.db.Ping()
-		}
-		if err != nil {
-			s.Close()
-		}
-	}
-	return s.db, err
-}
-
 // Close releases any allocated DB resources.  It is not safe to call
 // Close when other calls may be in progress.
-func (s *Store) Close() {
+func (s *store) Close() {
 	if s.db != nil {
 		must(s.db.Close())
 		s.db = nil
 	}
+	if s.l != nil {
+		must(s.l.Close())
+		s.l = nil
+	}
 }
 
-// Append implements Store.Append.  It uses gob/encoding to serialize
+// Append implements store.Append.  It uses gob/encoding to serialize
 // the provided operation.
-func (s *Store) Append(ctx context.Context, ops []ops.Op) error {
-	db, err := s.getDB()
-	if err != nil {
-		return err
-	}
-
+func (s *store) Append(ctx context.Context, ops []ops.Op) error {
 	cmd := "INSERT into operations (id, op_id, data) VALUES"
 	args := []interface{}{}
 
@@ -110,24 +128,23 @@ func (s *Store) Append(ctx context.Context, ops []ops.Op) error {
 			cmd = cmd + ", "
 		}
 		cmd = cmd + fmt.Sprintf("($%d, $%d, $%d)", l+1, l+2, l+3)
-		args = append(args, s.ID, id, data)
+		args = append(args, []byte(s.id), id, data)
 	}
 
 	cmd += " ON CONFLICT ON CONSTRAINT unique_op_id DO NOTHING;"
 
-	_, err = db.Exec(cmd+";", args...)
+	_, err := s.db.ExecContext(ctx, cmd+";", args...)
+	if err == nil {
+		log.Println("Notifying", s.id)
+		_, err = s.db.ExecContext(ctx, "NOTIFY "+s.id+";")
+	}
 	return err
 }
 
-// GetSince implements Store.GetSince
-func (s *Store) GetSince(ctx context.Context, version, limit int) ([]ops.Op, error) {
-	db, err := s.getDB()
-	if err != nil {
-		return nil, err
-	}
-
+// GetSince implements store.GetSince
+func (s *store) GetSince(ctx context.Context, version, limit int) ([]ops.Op, error) {
 	cmd := fetchCommand + fmt.Sprintf("LIMIT %d OFFSET %d;", limit, version)
-	rows, err := db.Query(cmd, s.ID)
+	rows, err := s.db.QueryContext(ctx, cmd, []byte(s.id))
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +171,7 @@ type opdata struct {
 	ops.Op
 }
 
-func (s *Store) encode(op ops.Op) ([]byte, []byte, error) {
+func (s *store) encode(op ops.Op) ([]byte, []byte, error) {
 	codec := nw.DefaultCodecs["application/x-gob"]
 	if s.Codec != nil {
 		codec = s.Codec
@@ -171,7 +188,7 @@ func (s *Store) encode(op ops.Op) ([]byte, []byte, error) {
 	return id.Bytes(), data.Bytes(), nil
 }
 
-func (s *Store) decode(data []byte) (ops.Op, error) {
+func (s *store) decode(data []byte) (ops.Op, error) {
 	codec := nw.DefaultCodecs["application/x-gob"]
 	if s.Codec != nil {
 		codec = s.Codec
@@ -183,9 +200,29 @@ func (s *Store) decode(data []byte) (ops.Op, error) {
 	return opd.Op, nil
 }
 
-// Poll is not implemented
-func (s *Store) Poll(ctx context.Context, version int) error {
+// Poll uses postgres LISTEN to wait get notified on changes.
+func (s *store) Poll(ctx context.Context, version int) error {
+	ch := make(chan struct{}, 1)
+	s.lock.Lock()
+	s.waiters = append(s.waiters, ch)
+	s.lock.Unlock()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-ch:
+	case <-time.After(time.Minute): // max wait is 1min
+	}
 	return nil
+}
+
+func (s *store) broadcast() {
+	s.lock.Lock()
+	waiters := s.waiters
+	s.waiters = nil
+	s.lock.Unlock()
+	for _, ch := range waiters {
+		ch <- struct{}{}
+	}
 }
 
 func must(err error) {

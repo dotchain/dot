@@ -18,6 +18,9 @@ import "context"
 // The store does make guarantee that operations will not be
 // duplicated. If an operation is appended with an ID that already
 // exists, it will silently be dropped.
+//
+// See https://godoc.org/github.com/dotchain/dot/ops/pg for an example
+// implementiation (for Postgres 9.5+)
 type Store interface {
 	// Append a sequence of operations.  If the operation IDs
 	// already exist, those operations are ignored but do not
