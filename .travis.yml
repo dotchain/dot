@@ -1,8 +1,15 @@
 language: go
 sudo: false
+services:
+- mysql
+- mongodb
+addons:
+  postgresql: "9.5"
 before_script:
 - go get github.com/alecthomas/gometalinter
 - gometalinter --install --update
+- psql -c 'CREATE DATABASE dot_test;' -U postgres
+- mongo dot_test --eval 'db.createUser({user:"root",pwd:"test",roles:["readWrite"]});'
 - bash ./lint.sh
 notifications:
   email: false
