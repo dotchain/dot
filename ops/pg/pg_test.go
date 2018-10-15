@@ -114,6 +114,11 @@ func TestErrors(t *testing.T) {
 	}
 	defer s.Close()
 
+	// empty appends should always succeed
+	if err := s.Append(context.Background(), nil); err != nil {
+		t.Fatal("Append fail", err)
+	}
+
 	// encode error due to myChange
 	opx := []ops.Op{ops.Operation{OpID: "ok", Change: myChange{nil}}}
 	if err := s.Append(context.Background(), opx); err == nil {
