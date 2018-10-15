@@ -36,7 +36,12 @@ func (u *unreliable) Poll(ctx context.Context, version int) error {
 }
 
 func (u *unreliable) GetSince(ctx context.Context, version, limit int) ([]ops.Op, error) {
-	return nil, nil
+	err := u.err
+	u.count++
+	if err == nil {
+		return u.ops, nil
+	}
+	return nil, err
 }
 
 func (u *unreliable) Close() {
@@ -78,6 +83,27 @@ func TestReliablePoll(t *testing.T) {
 	err = r.Poll(ctx, 100)
 	if err != nil || u.count != 1 {
 		t.Fatal("Unexpected err", u.count, err)
+	}
+	cancel()
+}
+
+func TestReliableGetSince(t *testing.T) {
+	u := &unreliable{err: errors.New("something")}
+	u.ops = []ops.Op{ops.Operation{OpID: "one"}}
+	r := ops.ReliableStore(u, rand.Float64, time.Millisecond, 10*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	result, err := r.GetSince(ctx, 100, 102)
+	if err != ctx.Err() || u.count < 10 || len(result) != 0 {
+		t.Fatal("Unexpected err", u.count, result, err)
+	}
+	cancel()
+
+	u.err = nil
+	u.count = 0
+	ctx, cancel = context.WithTimeout(context.Background(), 100*time.Millisecond)
+	result, err = r.GetSince(ctx, 100, 102)
+	if err != nil || u.count != 1 || !reflect.DeepEqual(result, u.ops) {
+		t.Fatal("Unexpected err", u.count, err, result)
 	}
 	cancel()
 }
