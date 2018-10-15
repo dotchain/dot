@@ -2,10 +2,6 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-// Copyright (C) 2018 Ramesh Vyaghrapuri. All rights reserved.
-// Use of this source code is governed by a MIT-style license
-// that can be found in the LICENSE file.
-
 // Package pg implements the dot storage for postgres 9.5+
 package pg
 
@@ -114,6 +110,10 @@ func (s *store) Close() {
 // Append implements store.Append.  It uses gob/encoding to serialize
 // the provided operation.
 func (s *store) Append(ctx context.Context, ops []ops.Op) error {
+	if len(ops) == 0 {
+		return nil
+	}
+
 	cmd := "INSERT into operations (id, op_id, data) VALUES"
 	args := []interface{}{}
 
@@ -167,6 +167,21 @@ func (s *store) GetSince(ctx context.Context, version, limit int) ([]ops.Op, err
 	return result, nil
 }
 
+// Poll uses postgres LISTEN to wait get notified on changes.
+func (s *store) Poll(ctx context.Context, version int) error {
+	ch := make(chan struct{}, 1)
+	s.lock.Lock()
+	s.waiters = append(s.waiters, ch)
+	s.lock.Unlock()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-ch:
+	case <-time.After(time.Minute): // max wait is 1min
+	}
+	return nil
+}
+
 type opdata struct {
 	ops.Op
 }
@@ -198,21 +213,6 @@ func (s *store) decode(data []byte) (ops.Op, error) {
 		return nil, err
 	}
 	return opd.Op, nil
-}
-
-// Poll uses postgres LISTEN to wait get notified on changes.
-func (s *store) Poll(ctx context.Context, version int) error {
-	ch := make(chan struct{}, 1)
-	s.lock.Lock()
-	s.waiters = append(s.waiters, ch)
-	s.lock.Unlock()
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-ch:
-	case <-time.After(time.Minute): // max wait is 1min
-	}
-	return nil
 }
 
 func (s *store) broadcast() {
