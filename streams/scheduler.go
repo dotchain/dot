@@ -4,10 +4,13 @@
 
 package streams
 
+import "sync"
+
 // Async queues any callbacks without executing them
 // synchronously. These queued callbacks can be executed with a call
 // to Run()
 type Async struct {
+	l       sync.Mutex
 	pending []func()
 }
 
@@ -17,13 +20,16 @@ func (as *Async) Wrap(s Stream) Stream {
 	return async{as, s}
 }
 
-// Run executes pending callbacks.  The number of callbacks to execute
-// is controlled by the count parameter. If it is negative, the
-// process continues until the queue is flushed.
+// Loop executes pending callbacks.  The number of callbacks to
+// executed is controlled by the count parameter. If it is negative,
+// the process continues until the queue is flushed.
 //
 // The return value is the number of queued functions that were
 // executed.
-func (as *Async) Run(count int) int {
+func (as *Async) Loop(count int) int {
+	as.l.Lock()
+	defer as.l.Unlock()
+
 	run := 0
 	for len(as.pending) > 0 && count != 0 {
 		count--
@@ -32,6 +38,15 @@ func (as *Async) Run(count int) int {
 		as.pending = as.pending[1:]
 	}
 	return run
+}
+
+// Run safely runs a callback.  No async stream calls are likely to be
+// processed when this is happening.  It is not safe to call Schedule
+// from within a stream callback -- it will deadlock
+func (as *Async) Run(fn func()) {
+	as.l.Lock()
+	defer as.l.Unlock()
+	fn()
 }
 
 type async struct {

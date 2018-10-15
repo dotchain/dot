@@ -29,12 +29,12 @@ func TestAsync(t *testing.T) {
 		t.Fatal("Async scheduler unexpectedly flushed", cx)
 	}
 
-	if count := async.Run(1); count != 1 {
-		t.Fatal("Async Run(1) return unexpected count", count)
+	if count := async.Loop(1); count != 1 {
+		t.Fatal("Async Loop(1) return unexpected count", count)
 	}
 
-	if count := async.Run(-1); count != 2 {
-		t.Fatal("Async Run(-1) did not flush", count)
+	if count := async.Loop(-1); count != 2 {
+		t.Fatal("Async Loop(-1) did not flush", count)
 	}
 
 	expected := []changes.Change{
@@ -62,12 +62,21 @@ func TestAsyncMerge(t *testing.T) {
 		t.Fatal("unexpected sync behavior", cx)
 	}
 
-	async.Run(-1)
+	async.Loop(-1)
 	_, change1 := up.Next()
 	_, change2 := down.Next()
 	exp1 := changes.ChangeSet{nil, changes.Move{10, 2, 2}}
 	exp2 := changes.ChangeSet{nil, changes.Move{0, 2, 2}}
 	if !reflect.DeepEqual(change1, exp1) || !reflect.DeepEqual(change2, exp2) {
 		t.Fatal("Unexpected changes", change1, change2)
+	}
+}
+
+func TestAsyncRun(t *testing.T) {
+	async := &streams.Async{}
+	ran := false
+	async.Run(func() { ran = true })
+	if !ran {
+		t.Error("Run didn't synchronously run")
 	}
 }
