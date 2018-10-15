@@ -26,7 +26,6 @@ persistent datastrutures.
 7. Folding (committed changes on top of uncommitted changes)
 8. Customizable rich types for values and changes
 
-
 See [Demos](https://dotchain.github.io/demos/).
 
 ## Walkthrough of the project
@@ -226,9 +225,8 @@ func connect() streams.Straem {
        version := 0
        for {
             ctx := context.WithTimeout(context.Background(), time.Second*30)
-            sync.Poll(ctx, version)
-            sync.Fetch(ctx, version, 1000)
-            version = sync.Version()
+            sync.Poll(ctx, sync.Version())
+            sync.Fetch(ctx, 1000)
        }
     }()
 
