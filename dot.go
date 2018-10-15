@@ -5,7 +5,7 @@
 // Package dot is currently a documentation placeholder.
 //
 // The core functionality is spread out between dot/changes,
-// dot/refs, dot.streams and dot/x.
+// dot/refs, dot/streams and dot/x.
 //
 // At some point this package will provide a much simpler interface to
 // the commonly used features to enable quick bootstrapping.
@@ -33,9 +33,11 @@
 //
 // 8. Customizable rich types for values and changes
 //
-// Walkthrough
+// Demo
 //
 // See [Demos](https://dotchain.github.io/demos/).
+//
+// How it works
 //
 // The DOT project is based on *immutable* or *persistent* **values** and
 // **changes**. For example, inserting a character into a string would
@@ -216,9 +218,8 @@
 //         version := 0
 //         for {
 //             ctx := context.WithTimeout(context.Background(), time.Second*30)
-//             sync.Poll(ctx, version)
-//             sync.Fetch(ctx, version, 1000)
-//             version = sync.Version()
+//             sync.Poll(ctx, sync.Version())
+//             sync.Fetch(ctx, 1000)
 //         }
 //      }()
 //
