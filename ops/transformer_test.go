@@ -25,8 +25,8 @@ func TestTransformerBasic(t *testing.T) {
 		t.Error("Unexpected results", err, results)
 	}
 
-	first := ops.Operation{"ID1", "", 100, -1, nil}
-	second := ops.Operation{"ID2", "", 100, -1, nil}
+	first := ops.Operation{"ID1", nil, 100, -1, nil}
+	second := ops.Operation{"ID2", nil, 100, -1, nil}
 	if err := xformed.Append(context.Background(), []ops.Op{first, second}); err != nil {
 		t.Fatal("Unexpected append error", err)
 	}
@@ -154,12 +154,12 @@ func getBranchedOps() (initial, final changes.Value, xformed []ops.Op) {
 	c2_3 := changes.Splice{6, S(""), S("Z ")}
 
 	items := []ops.Op{
-		ops.Operation{"first", "", -1, -1, first},
-		ops.Operation{"c1_1", "", -1, 0, c1_1},
+		ops.Operation{"first", nil, -1, -1, first},
+		ops.Operation{"c1_1", nil, -1, 0, c1_1},
 		ops.Operation{"c1_2", "c1_1", -1, 0, c1_2},
-		ops.Operation{"c2_1", "", -1, 0, c2_1},
+		ops.Operation{"c2_1", nil, -1, 0, c2_1},
 		ops.Operation{"c2_2", "c2_1", -1, 0, c2_2},
-		ops.Operation{"c1_3", "", -1, 3, c1_3},
+		ops.Operation{"c1_3", nil, -1, 3, c1_3},
 		ops.Operation{"c2_3", "c2_2", -1, 1, c2_3},
 	}
 

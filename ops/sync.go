@@ -23,13 +23,13 @@ import (
 //
 // The provided store must fetch transformed operations. Use
 // Transformed() to convert a raw store for use with NewSync
-func NewSync(transformed Store, version int, local streams.Stream, newID func() string) *Sync {
+func NewSync(transformed Store, version int, local streams.Stream, newID func() interface{}) *Sync {
 	s := &Sync{tx: transformed, ver: version, local: local}
 	local.Nextf(s, func() {
 		var c changes.Change
 		local, c = local.Next()
 
-		if s.mergingID != "" {
+		if s.mergingID != nil {
 			return
 		}
 		id := newID()
@@ -50,9 +50,9 @@ type Sync struct {
 	ver        int
 	pending    []Op
 	local      streams.Stream
-	IDs        []string
-	lastSentID string
-	mergingID  string
+	IDs        []interface{}
+	lastSentID interface{}
+	mergingID  interface{}
 }
 
 // Version returns the latest server version
@@ -86,16 +86,16 @@ func (s *Sync) ApplyPrefetched() {
 		s.ver = op.Version()
 		if len(s.IDs) > 0 && s.IDs[0] == op.ID() {
 			if s.lastSentID == s.IDs[0] {
-				s.lastSentID = ""
+				s.lastSentID = nil
 			}
 			s.IDs = s.IDs[1:]
 			s.local, _ = s.local.Next()
 		} else {
-			s.mergingID = op.ID().(string)
+			s.mergingID = op.ID()
 			s.local = s.local.ReverseAppend(op.Changes())
 		}
 	}
-	s.mergingID = ""
+	s.mergingID = nil
 	s.pending = nil
 }
 
