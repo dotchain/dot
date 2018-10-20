@@ -32,7 +32,10 @@ func (as *Async) Wrap(s Stream) Stream {
 func (as *Async) Loop(count int) int {
 	as.l.Lock()
 	defer as.l.Unlock()
+	return as.loop(count)
+}
 
+func (as *Async) loop(count int) int {
 	run := 0
 	for len(as.pending) > 0 && count != 0 {
 		count--
@@ -50,6 +53,7 @@ func (as *Async) Run(fn func()) {
 	as.l.Lock()
 	defer as.l.Unlock()
 	fn()
+	as.loop(-1)
 }
 
 type async struct {
