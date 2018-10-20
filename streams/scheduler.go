@@ -4,7 +4,10 @@
 
 package streams
 
-import "sync"
+import (
+	"github.com/dotchain/dot/changes"
+	"sync"
+)
 
 // Async queues any callbacks without executing them
 // synchronously. These queued callbacks can be executed with a call
@@ -17,7 +20,7 @@ type Async struct {
 // Wrap wraps a stream with an updated scheduler. Any calls to Nextf
 // on the returned stream will have the callback scheduled.
 func (as *Async) Wrap(s Stream) Stream {
-	return async{as, s}
+	return &async{as, s}
 }
 
 // Loop executes pending callbacks.  The number of callbacks to
@@ -54,7 +57,15 @@ type async struct {
 	Stream
 }
 
-func (a async) Nextf(key interface{}, fn func()) {
+func (a *async) Append(c changes.Change) Stream {
+	return &async{a.as, a.Stream.Append(c)}
+}
+
+func (a *async) ReverseAppend(c changes.Change) Stream {
+	return &async{a.as, a.Stream.ReverseAppend(c)}
+}
+
+func (a *async) Nextf(key interface{}, fn func()) {
 	if fn != nil {
 		old := fn
 		fn = func() {
@@ -62,4 +73,12 @@ func (a async) Nextf(key interface{}, fn func()) {
 		}
 	}
 	a.Stream.Nextf(key, fn)
+}
+
+func (a *async) Next() (Stream, changes.Change) {
+	n, c := a.Stream.Next()
+	if n != nil {
+		n = &async{a.as, n}
+	}
+	return n, c
 }
