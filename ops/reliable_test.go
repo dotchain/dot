@@ -93,8 +93,8 @@ func TestReliableGetSince(t *testing.T) {
 	r := ops.ReliableStore(u, rand.Float64, time.Millisecond, 10*time.Millisecond)
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	result, err := r.GetSince(ctx, 100, 102)
-	if err != ctx.Err() || u.count < 10 || len(result) != 0 {
-		t.Fatal("Unexpected err", u.count, result, err)
+	if err != u.err || ctx.Err() != nil || u.count != 1 || len(result) != 0 {
+		t.Fatal("Unexpected err", u.count, len(result), err, ctx.Err())
 	}
 	cancel()
 

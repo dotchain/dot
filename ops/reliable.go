@@ -10,15 +10,13 @@ import (
 )
 
 // ReliableStore takes a store that can fail and converts it to a
-// reliable store. All Append() calls return success immediately but
-// attempt to deliver with retires in the background. Poll and
-// GetSince calls block until the context timeout expires retrying on
-// errors.
+// reliable store. All Append() calls return success immediately with
+// backaground attempts to deliver/retry.
 //
 // Note that the GetSince is not modified by this -- it can still be
 // unreliable.
 //
-// Poll is modified to retry up to the specified timeout
+// Poll is modified to retry up to the specified timeout.
 func ReliableStore(s Store, rand func() float64, initial, max time.Duration) Store {
 	i, m := float64(initial), float64(max)
 	r := &reliable{s, nil, make(chan func(), 10000), rand, i, m}
@@ -83,17 +81,6 @@ func (r *reliable) Poll(ctx context.Context, version int) error {
 		return r.Store.Poll(ctx2, version)
 	}
 	return r.retry(ctx, fn)
-}
-
-func (r *reliable) GetSince(ctx context.Context, version, limit int) ([]Op, error) {
-	var result []Op
-	fn := func() error {
-		var err error
-		result, err = r.Store.GetSince(ctx, version, limit)
-		return err
-	}
-	err := r.retry(ctx, fn)
-	return result, err
 }
 
 func (r *reliable) retry(ctx context.Context, fn func() error) error {
