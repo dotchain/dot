@@ -11,7 +11,6 @@ import (
 	"reflect"
 	"sync"
 	"testing"
-	"time"
 )
 
 func TestConnect(t *testing.T) {
@@ -42,13 +41,6 @@ func TestConnect(t *testing.T) {
 		s = s.Append(changes.Move{2, 3, 4})
 	})
 
-	go func() {
-		for {
-			c1.Async.Loop(-1)
-			c2.Async.Loop(-1)
-			time.Sleep(time.Millisecond * 100)
-		}
-	}()
 	wg.Wait()
 	expected := changes.ChangeSet{changes.Move{2, 3, 4}}
 	if !reflect.DeepEqual(c1ops, expected) {
