@@ -14,7 +14,7 @@ import (
 )
 
 // New returns a unique ID using crypto/rand
-func New() string {
+func New() interface{} {
 	var b [32]byte
 	if _, err := rand.Read(b[0:32]); err != nil {
 		panic(err)

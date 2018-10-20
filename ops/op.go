@@ -75,7 +75,7 @@ type Op interface {
 
 // Operation holds the basic info needed for Op with string IDs
 type Operation struct {
-	OpID, ParentID string
+	OpID, ParentID interface{}
 	VerID, BasisID int
 	changes.Change
 }
@@ -98,9 +98,6 @@ func (o Operation) WithVersion(v int) Op {
 
 // Parent implements Op.Parent
 func (o Operation) Parent() interface{} {
-	if o.ParentID == "" {
-		return nil
-	}
 	return o.ParentID
 }
 

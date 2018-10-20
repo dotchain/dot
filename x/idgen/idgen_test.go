@@ -11,7 +11,7 @@ import (
 
 func TestCollision(t *testing.T) {
 	count := 100000
-	seen := map[string]bool{}
+	seen := map[interface{}]bool{}
 	for kk := 0; kk < count; kk++ {
 		x := idgen.New()
 		if seen[x] {
