@@ -17,13 +17,9 @@ import (
 // call to Fetch. These are transformed and applied to the local
 // stream.
 //
-// The newID function is used to create new IDs for the operation. See
-// https://godoc.org/github.com/dotchain/dot/x/idgen#New for an
-// example implementation
-//
 // The provided store must fetch transformed operations. Use
 // Transformed() to convert a raw store for use with NewSync
-func NewSync(transformed Store, version int, local streams.Stream, newID func() interface{}) *Sync {
+func NewSync(transformed Store, version int, local streams.Stream) *Sync {
 	s := &Sync{tx: transformed, ver: version, local: local}
 	local.Nextf(s, func() {
 		var c changes.Change
@@ -32,7 +28,7 @@ func NewSync(transformed Store, version int, local streams.Stream, newID func() 
 		if s.mergingID != nil {
 			return
 		}
-		id := newID()
+		id := NewID()
 		op := Operation{OpID: id, BasisID: s.ver, VerID: -1, ParentID: s.lastSentID, Change: c}
 		s.IDs = append(s.IDs, id)
 		s.lastSentID = id

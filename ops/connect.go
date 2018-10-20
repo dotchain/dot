@@ -8,8 +8,6 @@ import (
 	"context"
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/streams"
-	"github.com/dotchain/dot/x/idgen"
-	"math/rand"
 	"time"
 )
 
@@ -31,18 +29,17 @@ type Connector struct {
 	streams.Stream
 	*streams.Async
 	Store
-	NewID func() interface{}
 	close func()
 }
 
 // NewConnector creates a new connection between the store and a
 // stream. It creates an Async object as well as the  stream taking
 // care to wrap the stream via Async.Wrap.
-func NewConnector(version int, pending []Op, store Store) *Connector {
+func NewConnector(version int, pending []Op, store Store, rand func() float64) *Connector {
 	async := &streams.Async{}
 	s := async.Wrap(streams.New())
-	store = ReliableStore(store, rand.Float64, time.Second/2, time.Minute)
-	return &Connector{version, pending, s, async, store, idgen.New, nil}
+	store = ReliableStore(store, rand, time.Second/2, time.Minute)
+	return &Connector{version, pending, s, async, store, nil}
 }
 
 // Connect starts the synchronization process.
@@ -59,7 +56,7 @@ func (c *Connector) Connect() {
 	c.Stream.Nextf(c, func() {
 		var change changes.Change
 		c.Stream, change = streams.Latest(c.Stream)
-		op := Operation{OpID: c.NewID(), BasisID: c.Version, VerID: -1, Change: change}
+		op := Operation{OpID: NewID(), BasisID: c.Version, VerID: -1, Change: change}
 		if len(c.Pending) > 0 {
 			op.ParentID = c.Pending[0].ID()
 		}

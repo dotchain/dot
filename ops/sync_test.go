@@ -10,7 +10,6 @@ import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/ops"
 	"github.com/dotchain/dot/streams"
-	"github.com/dotchain/dot/x/idgen"
 	"testing"
 )
 
@@ -24,7 +23,7 @@ func TestAppendFailurePanic(t *testing.T) {
 
 	store := &failAppend{err: expectedError}
 	client := streams.New()
-	s := ops.NewSync(store, -1, client, idgen.New)
+	s := ops.NewSync(store, -1, client)
 	defer s.Close()
 	client.Append(changes.Move{1, 2, 3})
 }

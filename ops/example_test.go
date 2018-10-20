@@ -10,7 +10,6 @@ import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/ops"
 	"github.com/dotchain/dot/streams"
-	"github.com/dotchain/dot/x/idgen"
 	"github.com/dotchain/dot/x/types"
 )
 
@@ -20,8 +19,8 @@ func Example_sync() {
 
 	client1, client2 := streams.New(), streams.New()
 
-	s1 := ops.NewSync(xformed, -1, client1, idgen.New)
-	s2 := ops.NewSync(xformed, -1, client2, idgen.New)
+	s1 := ops.NewSync(xformed, -1, client1)
+	s2 := ops.NewSync(xformed, -1, client2)
 
 	defer s1.Close()
 	defer s2.Close()
