@@ -56,12 +56,14 @@ func (c *Connector) Connect() {
 	c.Stream.Nextf(c, func() {
 		var change changes.Change
 		c.Stream, change = streams.Latest(c.Stream)
-		op := Operation{OpID: NewID(), BasisID: c.Version, VerID: -1, Change: change}
-		if len(c.Pending) > 0 {
-			op.ParentID = c.Pending[0].ID()
+		if isNonEmpty(change) {
+			op := Operation{OpID: NewID(), BasisID: c.Version, VerID: -1, Change: change}
+			if len(c.Pending) > 0 {
+				op.ParentID = c.Pending[0].ID()
+			}
+			c.Pending = append(c.Pending, op)
+			must(c.Store.Append(context.Background(), []Op{op}))
 		}
-		c.Pending = append(c.Pending, op)
-		must(c.Store.Append(context.Background(), []Op{op}))
 	})
 	go func() {
 		c.readLoop(ctx)
@@ -97,6 +99,7 @@ func (c *Connector) readLoop(ctx context.Context) {
 				change := op.Changes()
 				if len(c.Pending) > 0 && c.Pending[0].ID() == op.ID() {
 					change = nil
+					c.Pending = c.Pending[1:]
 				}
 				c.Stream = c.Stream.ReverseAppend(change)
 			}
@@ -105,3 +108,8 @@ func (c *Connector) readLoop(ctx context.Context) {
 }
 
 func must(err error) {}
+
+func isNonEmpty(c changes.Change) bool {
+	cs, ok := c.(changes.ChangeSet)
+	return !ok || (len(cs) > 0 && cs[0] != nil)
+}
