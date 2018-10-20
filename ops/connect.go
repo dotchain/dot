@@ -32,6 +32,7 @@ type Connector struct {
 	*streams.Async
 	Store
 	NewID func() interface{}
+	close func()
 }
 
 // NewConnector creates a new connection between the store and a
@@ -41,12 +42,19 @@ func NewConnector(version int, pending []Op, store Store) *Connector {
 	async := &streams.Async{}
 	s := async.Wrap(streams.New())
 	store = ReliableStore(store, rand.Float64, time.Second/2, time.Minute)
-	return &Connector{version, pending, s, async, store, idgen.New}
+	return &Connector{version, pending, s, async, store, idgen.New, nil}
 }
 
-// Connect starts the connect process.
-func (c *Connector) Connect(ctx context.Context) {
-	must(c.Store.Append(context.Background(), c.Pending))
+// Connect starts the synchronization process.
+func (c *Connector) Connect() {
+	ctx, cancel := context.WithCancel(context.Background())
+	closed := make(chan struct{})
+	c.close = func() {
+		cancel()
+		<-closed
+	}
+
+	must(c.Store.Append(ctx, c.Pending))
 
 	c.Stream.Nextf(c, func() {
 		var change changes.Change
@@ -61,7 +69,14 @@ func (c *Connector) Connect(ctx context.Context) {
 	go func() {
 		c.readLoop(ctx)
 		c.Stream.Nextf(c, nil)
+		close(closed)
 	}()
+}
+
+// Disconnect stops the synchronization process.  The version and
+// pending are updated to the latest values when the call returns
+func (c *Connector) Disconnect() {
+	c.close()
 }
 
 func (c *Connector) readLoop(ctx context.Context) {

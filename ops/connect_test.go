@@ -20,13 +20,11 @@ func TestConnect(t *testing.T) {
 	xformed := ops.Transformed(store)
 	c1 := ops.NewConnector(-1, nil, xformed)
 	c2 := ops.NewConnector(-1, nil, xformed)
-	ctx1, cancel1 := context.WithCancel(context.Background())
-	c1.Connect(ctx1)
-	defer cancel1()
+	c1.Connect()
+	defer c1.Disconnect()
 
-	ctx2, cancel2 := context.WithCancel(context.Background())
-	c2.Connect(ctx2)
-	defer cancel2()
+	c2.Connect()
+	defer c2.Disconnect()
 
 	var c1ops changes.Change
 	var wg sync.WaitGroup
