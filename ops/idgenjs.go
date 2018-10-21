@@ -6,13 +6,15 @@
 
 package ops
 
-import "github.com/gopherjs/gopherjs/js"
+import (
+	"encoding/base64"
+	"github.com/gopherjs/gopherjs/js"
+)
 
 // NewID returns a unique ID using crypto
 func NewID() interface{} {
 	crypto := js.Global.Get("crypto")
 	array := js.Global.Get("Uint8Array").New(32)
 	crypto.Call("getRandomValues", array)
-	result := js.Global.Get("btoa", string(array.Interface().([]byte)))
-	return result.Interface()
+	return base64.StdEncoding.EncodeToString(array.Interface().([]byte))
 }
