@@ -8,6 +8,7 @@ import (
 	"context"
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/streams"
+	"sync"
 	"time"
 )
 
@@ -30,16 +31,18 @@ type Connector struct {
 	*streams.Async
 	Store
 	close func()
+	sync.Mutex
 }
 
 // NewConnector creates a new connection between the store and a
 // stream. It creates an Async object as well as the  stream taking
 // care to wrap the stream via Async.Wrap.
 func NewConnector(version int, pending []Op, store Store, rand func() float64) *Connector {
-	async := &streams.Async{}
+	async := streams.NewAsync(0)
 	s := async.Wrap(streams.New())
+	async.LoopForever()
 	store = ReliableStore(store, rand, time.Second/2, time.Minute)
-	return &Connector{version, pending, s, async, store, nil}
+	return &Connector{Version: version, Pending: pending, Stream: s, Async: async, Store: store}
 }
 
 // Connect starts the synchronization process.
@@ -57,11 +60,13 @@ func (c *Connector) Connect() {
 		var change changes.Change
 		c.Stream, change = streams.Latest(c.Stream)
 		if isNonEmpty(change) {
+			c.Lock()
 			op := Operation{OpID: NewID(), BasisID: c.Version, VerID: -1, Change: change}
 			if len(c.Pending) > 0 {
 				op.ParentID = c.Pending[0].ID()
 			}
 			c.Pending = append(c.Pending, op)
+			c.Unlock()
 			must(c.Store.Append(context.Background(), []Op{op}))
 		}
 	})
@@ -82,28 +87,31 @@ func (c *Connector) readLoop(ctx context.Context) {
 	limit := 1000
 
 	for {
-		ops, err := c.Store.GetSince(ctx, c.Version+1, limit)
+		c.Lock()
+		version := c.Version + 1
+		c.Unlock()
+		ops, err := c.Store.GetSince(ctx, version, limit)
 		if ctx.Err() != nil {
 			return
 		}
 		must(err)
 
 		if len(ops) == 0 {
-			must(c.Store.Poll(ctx, c.Version+1))
+			must(c.Store.Poll(ctx, version))
 			continue
 		}
 
-		c.Async.Run(func() {
-			for _, op := range ops {
-				c.Version = op.Version()
-				change := op.Changes()
-				if len(c.Pending) > 0 && c.Pending[0].ID() == op.ID() {
-					change = nil
-					c.Pending = c.Pending[1:]
-				}
-				c.Stream = c.Stream.ReverseAppend(change)
+		for _, op := range ops {
+			c.Lock()
+			c.Version = op.Version()
+			change := op.Changes()
+			if len(c.Pending) > 0 && c.Pending[0].ID() == op.ID() {
+				change = nil
+				c.Pending = c.Pending[1:]
 			}
-		})
+			c.Unlock()
+			c.Stream = c.Stream.ReverseAppend(change)
+		}
 	}
 }
 

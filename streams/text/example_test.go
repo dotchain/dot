@@ -22,9 +22,9 @@ func Example_stream_confluence() {
 	// now validate that the latest has HelABC^lo
 	l, _ := streams.Latest(s)
 	latest := l.(*text.Stream)
-	start, _ := latest.E.Start()
-	end, _ := latest.E.End()
-	fmt.Println("Text:", latest.E.Text, start, end)
+	start, _ := latest.Editable.Start(false)
+	end, _ := latest.Editable.End(false)
+	fmt.Println("Text:", latest.Editable.Text, start, end)
 
 	// Output:
 	// Text: HelABClo 6 6
@@ -40,9 +40,9 @@ func Example_stream_confluenceWithCursors() {
 	// now validate that the latest has AHel^lo
 	l, _ := streams.Latest(s)
 	latest := l.(*text.Stream)
-	start, _ := latest.E.Start()
-	end, _ := latest.E.End()
-	fmt.Println("Text:", latest.E.Text, start, end)
+	start, _ := latest.Editable.Start(false)
+	end, _ := latest.Editable.End(false)
+	fmt.Println("Text:", latest.Value(), start, end)
 
 	// Output:
 	// Text: AHello 4 4

@@ -63,7 +63,7 @@ func (suite streamSuite) testWithoutOwnCursor(t *testing.T) {
 	c := pc(nil, pc([]interface{}{"Value"}, splice))
 	stream.Append(c)
 	sz, _ := streams.Latest(s)
-	if x := sz.(*text.Stream).E.Text; x != "AhaHello" {
+	if x := sz.(*text.Stream).Text; x != "AhaHello" {
 		t.Error("Unexpected merge", x)
 	}
 	_, c = stream.Next()
@@ -75,7 +75,7 @@ func (suite streamSuite) testWithoutOwnCursor(t *testing.T) {
 	c = pc(nil, pc([]interface{}{"Value"}, splice))
 	stream.ReverseAppend(c)
 	sz, _ = streams.Latest(s)
-	if x := sz.(*text.Stream).E.Text; x != "BooAhaHello" {
+	if x := sz.(*text.Stream).Text; x != "BooAhaHello" {
 		t.Error("Unexpected merge", x)
 	}
 }
@@ -89,11 +89,11 @@ func (suite streamSuite) testCursorAdjustment(t *testing.T) {
 		s = v.(*text.Stream)
 	}
 
-	start, _ := s.E.Start()
-	end, _ := s.E.End()
+	start, _ := s.Start(false)
+	end, _ := s.End(false)
 
-	if end != 5 || start != 5 || s.E.Text != "booHello" {
-		t.Error("Unexpected caret", start, end, s.E.Text)
+	if end != 5 || start != 5 || s.Text != "booHello" {
+		t.Error("Unexpected caret", start, end, s.Text)
 	}
 }
 
@@ -101,13 +101,13 @@ func (suite streamSuite) testPaste(t *testing.T) {
 	s := text.StreamFromString("Hello", bool(suite))
 	sx := s.Paste("boo")
 	suite.validate(t, s, sx)
-	if sx.E.Text != "booHello" {
-		t.Error("Unexpected text", sx.E.Text)
+	if sx.Value() != "booHello" {
+		t.Error("Unexpected text", sx.Text)
 	}
 	s = sx.Paste("Hoo")
 	suite.validate(t, sx, s)
-	if s.E.Text != "HooHello" {
-		t.Error("Unexpected text", s.E.Text)
+	if s.Value() != "HooHello" {
+		t.Error("Unexpected text", s.Text)
 	}
 }
 
@@ -117,21 +117,21 @@ func (suite streamSuite) testDelete(t *testing.T) {
 
 	sx := s.Delete()
 	suite.validate(t, s, sx)
-	start, _ := sx.E.Start()
-	end, _ := sx.E.End()
-	if sx.E.Text != "Hel" || start != 3 || end != 3 {
-		t.Error("Unexpected text", sx.E.Text, start, end)
+	start, _ := sx.Start(false)
+	end, _ := sx.End(false)
+	if sx.Text != "Hel" || start != 3 || end != 3 {
+		t.Error("Unexpected text", sx.Text, start, end)
 	}
 
 	// the unicode chars below = a + agontek + acute. They should
 	// be treated as one grapheme cluster
 	s = text.StreamFromString("\u0061\u0328\u0301", bool(suite))
-	s = s.SetSelection(len(s.E.Text), len(s.E.Text), false)
+	s = s.SetSelection(len(s.Text), len(s.Text), false)
 
 	sx = s.Delete()
 	suite.validate(t, s, sx)
-	if sx.E.Text != "" {
-		t.Error("Unexpected text", s.E.Text)
+	if sx.Text != "" {
+		t.Error("Unexpected text", s.Text)
 	}
 }
 
@@ -146,7 +146,7 @@ func (suite streamSuite) testAppend(t *testing.T) {
 		t.Error("Unexpected non-nil next", x)
 	}
 
-	after = sx.Append(changes.Replace{s.E, types.S8("okok")})
+	after = sx.Append(changes.Replace{s.Editable, types.S8("okok")})
 	vs, ok := after.(*streams.ValueStream)
 	if !ok || vs.Value != types.S8("okok") {
 		t.Error("Unexpected replace result", after)
@@ -167,7 +167,7 @@ func (suite streamSuite) testReverseAppend(t *testing.T) {
 		t.Error("Unexpected non-nil next", x)
 	}
 
-	after = sx.ReverseAppend(changes.Replace{s.E, types.S8("okok")})
+	after = sx.ReverseAppend(changes.Replace{s.Editable, types.S8("okok")})
 	vs, ok := after.(*streams.ValueStream)
 	if !ok || vs.Value != types.S8("okok") {
 		t.Error("Unexpected replace result", after)
@@ -183,20 +183,20 @@ func (suite streamSuite) testCollapsedSelection(t *testing.T) {
 	// test caret
 	after := s.SetSelection(3, 3, false)
 	suite.validate(t, s, after)
-	if idx, left := after.E.Start(); idx != 3 || left {
+	if idx, left := after.Start(false); idx != 3 || left {
 		t.Error("Unexpected start", idx, left)
 	}
-	if idx, left := after.E.End(); idx != 3 || left {
+	if idx, left := after.End(false); idx != 3 || left {
 		t.Error("Unexpected end", idx, left)
 	}
 
 	s = after
 	after = s.SetSelection(3, 3, true)
 	suite.validate(t, s, after)
-	if idx, left := after.E.Start(); idx != 3 || !left {
+	if idx, left := after.Start(false); idx != 3 || !left {
 		t.Error("Unexpected start", idx, left)
 	}
-	if idx, left := after.E.End(); idx != 3 || !left {
+	if idx, left := after.End(false); idx != 3 || !left {
 		t.Error("Unexpected end", idx, left)
 	}
 }
@@ -206,27 +206,27 @@ func (suite streamSuite) testNonCollapsedSelection(t *testing.T) {
 
 	after := s.SetSelection(3, 5, true)
 	suite.validate(t, s, after)
-	if idx, left := after.E.Start(); idx != 3 || left {
+	if idx, left := after.Start(false); idx != 3 || left {
 		t.Error("Unexpected start", idx, left)
 	}
-	if idx, left := after.E.End(); idx != 5 || !left {
+	if idx, left := after.End(false); idx != 5 || !left {
 		t.Error("Unexpected end", idx, left)
 	}
 
 	s = after
 	after = s.SetSelection(5, 3, true)
 	suite.validate(t, s, after)
-	if idx, left := after.E.Start(); idx != 5 || !left {
+	if idx, left := after.Start(false); idx != 5 || !left {
 		t.Error("Unexpected start", idx, left)
 	}
-	if idx, left := after.E.End(); idx != 3 || left {
+	if idx, left := after.End(false); idx != 3 || left {
 		t.Error("Unexpected end", idx, left)
 	}
 }
 
 func (suite streamSuite) validate(t *testing.T, before, after *text.Stream) {
 	if next, _ := before.Next(); !reflect.DeepEqual(next, after) {
-		t.Error("Divergent change", next.(*text.Stream).E, "x", after.E)
+		t.Error("Divergent change", next.(*text.Stream).Editable, "x", after.Editable)
 	}
 	var next streams.Stream
 	before.Nextf("validate", func() {
