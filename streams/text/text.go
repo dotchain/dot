@@ -101,16 +101,36 @@ func (e *Editable) Copy() string {
 	return e.valueToString(sel)
 }
 
-// Start returns the cursor index
-func (e *Editable) Start() (int, bool) {
+// Start returns the cursor index. If utf16 is set, it returns the
+// offset in UTF16 units. Otherwise in utf8 units
+func (e *Editable) Start(utf16 bool) (int, bool) {
 	caret := e.cursor().Start
+	if e.Use16 == utf16 {
+		return caret.Index, caret.IsLeft
+	}
+	if utf16 {
+		return types.S16(e.Text).ToUTF16(caret.Index), caret.IsLeft
+	}
 	return e.fromValueOffset(caret.Index), caret.IsLeft
 }
 
-// End returns the cursor end
-func (e *Editable) End() (int, bool) {
+// End returns the cursor end.  If utf16 is set, it returns the offset
+// in UTF16 units. Otherwise in utf8 units
+func (e *Editable) End(utf16 bool) (int, bool) {
 	caret := e.cursor().End
+	if e.Use16 == utf16 {
+		return caret.Index, caret.IsLeft
+	}
+	if utf16 {
+		return types.S16(e.Text).ToUTF16(caret.Index), caret.IsLeft
+	}
 	return e.fromValueOffset(caret.Index), caret.IsLeft
+}
+
+// Value just returns the inner Text.  This is mainly there to make it
+// easier to use this function from Javascript-land
+func (e *Editable) Value() string {
+	return e.Text
 }
 
 // Paste is like insert except it keeps the cursor around the pasted

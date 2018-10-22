@@ -32,13 +32,13 @@ func StreamFromString(initialText string, use16 bool) *Stream {
 // inserted text.  The "left" position and "right" position match the
 // two behaviors (respectively)
 type Stream struct {
-	E *Editable
+	*Editable
 	S streams.Stream
 }
 
 // Append implements streams.Stream:Append
 func (s *Stream) Append(c changes.Change) streams.Stream {
-	v := s.E.Apply(c)
+	v := s.Apply(c)
 	sx := s.S.Append(c)
 	if e, ok := v.(*Editable); ok {
 		return &Stream{e, sx}
@@ -48,7 +48,7 @@ func (s *Stream) Append(c changes.Change) streams.Stream {
 
 // ReverseAppend implements streams.Stream:ReverseAppend
 func (s *Stream) ReverseAppend(c changes.Change) streams.Stream {
-	v := s.E.Apply(c)
+	v := s.Apply(c)
 	sx := s.S.ReverseAppend(c)
 	if e, ok := v.(*Editable); ok {
 		return &Stream{e, sx}
@@ -68,27 +68,27 @@ func (s *Stream) Nextf(key interface{}, fn func()) {
 
 // SetSelection sets the selection range for text
 func (s *Stream) SetSelection(start, end int, left bool) *Stream {
-	c, e := s.E.SetSelection(start, end, left)
+	c, e := s.Editable.SetSelection(start, end, left)
 	return &Stream{e, s.S.Append(c)}
 }
 
 // Paste inserts the provided string at current cursor (deleting any
 // text that might be selected).  It leaves the current text selected.
 func (s *Stream) Paste(str string) *Stream {
-	c, e := s.E.Paste(str)
+	c, e := s.Editable.Paste(str)
 	return &Stream{e, s.S.Append(c)}
 }
 
 // Insert inserts a string
 func (s *Stream) Insert(str string) *Stream {
-	c, e := s.E.Insert(str)
+	c, e := s.Editable.Insert(str)
 	return &Stream{e, s.S.Append(c)}
 }
 
 // Delete deletes the current selection or the last caret before the
 // caret.
 func (s *Stream) Delete() *Stream {
-	c, e := s.E.Delete()
+	c, e := s.Editable.Delete()
 	return &Stream{e, s.S.Append(c)}
 }
 
@@ -123,12 +123,30 @@ func (s *Stream) WithoutOwnCursor() streams.Stream {
 	return filterChange{filter, s}
 }
 
+// Value simply proxies to Editable.  Only there because GopherJS does
+// not seem to export embedded methods
+func (s *Stream) Value() string {
+	return s.Editable.Value()
+}
+
+// Start simply proxies to Editable.  Only there because GopherJS does
+// not seem to export embedded methods
+func (s *Stream) Start(utf16 bool) (int, bool) {
+	return s.Editable.Start(utf16)
+}
+
+// End simply proxies to Editable.  Only there because GopherJS does
+// not seem to export embedded methods
+func (s *Stream) End(utf16 bool) (int, bool) {
+	return s.Editable.End(utf16)
+}
+
 func (s Stream) mapChangeValue(str streams.Stream, c changes.Change) (streams.Stream, changes.Change) {
 	if str == nil {
 		return str, c
 	}
 
-	v := s.E.Apply(c)
+	v := s.Apply(c)
 	if e, ok := v.(*Editable); ok {
 		return &Stream{e, str}, c
 	}

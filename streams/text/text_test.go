@@ -71,14 +71,17 @@ func (s textSuite) testCaretRemoteInsertion(t *testing.T) {
 	cx := changes.PathChange{[]interface{}{"Value"}, insert}
 	ex = e.Apply(cx).(*text.Editable)
 	e = validate(t, cx, e, ex)
-	if start, _ := e.Start(); start != 3 {
+	if start, _ := e.Start(true); start != 3 {
+		t.Error("Unexpected start", start)
+	}
+	if start, _ := e.Start(false); start != 3 {
 		t.Error("Unexpected start", start)
 	}
 
 	_, e = e.SetSelection(3, 3, false)
 	ex = e.Apply(cx).(*text.Editable)
 	e = validate(t, cx, e, ex)
-	if start, _ := e.Start(); start != 3+len("book") {
+	if start, _ := e.Start(false); start != 3+len("book") {
 		t.Error("Unexpected start", start)
 	}
 }
@@ -95,11 +98,14 @@ func (s textSuite) testTextInsertCollapsed(t *testing.T) {
 		t.Error("Unexpected insert text", e.Text)
 	}
 
-	if x, left := e.Start(); x != len("Hel<boo>") || left {
+	if x, left := e.Start(false); x != len("Hel<boo>") || left {
 		t.Error("Unexpected start", x, left)
 	}
 
-	if x, left := e.End(); x != len("Hel<boo>") || left {
+	if x, left := e.End(false); x != len("Hel<boo>") || left {
+		t.Error("Unexpected end", x, left)
+	}
+	if x, left := e.End(true); x != len("Hel<boo>") || left {
 		t.Error("Unexpected end", x, left)
 	}
 }
@@ -116,11 +122,11 @@ func (s textSuite) testTextInsertNonCollapsed(t *testing.T) {
 		t.Error("Unexpected insert text", e.Text)
 	}
 
-	if x, left := e.Start(); x != len("Hel<boo>") || left {
+	if x, left := e.Start(false); x != len("Hel<boo>") || left {
 		t.Error("Unexpected start", x, left)
 	}
 
-	if x, left := e.End(); x != len("Hel<boo>") || left {
+	if x, left := e.End(false); x != len("Hel<boo>") || left {
 		t.Error("Unexpected end", x, left)
 	}
 }
@@ -137,11 +143,11 @@ func (s textSuite) testTextPasteCollapsed(t *testing.T) {
 		t.Error("Unexpected insert text", e.Text)
 	}
 
-	if x, left := e.Start(); x != len("Hel") || left {
+	if x, left := e.Start(false); x != len("Hel") || left {
 		t.Error("Unexpected start", x, left)
 	}
 
-	if x, left := e.End(); x != len("Hel<boo>") || !left {
+	if x, left := e.End(false); x != len("Hel<boo>") || !left {
 		t.Error("Unexpected end", x, left)
 	}
 }
@@ -158,11 +164,11 @@ func (s textSuite) testTextPasteNonCollapsed(t *testing.T) {
 		t.Error("Unexpected insert text", e.Text)
 	}
 
-	if x, left := e.Start(); x != len("Hel") || left {
+	if x, left := e.Start(false); x != len("Hel") || left {
 		t.Error("Unexpected start", x, left)
 	}
 
-	if x, left := e.End(); x != len("Hel<boo>") || !left {
+	if x, left := e.End(false); x != len("Hel<boo>") || !left {
 		t.Error("Unexpected end", x, left)
 	}
 }
@@ -179,11 +185,11 @@ func (s textSuite) testTextDeleteCollapsed(t *testing.T) {
 		t.Error("Unexpected insert text", e.Text)
 	}
 
-	if x, left := e.Start(); x != len("He") || !left {
+	if x, left := e.Start(false); x != len("He") || !left {
 		t.Error("Unexpected start", x, left)
 	}
 
-	if x, left := e.End(); x != len("He") || !left {
+	if x, left := e.End(false); x != len("He") || !left {
 		t.Error("Unexpected end", x, left)
 	}
 }
@@ -200,11 +206,11 @@ func (s textSuite) testTextDeleteNonCollapsed(t *testing.T) {
 		t.Error("Unexpected insert text", e.Text)
 	}
 
-	if x, left := e.Start(); x != len("Hel") || !left {
+	if x, left := e.Start(false); x != len("Hel") || !left {
 		t.Error("Unexpected start", x, left)
 	}
 
-	if x, left := e.End(); x != len("Hel") || !left {
+	if x, left := e.End(false); x != len("Hel") || !left {
 		t.Error("Unexpected end", x, left)
 	}
 }
@@ -264,14 +270,14 @@ func validate(t *testing.T, c changes.Change, before, after *text.Editable) *tex
 		if reverted.Text != before.Text {
 			t.Fatal("revert diverged", reverted.Text, before.Text, c)
 		}
-		start, left := before.Start()
-		rstart, rleft := reverted.Start()
+		start, left := before.Start(false)
+		rstart, rleft := reverted.Start(false)
 		if start != rstart || left != rleft {
 			t.Fatal("revert diverged", start, left, rstart, rleft, c)
 		}
 
-		end, left := before.End()
-		rend, rleft := reverted.End()
+		end, left := before.End(false)
+		rend, rleft := reverted.End(false)
 		if end != rend || left != rleft {
 			t.Fatal("revert diverged", end, left, rend, rleft, c)
 		}

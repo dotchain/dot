@@ -8,11 +8,12 @@ import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/streams"
 	"reflect"
+	"sync"
 	"testing"
 )
 
 func TestAsync(t *testing.T) {
-	async := &streams.Async{}
+	async := streams.NewAsync(0)
 	s := async.Wrap(streams.New())
 	cx := []changes.Change{}
 	var latest streams.Stream = s
@@ -48,7 +49,7 @@ func TestAsync(t *testing.T) {
 }
 
 func TestAsyncMerge(t *testing.T) {
-	async := &streams.Async{}
+	async := streams.NewAsync(0)
 	up := async.Wrap(streams.New())
 	down := async.Wrap(streams.New())
 	streams.Connect(up, down)
@@ -72,11 +73,14 @@ func TestAsyncMerge(t *testing.T) {
 	}
 }
 
-func TestAsyncRun(t *testing.T) {
-	async := &streams.Async{}
-	ran := false
-	async.Run(func() { ran = true })
-	if !ran {
-		t.Error("Run didn't synchronously run")
-	}
+func TestAsyncForever(t *testing.T) {
+	async := streams.NewAsync(0)
+	async.LoopForever()
+	s := async.Wrap(streams.New())
+	var wg sync.WaitGroup
+	wg.Add(1)
+	s.Nextf("key", wg.Done)
+	s.Append(changes.Move{2, 2, 2})
+	wg.Wait()
+	async.Close()
 }

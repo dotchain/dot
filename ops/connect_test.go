@@ -26,24 +26,22 @@ func TestConnect(t *testing.T) {
 
 	var c1ops changes.Change
 	var wg sync.WaitGroup
-	c1.Async.Run(func() {
-		s := c1.Stream
-		c1.Stream.Nextf("key", func() {
-			_, c1ops = s.Next()
-			wg.Done()
-		})
+	s := c1.Stream
+	c1.Stream.Nextf("key", func() {
+		_, c1ops = s.Next()
+		wg.Done()
 	})
 
 	wg.Add(1)
-	s := c2.Stream
-
-	c2.Async.Run(func() {
-		s = s.Append(changes.Move{2, 3, 4})
-	})
+	s2 := c2.Stream
+	s2.Append(changes.Move{2, 3, 4})
 
 	wg.Wait()
 	expected := changes.ChangeSet{changes.Move{2, 3, 4}}
 	if !reflect.DeepEqual(c1ops, expected) {
 		t.Fatal("Unexpected merge", c1ops)
 	}
+
+	c1.Async.Close()
+	c2.Async.Close()
 }
