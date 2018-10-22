@@ -30,6 +30,8 @@ func (suite streamSuite) Run(t *testing.T) {
 	t.Run("WithoutOwnCursor", suite.testWithoutOwnCursor)
 	t.Run("CursorAdjustment", suite.testCursorAdjustment)
 	t.Run("ArrowRightLeft", suite.testArrowRightLeft)
+	t.Run("ShiftArrowLeft", suite.testShiftArrowLeft)
+	t.Run("ShiftArrowRight", suite.testShiftArrowRight)
 }
 
 func (suite streamSuite) testWithoutOwnCursor(t *testing.T) {
@@ -241,7 +243,7 @@ func (suite streamSuite) testArrowRightLeft(t *testing.T) {
 	}
 
 	if x, left := after.End(false); left || x != len(s.Value()) {
-		t.Error("Unexpected start value", left, x)
+		t.Error("Unexpected end value", left, x)
 	}
 
 	s = after.ArrowLeft()
@@ -256,7 +258,48 @@ func (suite streamSuite) testArrowRightLeft(t *testing.T) {
 	}
 
 	if x, left := s.End(false); !left || x != 0 {
+		t.Error("Unexpected end value", left, x)
+	}
+}
+
+func (suite streamSuite) testShiftArrowLeft(t *testing.T) {
+	// lets test out some agontek magic: a + ogonek + acute
+	s := text.StreamFromString("\u0061\u0328\u0301", bool(suite))
+	s = s.SetSelection(len(s.Value()), len(s.Value()), false)
+
+	after := s.ShiftArrowLeft()
+	suite.validate(t, s, after)
+
+	if s.Value() != after.Value() {
+		t.Error("Unexpected value change", after.Value())
+	}
+
+	if x, left := after.Start(false); !left || x != len(s.Value()) {
 		t.Error("Unexpected start value", left, x)
+	}
+
+	if x, left := after.End(false); left || x != 0 {
+		t.Error("Unexpected end value", left, x)
+	}
+}
+
+func (suite streamSuite) testShiftArrowRight(t *testing.T) {
+	// lets test out some agontek magic: a + ogonek + acute
+	s := text.StreamFromString("\u0061\u0328\u0301", bool(suite))
+
+	after := s.ShiftArrowRight()
+	suite.validate(t, s, after)
+
+	if s.Value() != after.Value() {
+		t.Error("Unexpected value change", after.Value())
+	}
+
+	if x, left := after.Start(false); left || x != 0 {
+		t.Error("Unexpected start value", left, x)
+	}
+
+	if x, left := after.End(false); !left || x != len(s.Value()) {
+		t.Error("Unexpected end value", left, x)
 	}
 }
 

@@ -92,17 +92,31 @@ func (s *Stream) Delete() *Stream {
 	return &Stream{e, s.S.Append(c)}
 }
 
-// ArrowLeft implement left arrow key, taking care to properly account
+// ArrowLeft implements left arrow key, taking care to properly account
 // for unicode sequences.
 func (s *Stream) ArrowLeft() *Stream {
 	c, e := s.Editable.ArrowLeft()
 	return &Stream{e, s.S.Append(c)}
 }
 
-// ArrowRight implement right arrow key, taking care to properly account
+// ArrowRight implements right arrow key, taking care to properly account
 // for unicode sequences.
 func (s *Stream) ArrowRight() *Stream {
 	c, e := s.Editable.ArrowRight()
+	return &Stream{e, s.S.Append(c)}
+}
+
+// ShiftArrowLeft implements shift left arrow key, taking care to
+// properly account for unicode sequences.
+func (s *Stream) ShiftArrowLeft() *Stream {
+	c, e := s.Editable.ShiftArrowLeft()
+	return &Stream{e, s.S.Append(c)}
+}
+
+// ShiftArrowRight implements shift right arrow key, taking care to
+// properly account for unicode sequences.
+func (s *Stream) ShiftArrowRight() *Stream {
+	c, e := s.Editable.ShiftArrowRight()
 	return &Stream{e, s.S.Append(c)}
 }
 
