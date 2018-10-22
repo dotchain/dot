@@ -32,6 +32,7 @@ func (s textSuite) Run(t *testing.T) {
 	t.Run("EmptyDelete", s.testEmptyDelete)
 	t.Run("Replace", s.testReplace)
 	t.Run("CharWidths", s.testCharWidths)
+	t.Run("ArrowRightLeft", s.testArrowRightLeft)
 }
 
 func (s textSuite) editable(txt string) *text.Editable {
@@ -258,6 +259,39 @@ func (s textSuite) testCharWidths(t *testing.T) {
 	}
 	if x := e.PrevCharWidth(w); x != w {
 		t.Error("PrevCharWidth unexpected", x)
+	}
+}
+
+func (s textSuite) testArrowRightLeft(t *testing.T) {
+	// lets test out some agontek magic: a + ogonek + acute
+	e := s.editable("\u0061\u0328\u0301")
+	c, after := e.ArrowRight()
+	validate(t, c, e, after)
+	if e.Value() != after.Value() {
+		t.Error("Unexpected value change", after.Value())
+	}
+
+	if x, left := after.Start(false); left || x != len(e.Text) {
+		t.Error("Unexpected start value", left, x)
+	}
+
+	if x, left := after.End(false); left || x != len(e.Text) {
+		t.Error("Unexpected start value", left, x)
+	}
+
+	c, e = after.ArrowLeft()
+	validate(t, c, after, e)
+
+	if e.Value() != after.Value() {
+		t.Error("Unexpected value change", e.Value())
+	}
+
+	if x, left := e.Start(false); !left || x != 0 {
+		t.Error("Unexpected start value", left, x)
+	}
+
+	if x, left := e.End(false); !left || x != 0 {
+		t.Error("Unexpected start value", left, x)
 	}
 }
 

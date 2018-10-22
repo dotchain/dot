@@ -92,6 +92,20 @@ func (s *Stream) Delete() *Stream {
 	return &Stream{e, s.S.Append(c)}
 }
 
+// ArrowLeft implement left arrow key, taking care to properly account
+// for unicode sequences.
+func (s *Stream) ArrowLeft() *Stream {
+	c, e := s.Editable.ArrowLeft()
+	return &Stream{e, s.S.Append(c)}
+}
+
+// ArrowRight implement right arrow key, taking care to properly account
+// for unicode sequences.
+func (s *Stream) ArrowRight() *Stream {
+	c, e := s.Editable.ArrowRight()
+	return &Stream{e, s.S.Append(c)}
+}
+
 // WithoutOwnCursor returns a stream that can be used to sync with
 // remote clients. The local stream contains changes pertaining to the
 // local cursor that is not meant to be shared across to remote
