@@ -94,6 +94,40 @@ func (e *Editable) Delete() (changes.Change, *Editable) {
 	return changes.ChangeSet{cx, splice}, e.fromList(lx)
 }
 
+// ArrowLeft implements left arrow key, taking care to properly account
+// for unicode sequences.
+func (e *Editable) ArrowLeft() (changes.Change, *Editable) {
+	idx := e.fromValueOffset(e.cursor().End.Index)
+	idx -= e.PrevCharWidth(idx)
+	return e.SetSelection(idx, idx, true)
+}
+
+// ShiftArrowLeft implements shift left arrow key, taking care to
+// properly account for unicode sequences.
+func (e *Editable) ShiftArrowLeft() (changes.Change, *Editable) {
+	idx := e.fromValueOffset(e.cursor().End.Index)
+	idx -= e.PrevCharWidth(idx)
+	s := e.fromValueOffset(e.cursor().Start.Index)
+	return e.SetSelection(s, idx, true)
+}
+
+// ArrowRight implements right arrow key, taking care to properly account
+// for unicode sequences.
+func (e *Editable) ArrowRight() (changes.Change, *Editable) {
+	idx := e.fromValueOffset(e.cursor().End.Index)
+	idx += e.NextCharWidth(idx)
+	return e.SetSelection(idx, idx, false)
+}
+
+// ShiftArrowRight implements shift right arrow key, taking care to
+// properly account for unicode sequences.
+func (e *Editable) ShiftArrowRight() (changes.Change, *Editable) {
+	idx := e.fromValueOffset(e.cursor().End.Index)
+	idx += e.NextCharWidth(idx)
+	s := e.fromValueOffset(e.cursor().Start.Index)
+	return e.SetSelection(s, idx, false)
+}
+
 // Copy does not change editable.  It just returns the text currently
 // selected.
 func (e *Editable) Copy() string {
