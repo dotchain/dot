@@ -37,7 +37,7 @@ func TestConnect(t *testing.T) {
 	s2.Append(changes.Move{2, 3, 4})
 
 	wg.Wait()
-	expected := changes.ChangeSet{changes.Move{2, 3, 4}}
+	expected := changes.Move{2, 3, 4}
 	if !reflect.DeepEqual(c1ops, expected) {
 		t.Fatal("Unexpected merge", c1ops)
 	}
