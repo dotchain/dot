@@ -77,7 +77,6 @@
 //      // replace "world" with "world!"
 //      replace := changes.Replace{types.S8("world"), types.S8("world!")}
 //      path := []interface{}{0, "hello"}
-//      change := changes.PathChange{path, replace}
 //      // replace initial[0]["hello"]
 //      updated := initial.Apply(changes.PathChange{path, replace})
 //
@@ -232,7 +231,7 @@
 //    )
 //
 //    func connect() streams.Straem {
-//      c := nw.Client{URL: ...}`
+//      c := nw.Client{URL: ...}
 //      defer c.Close()
 //
 //    // the following two can be used to restart a session

@@ -6,7 +6,6 @@ package ops
 
 import (
 	"context"
-	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/streams"
 	"sync"
 	"time"
@@ -55,21 +54,8 @@ func (c *Connector) Connect() {
 	}
 
 	must(c.Store.Append(ctx, c.Pending))
+	c.Stream.Nextf(c, func() { c.write(ctx) })
 
-	c.Stream.Nextf(c, func() {
-		var change changes.Change
-		c.Stream, change = streams.Latest(c.Stream)
-		if isNonEmpty(change) {
-			c.Lock()
-			op := Operation{OpID: NewID(), BasisID: c.Version, VerID: -1, Change: change}
-			if len(c.Pending) > 0 {
-				op.ParentID = c.Pending[0].ID()
-			}
-			c.Pending = append(c.Pending, op)
-			c.Unlock()
-			must(c.Store.Append(context.Background(), []Op{op}))
-		}
-	})
 	go func() {
 		c.readLoop(ctx)
 		c.Stream.Nextf(c, nil)
@@ -83,6 +69,34 @@ func (c *Connector) Disconnect() {
 	c.close()
 }
 
+// write takes any unwritten changes from c.Stream and writes it out
+// to the ops store. note that write does not update c.Stream as
+// c.Stream tracks the last upstream version
+func (c *Connector) write(ctx context.Context) {
+	c.Lock()
+	idx, ver := 0, c.Version
+	ops := []Op(nil)
+
+	for next, ch := c.Stream.Next(); next != nil; next, ch = next.Next() {
+		if idx >= len(c.Pending) {
+			op := Operation{OpID: NewID(), BasisID: ver, Change: ch}
+			if len(c.Pending) > 0 {
+				op.ParentID = c.Pending[len(c.Pending)-1].ID()
+			}
+			c.Pending = append(c.Pending, op)
+			ops = append(ops, op)
+		}
+		idx++
+	}
+	c.Unlock()
+	must(c.Store.Append(ctx, ops))
+}
+
+// readLoop reads operations from the store and adds it to c.Stream
+// taking care to handle acknowledgements: acknowledgements are
+// expected to be in order, so the pending unacknowledge list is
+// checked. Acknowledgments are not merged as they are already merged
+// -- the stream is simply advanced.
 func (c *Connector) readLoop(ctx context.Context) {
 	limit := 1000
 
@@ -105,19 +119,17 @@ func (c *Connector) readLoop(ctx context.Context) {
 			c.Lock()
 			c.Version = op.Version()
 			change := op.Changes()
-			if len(c.Pending) > 0 && c.Pending[0].ID() == op.ID() {
-				change = nil
+
+			ack := len(c.Pending) > 0 && c.Pending[0].ID() == op.ID()
+			if ack {
 				c.Pending = c.Pending[1:]
+				c.Stream, _ = c.Stream.Next()
+			} else {
+				c.Stream = c.Stream.ReverseAppend(change)
 			}
 			c.Unlock()
-			c.Stream = c.Stream.ReverseAppend(change)
 		}
 	}
 }
 
 func must(err error) {}
-
-func isNonEmpty(c changes.Change) bool {
-	cs, ok := c.(changes.ChangeSet)
-	return !ok || (len(cs) > 0 && cs[0] != nil)
-}
