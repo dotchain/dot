@@ -3,6 +3,29 @@
 // that can be found in the LICENSE file.
 
 // Package bolt implements the dot storage for files using boltdb
+//
+// A http server can be implemented like so:
+//      import "github.com/dotchain/dot/ops/bolt"
+//      import "github.com/dotchain/dot/x/nw"
+//      store, _ := bolt.New("file.bolt", "instance", nil)
+//      defer  store.Close()
+//      handler := &nw.Handler{Store: store}
+//      h := func(w http.ResponseWriter, req  *http.Request) {
+//              // Enable CORS
+//              w.Header().Set("Access-Control-Allow-Origin", "*")
+//              w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+//              if req.Method == "OPTIONS" {
+//                    return
+//              }
+//              handler.ServeHTTP(w, req)
+//      }
+//      http.HandleFunc("/api/", h)
+//      http.ListenAndServe()
+//
+// Concurrency
+//
+// A single store instance is safe for concurrent access but the
+// provided file is locked until the store is closed.
 package bolt
 
 import (

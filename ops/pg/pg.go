@@ -3,6 +3,26 @@
 // that can be found in the LICENSE file.
 
 // Package pg implements the dot storage for postgres 9.5+
+//
+// A http server can be implemented like so:
+//      import "github.com/dotchain/dot/ops/pg"
+//      import "github.com/dotchain/dot/x/nw"
+//      dataSource := "dbname=mydb user=xyz"
+//      store, _ := sql.New(dataSource, "instance", nil)
+//      defer  store.Close()
+//      handler := &nw.Handler{Store: store}
+//      h := func(w http.ResponseWriter, req  *http.Request) {
+//              // Enable CORS
+//              w.Header().Set("Access-Control-Allow-Origin", "*")
+//              w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+//              if req.Method == "OPTIONS" {
+//                    return
+//              }
+//              handler.ServeHTTP(w, req)
+//      }
+//      http.HandleFunc("/api/", h)
+//      http.ListenAndServe()
+//
 package pg
 
 import (

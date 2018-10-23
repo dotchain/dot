@@ -246,6 +246,30 @@
 //   }
 //
 //
+// Backend storage implementations
+//
+// There are two storage implementations: a local file-system option
+// based on BoltDB and a Postgres solution.  See
+// https://godoc.org/github.com/dotchain/dot/ops/boltdb and
+// https://godoc.org/github.com/dotchain/dot/ops/pg
+//
+// A simple HTTP server can be created using the bolt/pg store implementations.
+//      import "github.com/dotchain/dot/ops/bolt"
+//      import "github.com/dotchain/dot/x/nw"
+//      store, _ := bolt.New("file.bolt", "instance", nil)
+//      defer  store.Close()
+//      handler := &nw.Handler{Store: store}
+//      h := func(w http.ResponseWriter, req  *http.Request) {
+//              // Enable CORS
+//              w.Header().Set("Access-Control-Allow-Origin", "*")
+//              w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+//              if req.Method == "OPTIONS" {
+//                    return
+//              }
+//              handler.ServeHTTP(w, req)
+//      }
+//      http.HandleFunc("/api/", h)
+//      http.ListenAndServe()
 // Undo log, folding and extras
 //
 // The streams abstraction provides the basis for implementing
@@ -257,15 +281,6 @@
 // etc) which is not committed.  And then more changes can be made on top
 // of it which **are committed**.  These types of shenanigans is possible
 // with the use of a small fixed set of well-behaved changes.
-//
-//
-// Backend storage implementations
-//
-// There are two storage implementations: a local file-system option
-// based on BoltDB and a Postgres solution.  See
-// https://godoc.org/github.com/dotchain/dot/ops/boltdb and
-// https://godoc.org/github.com/dotchain/dot/ops/pg
-//
 //
 // Not yet implemented
 //
