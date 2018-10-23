@@ -1,6 +1,6 @@
 # Operational Transforms Package
 
-[![Status](https://travis-ci.org/dotchain/dot.svg?branch=master)](https://travis-ci.org/dotchain/dot?branch=master)
+[![Status](https://travis-ci.com/dotchain/dot.svg?branch=master)](https://travis-ci.org/dotchain/dot?branch=master)
 [![GoDoc](https://godoc.org/github.com/dotchain/dot?status.svg)](https://godoc.org/github.com/dotchain/dot)
 [![codecov](https://codecov.io/gh/dotchain/dot/branch/master/graph/badge.svg)](https://codecov.io/gh/dotchain/dot)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dotchain/dot)](https://goreportcard.com/report/github.com/dotchain/dot)
@@ -35,31 +35,67 @@ The DOT project is based on *immutable* or *persistent* **values** and
 look like this:
 
 ```golang
+        // import "github.com/dotchain/x/types.S8
+        // S8 is DOT-compatible string type with UTF8 string indices
         initial := types.S8("hello")
-        insert := changes.Splice{5, types.S8(""), types.S8(" world")}
-        updated := initial.Apply(insert)
+
+        // replace "" with " world" at offset = 5 (i.e. end)
+        append := changes.Splice{5, types.S8(""), types.S8(" world")}
+
+        // actually apply the change
+        updated := initial.Apply(append)
+
         // now updated == "hello world"
 ```
 
 The [changes](https://godoc.org/github.com/dotchain/dot/changes)
 package implements the core changes: **Splice**, **Move** and
 **Replace**.  The logical model for these changes is to treat all
-values as either being like *arrays* (in which case the first two
-operations apply) or *map like*.  The **Replace** change replaces any
-value with a new value.
+values as either being like *arrays* or like *maps*.  The actual
+underlying datatype can be different as long as the array/map
+semantics is implemented.
 
-Changes can be *composed*.  For example, the **PathChange** type
-allows modifying the value at a specific path in the value:
+### Composition of changes
+
+Changes can be *composed* together. A simple form of composition is
+just a set of changes:
 
 ```golang
-        initial := types.A{types.S8("hello"), types.S8("world")}
-        insert := changes.Splice{5, types.S8(""), types.S8(" world")}
-        change := changes.PathChange{[]interface{}{0}, insert}
-        updated := initial.Apply(change)
+        initial := types.S8("hello")
+
+        // append " world"
+        append1 := changes.Splice{5, types.S8(""), types.S8(" world")}
+
+        // append "."
+        append2 := changes.Splice{11, types.S8(""), types.S8(".")}
+        
+        // now combine the two appends and apply
+        both := changes.ChangeSet{append1, append2}
+        updated := initial.Apply(both)
 ```
 
-The other composition is combining a sequence of changes using
-**ChangeSet**.
+Another form of composition is modifying a sub-element such as an
+array element or a dictionary path:
+
+```golang
+        // types.A is an array type and types.M is a map type
+        initial := types.A{types.M{"hello": types.S8("world")}}
+
+        // replace "world" with "world!"
+        replace := changes.Replace{types.S8("world"), types.S8("world!")}
+        path := []interface{}{0, "hello"}
+        change := changes.PathChange{path, replace}
+
+        // replace initial[0]["hello"]
+        updated := initial.Apply(changes.PathChange{path, replace})
+```
+
+
+The [types](https://godoc.org/github.com/dotchain/dot/x/types) package
+implements standard value types (strings, arrays and maps) with which
+arbitrary json-like value can be created.
+
+### Convergence
 
 The core property of all changes is the ability to guarantee
 *convergence* when two mutations are attempted on the same state:
@@ -98,21 +134,18 @@ change). This allows the ability to build a generic
 as somewhat fancy features like
 [folding](https://godoc.org/github.com/dotchain/dot/x/fold).
 
-
-The [types](https://godoc.org/github.com/dotchain/dot/x/types) package
-implements standard value types (strings, arrays and maps) with which
-arbitrary json-like value can be created.
-
 ### References
 
 There are two broad cases where a JSON-like structure is not quite
 enough.
 
 1. Editors often need to track the cursor or selection which can be
-thought of as offsets in the editor text.  When changes happen, these
-need to be **merged**.
-2. Objects often need to refer to other parts of the JSON-tree. When
-changes happen, these would need to be updated
+thought of as offsets in the editor text.  When changes happen to the
+text, for example, the offset would need to be updated.
+2. Objects often need to refer to other parts of the JSON-tree. For
+example, one can represent a graph using the array, map primitives
+with the addition of references. When changes happen, these too would
+need to be updated.
 
 The [refs](https://godoc.org/github.com/dotchain/dot/refs) package
 implements a set of types that help work with these.  In particular,
@@ -132,35 +165,43 @@ value are considered part of the same "family" and iterating on its
 value: 
 
 ```golang
+       // import "github.com/dotchain/streams/text
 
-        initial := streams.ValueStream{types.S8("hello"), streams.New()}
+       // create an UTF8 text stream
+       useUTF16 := false
+       initial := text.StreamFromString("hello", useUTF16)
 
        // two changes: append " world" and delete "lo"
        insert := changes.Splice{5, types.S8(""), types.S8(" world")}
        remove := changes.Splice{3, types.S8("lo"), types.S8("")}
 
        // two versions directly on top of the initial value
-       inserted := initial.Append(insert)
-       removed := initial.Append(remove)
+       inserted := initial.Append(insert).(*text.Stream)
+       removed := initial.Append(remove).(*text.Stream)
 
        // like persistent types,
-       //    inserted == "helloworld" and removed = "hel"
+       //    inserted.Value() == "helloworld" and removed.Value() = "hel"
 
        // the converged value can be obtained from both:
-       final1 := streams.Latest(inserted).(streams.ValueStream)
-       final2 := streams.Latest(removed).(streams.ValueStream)
+       final1 := streams.Latest(inserted).(*text.Stream)
+       final2 := streams.Latest(removed).(*text.Stream)
 
        // or even from the initial value
-       final1 := streams.Latest(initial).(streams.ValueStream)
+       final3 := streams.Latest(initial).(*text.Stream)
 
        // all three are: "helworld"
 ```
 
-The example above uses a **ValueStream** which has both the value and
-tracks changes but it is possible to just track changes.  One benefit
-of doing so is the ability to "scope" changes down, say to a specific
-path. This allows removing all unnecessary storage for parts one is
-not interested in.
+The example above uses **text.Stream** which tracks not just the
+changes but the effective value along with the changes.  The
+[streams](https://godoc.org/github.com/dotchain/dot/streams) package
+defines a
+[ValueStream](https://godoc.org/github.com/dotchain/dot/streams#ValueStream)
+type that is similar but there is also the ability to work purely with
+a change stream with no associated value. This is useful for pure
+transformations (such as "scoping" changes to specific fields or array
+indices which allows applications to only maintain the values needed
+rather than track the whole state).
 
 Those familiar with [ReactiveX](http://reactivex.io/) will find the
 streams approach quite similar -- except that streams are guaranteed
@@ -174,6 +215,7 @@ called.
 
 ```golang
 
+        // here a generic change stream is created
         master := streams.New()
         local := streams.Branch(master)
 
@@ -198,7 +240,8 @@ the log gets an incrementing integer version (starting at zero). DOT
 allows operation pipe-lining (i.e. it doesnt wait for acknowledgments
 from the server before sending more operations) and to clarify the
 exact sequence, every operation carries both the last server version
-the client is aware of and any previous client operation.
+the client is aware of and the ID of any previous client
+*unacknowledged* operation.
 
 The [ops](https://godoc.org/github.com/dotchain/dot/ops) package takes
 these raw entries in the log and provides the synchronization
@@ -218,19 +261,16 @@ func connect() streams.Straem {
     c := nw.Client{URL: ...}`
     defer c.Close()
 
-    stream := streams.New()
-    sync := ops.NewSync(ops.Transformed(c), -1, stream, idgen.New)
+    // the following two can be used to restart a session
+    initialVersion := -1
+    unacknowledgedOps := []ops.Op(nil)
+    conn := ops.NewConnector(initialVersion, unacknowledgedOps, c, rand.Float64)
+    stream := conn.Stream
+    conn.Connect()
+    defer conn.Disconnect()
 
-    go func() {
-       version := 0
-       for {
-            ctx := context.WithTimeout(context.Background(), time.Second*30)
-            sync.Poll(ctx, sync.Version())
-            sync.Fetch(ctx, 1000)
-       }
-    }()
-
-    return stream
+    // ... now stream starts receiving updates from the network
+    // ... and local changes can also be applied to  it
 }
     
 ```
@@ -247,19 +287,23 @@ etc) which is not committed.  And then more changes can be made on top
 of it which **are committed**.  These types of shenanigans is possible
 with the use of a small fixed set of well-behaved changes.
 
+## Backend storage implementations
+
+There are two storage implementations: [a local filesystem based
+solution (using
+BoltDB)](https://github.com/dotchain/dot/tree/master/ops/bolt) and a
+[Postgres](https://github.com/dotchain/dot/tree/master/ops/pg)
+solution.
+
 ## Not yet implemented
 
-There is no native JS version.
+There is no native JS version though the [browser
+demo](https://dotchain.github.io/demos/) uses a GopherJS
+transpiled version.  At some point, this will be packaged for native
+JS consumption.
 
-The storage layer is an in-memory version though it is relatively
-simple to build storage backends given the very trivial storage
-interface. 
-
-The network API requires a careful management of event loops. This
-should be simplified.
-
-There is no snapshot storage mechanism (for operations as well as full
-values) which would require replaying the log each time.
+The async scheduler and the way it interacts with ops Connector are
+still a bit awkward to use.
 
 It is also possible to implement cross-object merging (i.e. sharing a
 sub-object between two instances by using the OT merge approach to the

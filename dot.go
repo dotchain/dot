@@ -35,40 +35,61 @@
 //
 // Demo
 //
-// See [Demos](https://dotchain.github.io/demos/).
+// See https://dotchain.github.io/demos/
 //
 // How it works
 //
 // The DOT project is based on *immutable* or *persistent* **values** and
 // **changes**. For example, inserting a character into a string would
 // look like this:
+//        // import "github.com/dotchain/x/types.S8
+//        // S8 is DOT-compatible string type with UTF8 string indices
 //        initial := types.S8("hello")
-//        insert := changes.Splice{5, types.S8(""), types.S8(" world")}
-//        updated := initial.Apply(insert)
+//        append := changes.Splice{5, types.S8(""), types.S8(" world")}
+//        updated := initial.Apply(append)
 //        // now updated == "hello world"
 //
-// The [changes](https://godoc.org/github.com/dotchain/dot/changes)
-// package implements the core changes: **Splice**, **Move** and
-// **Replace**.  The logical model for these changes is to treat all
-// values as either being like *arrays* (in which case the first two
-// operations apply) or *map like*.  The **Replace** change replaces any
-// value with a new value.
+// The https://godoc.org/github.com/dotchain/dot/changes
+// package implements the core changes: Splice, Move and
+// Replace.  The logical model for these changes is to treat all
+// values as either being like arrays or like maps. The actual
+// underlying datatype can be different as long as the array/map
+// semantics is implemented.
 //
-// Changes can be *composed*.  For example, the **PathChange** type
-// allows modifying the value at a specific path in the value:
+// Composition of changes
+//
+// Changes can be composed together. A simple form of composition is
+//  just a set of changes:
+//      initial := types.S8("hello")
+//      // append " world"
+//      append1 := changes.Splice{5, types.S8(""), types.S8(" world")}
+//      // append "."
+//      append2 := changes.Splice{11, types.S8(""), types.S8(".")}
+//      // now combine the two appends and apply
+//      both := changes.ChangeSet{append1, append2}
+//      updated := initial.Apply(both)
+//
+// Another form of composition is modifying a sub-element such as an
+// array element or a dictionary path:
+//
+//      // types.A is an array type and types.M is a map type
+//      initial := types.A{types.M{"hello": types.S8("world")}}
+//      // replace "world" with "world!"
+//      replace := changes.Replace{types.S8("world"), types.S8("world!")}
+//      path := []interface{}{0, "hello"}
+//      change := changes.PathChange{path, replace}
+//      // replace initial[0]["hello"]
+//      updated := initial.Apply(changes.PathChange{path, replace})
 //
 //
-//        initial := types.A{types.S8("hello"), types.S8("world")}
-//        insert := changes.Splice{5, types.S8(""), types.S8(" world")}
-//        change := changes.PathChange{[]interface{}{0}, insert}
-//        updated := initial.Apply(change)
+// The https://godoc.org/github.com/dotchain/dot/x/types package
+// implements standard value types (strings, arrays and maps) with
+// which arbitrary json-like value can be created.
 //
-//
-// The other composition is combining a sequence of changes using
-// **ChangeSet**.
+// Convergence
 //
 // The core property of all changes is the ability to guarantee
-// *convergence* when two mutations are attempted on the same state:
+// convergence when two mutations are attempted on the same state:
 //       initial := types.S8("hello")
 //
 //       // two changes: append " world" and delete "lo"
@@ -87,22 +108,21 @@
 //       final2 := removed.Apply(insertx)
 //       // now final1 == final2
 //
-// The ability to *merge* two independent changes done to the same
+// The ability to merge two independent changes done to the same
 // initial state is the basis for the eventual convergence of the data
 // structures.  The
-// [changes](http://godoc.org/github.com/dotchain/dot/changes) package
+// http://godoc.org/github.com/dotchain/dot/changes package
 // has fairly intensive tests to cover the change types defined there,
 // both individually and in composition.
 //
 // In addition to convergence, the set of change types are chosen
-// carefully to make it easy to implement *Revert()* (undo of the
-// change). This allows the ability to build a generic
-// [undo stack](https://godoc.org/github.com/dotchain/dot/x/undo) as well
-// as somewhat fancy features like
-// [folding](https://godoc.org/github.com/dotchain/dot/x/fold).
+// carefully to make it easy to implement Revert() (undo of the
+// change. This allows the ability to build a generic
+// undo stack (https://godoc.org/github.com/dotchain/dot/x/undo) as
+// well as somewhat fancy features like
+//  folding (https://godoc.org/github.com/dotchain/dot/x/fold).
 //
-//
-// The [types](https://godoc.org/github.com/dotchain/dot/x/types) package
+// The types (https://godoc.org/github.com/dotchain/dot/x/types) package
 // implements standard value types (strings, arrays and maps) with which
 // arbitrary json-like value can be created.
 //
@@ -113,16 +133,20 @@
 // enough.
 //
 // 1. Editors often need to track the cursor or selection which can be
-// thought of as offsets in the editor text.  When changes happen, these
-// need to be **merged**.
-// 2. Objects often need to refer to other parts of the JSON-tree. When
-// changes happen, these would need to be updated
+// thought of as offsets in the editor text.  When changes happen to
+// the text, for example, the offset would need to be updated.
 //
-// The [refs](https://godoc.org/github.com/dotchain/dot/refs) package
+// 2. Objects often need to refer to other parts of the JSON-tree. For
+// example, one can represent a graph using the array, map primitives
+// with the addition of references. When changes happen, these too
+// would need to be updated.
+//
+// The refs package (https://godoc.org/github.com/dotchain/dot/refs)
 // implements a set of types that help work with these.  In particular,
 // it defines a
-// [Container](https://godoc.org/github.com/dotchain/dot/refs#Container)
-// value that allows elements within to refer to other elements.
+// Container type
+// (https://godoc.org/github.com/dotchain/dot/refs#Container)
+// that allows elements within to refer to other elements.
 //
 // Streams
 //
@@ -134,33 +158,33 @@
 // value are considered part of the same "family" and iterating on its
 // **Next()** values will converge all the values to an identical final
 // value:
-//         initial := streams.ValueStream{types.S8("hello"), streams.New()}
+//     // import "github.com/dotchain/streams/text
+//     // create an UTF8 text stream
+//     useUTF16 := false
+//     initial := text.StreamFromString("hello", useUTF16)
+//     // two changes: append " world" and delete "lo"
+//     insert := changes.Splice{5, types.S8(""), types.S8(" world")}
+//     remove := changes.Splice{3, types.S8("lo"), types.S8("")}
+//     // two versions directly on top of the initial value
+//     inserted := initial.Append(insert).(*text.Stream)
+//     removed := initial.Append(remove).(*text.Stream)
+//     // like persistent types,
+//     //    inserted.Value() == "helloworld" and removed.Value() = "hel"
+//     // the converged value can be obtained from both:
+//     final1 := streams.Latest(inserted).(*text.Stream)
+//     final2 := streams.Latest(removed).(*text.Stream)
+//     // or even from the initial value
+//     final3 := streams.Latest(initial).(*text.Stream)
+//     // all three are: "helworld"
 //
-//        // two changes: append " world" and delete "lo"
-//        insert := changes.Splice{5, types.S8(""), types.S8(" world")}
-//        remove := changes.Splice{3, types.S8("lo"), types.S8("")}
-//
-//        // two versions directly on top of the initial value
-//        inserted := initial.Append(insert)
-//        removed := initial.Append(remove)
-//
-//        // like persistent types,
-//        //    inserted == "helloworld" and removed = "hel"
-//
-//        // the converged value can be obtained from both:
-//        final1 := streams.Latest(inserted).(streams.ValueStream)
-//        final2 := streams.Latest(removed).(streams.ValueStream)
-//
-//        // or even from the initial value
-//        final1 := streams.Latest(initial).(streams.ValueStream)
-//
-//        // all three are: "helworld"
-//
-// The example above uses a **ValueStream** which has both the value and
-// tracks changes but it is possible to just track changes.  One benefit
-// of doing so is the ability to "scope" changes down, say to a specific
-// path. This allows removing all unnecessary storage for parts one is
-// not interested in.
+// The example above uses text.Stream which tracks not jsut the
+// changes but the effective value along with the changes. The streams
+// package (https://godoc.org/github.com/dotchain/dot/streams) defines
+// a ValueSTream type that is similar but there is also the ability to
+// work purely iwth a change stream with no associated value. This is
+// useful for pure transformations (such as "scoping" changes to
+// specific fields or array indices which allows applications to only
+// maintain the values needed rather than track the whole state).
 //
 // Those familiar with [ReactiveX](http://reactivex.io/) will find the
 // streams approach quite similar -- except that streams are guaranteed
@@ -211,20 +235,17 @@
 //      c := nw.Client{URL: ...}`
 //      defer c.Close()
 //
-//      stream := streams.New()
-//      sync := ops.NewSync(ops.Transformed(c), -1, stream, idgen.New)
-//
-//      go func() {
-//         version := 0
-//         for {
-//             ctx := context.WithTimeout(context.Background(), time.Second*30)
-//             sync.Poll(ctx, sync.Version())
-//             sync.Fetch(ctx, 1000)
-//         }
-//      }()
-//
-//      return stream
+//    // the following two can be used to restart a session
+//    initialVersion := -1
+//    unacknowledgedOps := []ops.Op(nil)
+//    conn := ops.NewConnector(initialVersion, unacknowledgedOps, c, rand.Float64)
+//    stream := conn.Stream
+//    conn.Connect()
+//    defer conn.Disconnect()
+//    // ... now stream starts receiving updates from the network
+//    // ... and local changes can also be applied to  it
 //   }
+//
 //
 // Undo log, folding and extras
 //
@@ -238,16 +259,21 @@
 // of it which **are committed**.  These types of shenanigans is possible
 // with the use of a small fixed set of well-behaved changes.
 //
+//
+// Backend storage implementations
+//
+// There are two storage implementations: a local file-system option
+// based on BoltDB and a Postgres solution.  See
+// https://godoc.org/github.com/dotchain/dot/ops/boltdb and
+// https://godoc.org/github.com/dotchain/dot/ops/pg
+//
+//
 // Not yet implemented
 //
 // There is no native JS version.
 //
-// The storage layer is an in-memory version though it is relatively
-// simple to build storage backends given the very trivial storage
-// interface.
-//
-// The network API requires a careful management of event loops. This
-// should be simplified.
+// The async scheduler and the way it interacts with ops Connector are
+// still a bit awkward to use.
 //
 // There is no snapshot storage mechanism (for operations as well as full
 // values) which would require replaying the log each time.
