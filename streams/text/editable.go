@@ -12,8 +12,6 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-var own = &struct{}{}
-
 // Editable implements text editing functionality.  The main state
 // maintained by Editable is the actual Text, the current location of
 // the cursor and a set of selections that can be maintained with the
@@ -40,18 +38,30 @@ type Editable struct {
 	Refs   map[interface{}]refs.Ref
 	Use16  bool
 
+	// SessionID uniquely defines the current "session"
+	SessionID interface{}
+
 	// atomic is not used, just there to provide the Count/Slice methods
 	changes.Atomic
 }
 
 var p = refs.Path{"Value"}
 
+// WithSessionID returns a new stream with an updated SessionID
+func (e *Editable) WithSessionID(id interface{}) *Editable {
+	result := &Editable{}
+	*result = *e
+	result.SessionID = id
+	l, _ := e.toList().UpdateRef(id, e.cursor())
+	return result.fromList(l)
+}
+
 // SetSelection sets the selection range for text.
 func (e *Editable) SetSelection(start, end int, left bool) (changes.Change, *Editable) {
 	start, end = e.toValueOffset(start), e.toValueOffset(end)
 	startx := refs.Caret{p, start, start > end || start == end && left}
 	endx := refs.Caret{p, end, start < end || start == end && left}
-	l, c := e.toList().UpdateRef(own, refs.Range{startx, endx})
+	l, c := e.toList().UpdateRef(e.SessionID, refs.Range{startx, endx})
 	return c, e.fromList(l)
 
 }
@@ -64,7 +74,7 @@ func (e *Editable) Insert(s string) (changes.Change, *Editable) {
 	splice := changes.PathChange{p, changes.Splice{offset, before, after}}
 	l := e.toList().Apply(splice).(refs.Container)
 	caret := refs.Caret{p, offset + after.Count(), false}
-	lx, cx := l.UpdateRef(own, refs.Range{caret, caret})
+	lx, cx := l.UpdateRef(e.SessionID, refs.Range{caret, caret})
 	return changes.ChangeSet{splice, cx}, e.fromList(lx)
 }
 
@@ -89,7 +99,7 @@ func (e *Editable) Delete() (changes.Change, *Editable) {
 
 	splice := changes.PathChange{p, changes.Splice{offset, before, after}}
 	l := e.toList()
-	lx, cx := l.UpdateRef(own, refs.Range{caret, caret})
+	lx, cx := l.UpdateRef(e.SessionID, refs.Range{caret, caret})
 	lx = lx.Apply(splice).(refs.Container)
 	return changes.ChangeSet{cx, splice}, e.fromList(lx)
 }
@@ -138,20 +148,29 @@ func (e *Editable) Copy() string {
 // Start returns the cursor index. If utf16 is set, it returns the
 // offset in UTF16 units. Otherwise in utf8 units
 func (e *Editable) Start(utf16 bool) (int, bool) {
-	caret := e.cursor().Start
-	if e.Use16 == utf16 {
-		return caret.Index, caret.IsLeft
-	}
-	if utf16 {
-		return types.S16(e.Text).ToUTF16(caret.Index), caret.IsLeft
-	}
-	return e.fromValueOffset(caret.Index), caret.IsLeft
+	return e.caretToIndex(e.cursor().Start, utf16)
 }
 
 // End returns the cursor end.  If utf16 is set, it returns the offset
 // in UTF16 units. Otherwise in utf8 units
 func (e *Editable) End(utf16 bool) (int, bool) {
-	caret := e.cursor().End
+	return e.caretToIndex(e.cursor().End, utf16)
+}
+
+// StartOf returns the cursor index of the specified session. If utf16
+// is set, it returns the offset in UTF16 units. Otherwise in utf8
+// units
+func (e *Editable) StartOf(sessionID interface{}, utf16 bool) (int, bool) {
+	return e.caretToIndex(e.Refs[sessionID].(refs.Range).Start, utf16)
+}
+
+// EndOf returns the cursor index of the specified session.  If utf16
+// is set, it returns the offset in UTF16 units. Otherwise in utf8 units
+func (e *Editable) EndOf(sessionID interface{}, utf16 bool) (int, bool) {
+	return e.caretToIndex(e.Refs[sessionID].(refs.Range).End, utf16)
+}
+
+func (e *Editable) caretToIndex(caret refs.Caret, utf16 bool) (int, bool) {
 	if e.Use16 == utf16 {
 		return caret.Index, caret.IsLeft
 	}
@@ -176,7 +195,7 @@ func (e *Editable) Paste(s string) (changes.Change, *Editable) {
 	l := e.toList().Apply(splice).(refs.Container)
 	start := refs.Caret{p, offset, after.Count() == 0}
 	end := refs.Caret{p, offset + after.Count(), true}
-	lx, cx := l.UpdateRef(own, refs.Range{start, end})
+	lx, cx := l.UpdateRef(e.SessionID, refs.Range{start, end})
 	return changes.ChangeSet{splice, cx}, e.fromList(lx)
 }
 
@@ -232,16 +251,16 @@ func (e *Editable) fromValueOffset(idx int) int {
 
 func (e *Editable) toList() refs.Container {
 	l := refs.NewContainer(e.stringToValue(e.Text), e.Refs)
-	l, _ = l.UpdateRef(own, e.cursor())
+	l, _ = l.UpdateRef(e.SessionID, e.cursor())
 	return l
 }
 
 func (e *Editable) fromList(l refs.Container) *Editable {
 	text := e.valueToString(l.Value)
-	cursor := l.GetRef(own).(refs.Range)
+	cursor := l.GetRef(e.SessionID).(refs.Range)
 	refs := l.Refs()
-	delete(refs, own)
-	return &Editable{text, cursor, refs, e.Use16, changes.Atomic{nil}}
+	delete(refs, e.SessionID)
+	return &Editable{text, cursor, refs, e.Use16, e.SessionID, changes.Atomic{nil}}
 }
 
 func (e *Editable) selection() (int, changes.Value) {

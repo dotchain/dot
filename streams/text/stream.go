@@ -36,6 +36,11 @@ type Stream struct {
 	S streams.Stream
 }
 
+// WithSessionID returns a stream with an updated sessionID
+func (s *Stream) WithSessionID(id interface{}) *Stream {
+	return &Stream{s.Editable.WithSessionID(id), s.S}
+}
+
 // Append implements streams.Stream:Append
 func (s *Stream) Append(c changes.Change) streams.Stream {
 	v := s.Apply(c)
@@ -129,7 +134,7 @@ func (s *Stream) WithoutOwnCursor() streams.Stream {
 	filter = func(c changes.Change) changes.Change {
 		switch c := c.(type) {
 		case refs.Update:
-			if c.Key == own {
+			if c.Key == s.Editable.SessionID {
 				return nil
 			}
 		case changes.PathChange:
@@ -167,6 +172,18 @@ func (s *Stream) Start(utf16 bool) (int, bool) {
 // not seem to export embedded methods
 func (s *Stream) End(utf16 bool) (int, bool) {
 	return s.Editable.End(utf16)
+}
+
+// StartOf simply proxies to Editable.  Only there because GopherJS does
+// not seem to export embedded methods
+func (s *Stream) StartOf(id interface{}, utf16 bool) (int, bool) {
+	return s.Editable.StartOf(id, utf16)
+}
+
+// EndOf simply proxies to Editable.  Only there because GopherJS does
+// not seem to export embedded methods
+func (s *Stream) EndOf(id interface{}, utf16 bool) (int, bool) {
+	return s.Editable.EndOf(id, utf16)
 }
 
 func (s Stream) mapChangeValue(str streams.Stream, c changes.Change) (streams.Stream, changes.Change) {

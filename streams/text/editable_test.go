@@ -35,10 +35,26 @@ func (s textSuite) Run(t *testing.T) {
 	t.Run("ArrowRightLeft", s.testArrowRightLeft)
 	t.Run("ShiftArrowLeft", s.testShiftArrowLeft)
 	t.Run("ShiftArrowRight", s.testShiftArrowRight)
+	t.Run("SessionID", s.testSessionID)
 }
 
 func (s textSuite) editable(txt string) *text.Editable {
 	return &text.Editable{Text: txt, Use16: bool(s), Refs: map[interface{}]refs.Ref{}}
+}
+
+func (s textSuite) testSessionID(t *testing.T) {
+	e := s.editable("Hello")
+	_, e = e.SetSelection(3, 5, true)
+	updated := e.WithSessionID("boo")
+	idx, left := updated.StartOf(e.SessionID, true)
+	if x, l := e.Start(true); x != idx || left != l {
+		t.Fatal("Start mismatch", x, l, idx, left)
+	}
+
+	idx, left = updated.EndOf(e.SessionID, true)
+	if x, l := e.End(true); x != idx || left != l {
+		t.Fatal("End mismatch", x, l, idx, left)
+	}
 }
 
 func (s textSuite) testTextCursors(t *testing.T) {
