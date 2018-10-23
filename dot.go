@@ -176,11 +176,11 @@
 //     final3 := streams.Latest(initial).(*text.Stream)
 //     // all three are: "helworld"
 //
-// The example above uses text.Stream which tracks not jsut the
+// The example above uses text.Stream which tracks not just the
 // changes but the effective value along with the changes. The streams
 // package (https://godoc.org/github.com/dotchain/dot/streams) defines
 // a ValueSTream type that is similar but there is also the ability to
-// work purely iwth a change stream with no associated value. This is
+// work purely with a change stream with no associated value. This is
 // useful for pure transformations (such as "scoping" changes to
 // specific fields or array indices which allows applications to only
 // maintain the values needed rather than track the whole state).
