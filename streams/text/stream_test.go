@@ -32,6 +32,23 @@ func (suite streamSuite) Run(t *testing.T) {
 	t.Run("ArrowRightLeft", suite.testArrowRightLeft)
 	t.Run("ShiftArrowLeft", suite.testShiftArrowLeft)
 	t.Run("ShiftArrowRight", suite.testShiftArrowRight)
+	t.Run("SessionID", suite.testSessionID)
+}
+
+func (suite streamSuite) testSessionID(t *testing.T) {
+	s := text.StreamFromString("Hello", false)
+	s = s.SetSelection(3, 5, true)
+	updated := s.WithSessionID("boo")
+
+	idx, left := updated.StartOf(s.SessionID, true)
+	if x, l := s.Start(true); x != idx || left != l {
+		t.Fatal("Start mismatch", x, l, idx, left)
+	}
+
+	idx, left = updated.EndOf(s.SessionID, true)
+	if x, l := s.End(true); x != idx || left != l {
+		t.Fatal("End mismatch", x, l, idx, left)
+	}
 }
 
 func (suite streamSuite) testWithoutOwnCursor(t *testing.T) {
