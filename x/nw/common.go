@@ -8,6 +8,7 @@ import (
 	"encoding/gob"
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/ops"
+	"github.com/dotchain/dot/refs"
 	"github.com/dotchain/dot/x/types"
 	"io"
 	"time"
@@ -61,6 +62,10 @@ var standardTypes = []interface{}{
 	types.S16(""),
 	types.M{},
 	ops.Operation{},
+	refs.Update{},
+	refs.Range{},
+	refs.Path{},
+	refs.Caret{},
 }
 
 func init() {
