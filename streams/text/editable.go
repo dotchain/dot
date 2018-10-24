@@ -282,9 +282,28 @@ func (e *Editable) NextCharWidth(idx int) int {
 // before the provided index.  This takes care of combining characters
 // and such.
 func (e *Editable) PrevCharWidth(idx int) int {
-	offset := norm.NFC.LastBoundary([]byte(e.Text[:idx]))
+	text := []byte(e.Text)[:idx]
+
+	offset := norm.NFC.LastBoundary(text)
 	if offset < 0 {
 		return 0
 	}
-	return idx - offset
+
+	if offset < idx || idx == 0 {
+		return idx - offset
+	}
+
+	// NFC.LastBoundary is quite buggy in some cases.
+	// See: https://github.com/golang/go/issues/9055
+	// The work around is to brute force it in those cases
+	idx = len(text) - 100
+	if idx < 0 {
+		idx = 0
+	}
+	w := len(text) - idx
+	for w > 1 && norm.NFC.NextBoundary(text[idx:], true) != w {
+		idx++
+		w--
+	}
+	return w
 }

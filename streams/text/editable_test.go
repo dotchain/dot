@@ -269,14 +269,17 @@ func (s textSuite) testCharWidths(t *testing.T) {
 		t.Error("PrevCharWidth(0)", e.PrevCharWidth(0))
 	}
 
-	// lets test out some agontek magic: a + ogonek + acute
-	e = s.editable("\u0061\u0328\u0301")
-	w = e.NextCharWidth(0)
-	if w != len(e.Text) {
-		t.Error("Unexpected char width", w)
-	}
-	if x := e.PrevCharWidth(w); x != w {
-		t.Error("PrevCharWidth unexpected", x)
+	// ensure that prev char width works with " ", "!" and "♔"
+	// and agonek a = agonek + acute: "\u0061\u0328\u0301"
+	for _, choice := range []string{" ", "!", "♔", "\u0061\u0328\u0301"} {
+		e = s.editable("x" + choice)
+		w = e.NextCharWidth(1)
+		if w != len(choice) {
+			t.Fatal("NextCharWidth gave odd answer", choice, w)
+		}
+		if x := e.PrevCharWidth(1 + w); x != len(choice) {
+			t.Error("PrevCharWidth gave odd answer", choice, w, x)
+		}
 	}
 }
 
