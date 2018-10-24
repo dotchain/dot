@@ -49,11 +49,9 @@ var p = refs.Path{"Value"}
 
 // WithSessionID returns a new stream with an updated SessionID
 func (e *Editable) WithSessionID(id interface{}) *Editable {
-	result := &Editable{}
-	*result = *e
+	result := *e
 	result.SessionID = id
-	l, _ := e.toList().UpdateRef(id, e.cursor())
-	return result.fromList(l)
+	return &result
 }
 
 // SetSelection sets the selection range for text.
@@ -250,17 +248,16 @@ func (e *Editable) fromValueOffset(idx int) int {
 }
 
 func (e *Editable) toList() refs.Container {
-	l := refs.NewContainer(e.stringToValue(e.Text), e.Refs)
-	l, _ = l.UpdateRef(e.SessionID, e.cursor())
-	return l
+	return refs.NewContainer(e.stringToValue(e.Text), e.Refs)
 }
 
 func (e *Editable) fromList(l refs.Container) *Editable {
 	text := e.valueToString(l.Value)
-	cursor := l.GetRef(e.SessionID).(refs.Range)
-	refs := l.Refs()
-	delete(refs, e.SessionID)
-	return &Editable{text, cursor, refs, e.Use16, e.SessionID, changes.Atomic{nil}}
+	cursor, ok := l.GetRef(e.SessionID).(refs.Range)
+	if !ok {
+		cursor = refs.Range{refs.Caret{Path: p}, refs.Caret{Path: p}}
+	}
+	return &Editable{text, cursor, l.Refs(), e.Use16, e.SessionID, changes.Atomic{nil}}
 }
 
 func (e *Editable) selection() (int, changes.Value) {
