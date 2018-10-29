@@ -75,12 +75,12 @@ func TestPanics(t *testing.T) {
 func Test(t *testing.T) {
 	// test = map[before]after
 	tests := map[string]string{
-		``:                                         `<hello>booya</hello>`,
-		`<x></x>`:                                  `<x><y>ok</y></x>`,
-		`<hello>boo</hello>`:                       `<hello>booya</hello>`,
-		`<hello x="a">boo</hello>`:                 `<hello x="b" y="c">booya</hello>`,
-		`<hello id="a">boo</hello>`:                `<hello id="b">booya</hello>`,
-		`<x><y id="a">ok</y></x>`:                  `<x><z>boo</z><y id="a">ok</y></x>`,
+		``:                          `<hello>booya</hello>`,
+		`<x></x>`:                   `<x><y>ok</y></x>`,
+		`<hello>boo</hello>`:        `<hello>booya</hello>`,
+		`<hello x="a">boo</hello>`:  `<hello x="b" y="c">booya</hello>`,
+		`<hello id="a">boo</hello>`: `<hello id="b">booya</hello>`,
+		`<x><y id="a">ok</y></x>`:   `<x><z>boo</z><y id="a">ok</y></x>`,
 		`<x><z id="b">boo</z><y id="a">ok</y></x>`: `<x><y id="a">ok</y><z id="b">boo</z></x>`,
 	}
 
