@@ -49,20 +49,20 @@ func (a A) Apply(c changes.Change) changes.Value {
 		x1, x2, x3 := ox, ox+cx, ox+cx+dx
 		return append(append(append(a[:x1:x1], a[x2:x3]...), a[x1:x2]...), a[x3:]...)
 	case changes.PathChange:
-		if len(c.Path) > 0 {
-			idx := c.Path[0].(int)
-			clone := append([]changes.Value(nil), a...)
-			if clone[idx] == nil {
-				clone[idx] = changes.Nil
-			}
-			clone[idx] = clone[idx].Apply(changes.PathChange{c.Path[1:], c.Change})
-			if clone[idx] == changes.Nil {
-				clone[idx] = nil
-			}
-
-			return A(clone)
+		if len(c.Path) == 0 {
+			return a.Apply(c.Change)
 		}
-		return c.ApplyTo(a)
+		idx := c.Path[0].(int)
+		clone := append([]changes.Value(nil), a...)
+		if clone[idx] == nil {
+			clone[idx] = changes.Nil
+		}
+		clone[idx] = clone[idx].Apply(changes.PathChange{c.Path[1:], c.Change})
+		if clone[idx] == changes.Nil {
+			clone[idx] = nil
+		}
+
+		return A(clone)
 	case changes.Custom:
 		return c.ApplyTo(a)
 	}
