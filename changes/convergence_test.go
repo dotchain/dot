@@ -54,7 +54,7 @@ func TestConvergenceChangeSet(t *testing.T) {
 	validateMerge(t, initial, left, right)
 }
 
-func ForEachChange(replacement changes.Value, fn func(initial changes.Value, c changes.Change)) {
+func ForEachChange(replacement changes.Collection, fn func(initial changes.Value, c changes.Change)) {
 	initial := S("abcdef")
 	fn(initial, changes.ChangeSet{nil})
 	fn(initial, changes.Replace{initial, replacement})

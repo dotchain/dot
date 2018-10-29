@@ -11,7 +11,6 @@ import (
 	"context"
 	"errors"
 	"github.com/dotchain/dot/ops"
-	"log"
 	"net/http"
 	"time"
 )
@@ -71,11 +70,7 @@ func (c *Client) call(ctx context.Context, r *request) ([]ops.Op, error) {
 		return nil, err
 	}
 
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			log.Println("Unexpected close failure", err)
-		}
-	}()
+	defer func() { must(resp.Body.Close()) }()
 	var res response
 
 	err = codec.Decode(&res, resp.Body)
@@ -104,4 +99,7 @@ func (c *Client) Poll(ctx context.Context, version int) error {
 
 // Close proxies the Close call over to the url
 func (c *Client) Close() {
+}
+
+func must(err error) {
 }

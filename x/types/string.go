@@ -13,7 +13,7 @@ import (
 type S8 string
 
 // Slice implements Value.Slice.  Offset and count is based on UTF8
-func (s S8) Slice(offset, count int) changes.Value {
+func (s S8) Slice(offset, count int) changes.Collection {
 	return s[offset : offset+count]
 }
 
@@ -22,16 +22,9 @@ func (s S8) Count() int {
 	return len(s)
 }
 
-// Apply implements Value.Apply
-func (s S8) Apply(c changes.Change) changes.Value {
+// ApplyCollection implements changes.Collection
+func (s S8) ApplyCollection(c changes.Change) changes.Collection {
 	switch c := c.(type) {
-	case nil:
-		return s
-	case changes.Replace:
-		if c.IsDelete() {
-			return changes.Nil
-		}
-		return c.After
 	case changes.Splice:
 		o := c.Offset
 		remove := string(c.Before.(S8))
@@ -44,29 +37,12 @@ func (s S8) Apply(c changes.Change) changes.Value {
 		}
 		x1, x2, x3 := ox, ox+cx, ox+cx+dx
 		return s[:x1] + s[x2:x3] + s[x1:x2] + s[x3:]
-	case changes.Custom:
-		return c.ApplyTo(s)
 	}
 	panic("Unknown change type.  Cannot apply")
 }
 
-// S16 implements string with offsets and counts referring to utf16
-// runes. The UTF16 offsets map to native Javascript string offsets.
-type S16 string
-
-// Slice implements changes.Value.Slice.  Offset and count are in
-// UTF16 units.
-func (s S16) Slice(offset, count int) changes.Value {
-	return s[s.FromUTF16(offset):s.FromUTF16(offset+count)]
-}
-
-// Count returns the number of UTF16 characters
-func (s S16) Count() int {
-	return s.ToUTF16(len(s))
-}
-
 // Apply implements Value.Apply
-func (s S16) Apply(c changes.Change) changes.Value {
+func (s S8) Apply(c changes.Change) changes.Value {
 	switch c := c.(type) {
 	case nil:
 		return s
@@ -75,6 +51,30 @@ func (s S16) Apply(c changes.Change) changes.Value {
 			return changes.Nil
 		}
 		return c.After
+	case changes.Custom:
+		return c.ApplyTo(s)
+	}
+	return s.ApplyCollection(c)
+}
+
+// S16 implements string with offsets and counts referring to utf16
+// runes. The UTF16 offsets map to native Javascript string offsets.
+type S16 string
+
+// Slice implements changes.Value.Slice.  Offset and count are in
+// UTF16 units.
+func (s S16) Slice(offset, count int) changes.Collection {
+	return s[s.FromUTF16(offset):s.FromUTF16(offset+count)]
+}
+
+// Count returns the number of UTF16 characters
+func (s S16) Count() int {
+	return s.ToUTF16(len(s))
+}
+
+// ApplyCollection implements changes.Collection
+func (s S16) ApplyCollection(c changes.Change) changes.Collection {
+	switch c := c.(type) {
 	case changes.Splice:
 		o := s.FromUTF16(c.Offset)
 		remove := string(c.Before.(S16))
@@ -87,10 +87,24 @@ func (s S16) Apply(c changes.Change) changes.Value {
 		}
 		x1, x2, x3 := s.FromUTF16(ox), s.FromUTF16(ox+cx), s.FromUTF16(ox+cx+dx)
 		return s[:x1] + s[x2:x3] + s[x1:x2] + s[x3:]
+	}
+	panic("Unknown change type.  Cannot apply")
+}
+
+// Apply implements Value.Apply
+func (s S16) Apply(c changes.Change) changes.Value {
+	switch c := c.(type) {
+	case nil:
+		return s
+	case changes.Replace:
+		if c.IsDelete() {
+			return changes.Nil
+		}
+		return c.After
 	case changes.Custom:
 		return c.ApplyTo(s)
 	}
-	panic("Unknown change type.  Cannot apply")
+	return s.ApplyCollection(c)
 }
 
 // FromUTF16 converts an UTF16 offset into a regular string offset

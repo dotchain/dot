@@ -34,7 +34,7 @@ func TestEdgeCases(t *testing.T) {
 		t.Error("nodes:slice failed", nn.Slice(0, 1))
 	}
 	if nn.Count() != 2 {
-		t.Error("nodes:count failed", n.Count())
+		t.Error("nodes:count failed", nn.Count())
 	}
 	if !reflect.DeepEqual(nn.Apply(nil), nn) {
 		t.Error("nil apply")
@@ -57,8 +57,6 @@ func TestPanics(t *testing.T) {
 		fn()
 	}
 
-	catch("slice", func() { (tree.Node{}).Slice(0, 0) })
-	catch("count", func() { (tree.Node{}).Count() })
 	catch("attributeApply", func() {
 		mm := types.M{"Y": types.S8("hello")}
 		(&tree.Node{"X": mm}).Apply(

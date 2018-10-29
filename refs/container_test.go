@@ -209,10 +209,4 @@ func TestContainerPanics(t *testing.T) {
 	mustPanic("bad path apply", func() {
 		con.Apply(changes.PathChange{refs.Path{"zoo"}, changes.Move{2, 2, 2}})
 	})
-	mustPanic("slice", func() {
-		con.Slice(0, 0)
-	})
-	mustPanic("count", func() {
-		con.Count()
-	})
 }

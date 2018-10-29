@@ -119,8 +119,6 @@ func TestEmptyAtomicAndUnexpectedChange(t *testing.T) {
 		}()
 		fn()
 	}
-	expectPanic("Nil.Slice", func() { changes.Nil.Slice(0, 0) })
-	expectPanic("Nil.Count", func() { changes.Nil.Count() })
 	expectPanic("Nil.Replace.Delete", func() { changes.Nil.Apply(changes.Replace{types.S8(""), changes.Nil}) })
 	expectPanic("Nil.Apply", func() { changes.Nil.Apply(changes.Move{0, 5, 1}) })
 
@@ -134,8 +132,6 @@ func TestEmptyAtomicAndUnexpectedChange(t *testing.T) {
 	}
 
 	a := changes.Atomic{nil}
-	expectPanic("Atomic.Slice", func() { a.Slice(0, 0) })
-	expectPanic("Atomic.Count", func() { a.Count() })
 	expectPanic("Atomic.Apply", func() { a.Apply(changes.Move{0, 5, 1}) })
 	expectPanic("Atomic.Create", func() { a.Apply(changes.Replace{changes.Nil, types.S8("")}) })
 

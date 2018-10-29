@@ -10,16 +10,6 @@ type Atomic struct {
 	Value interface{}
 }
 
-// Slice should not be called on Atomic values
-func (a Atomic) Slice(offset, count int) Value {
-	panic("Slice should  not be called on atomic values")
-}
-
-// Count should not be called on Atomic values
-func (a Atomic) Count() int {
-	panic("Count should not be called on atomic values")
-}
-
 // Apply only accepts one type of change: one that Replace's the
 // value.
 func (a Atomic) Apply(c Change) Value {

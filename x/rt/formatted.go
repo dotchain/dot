@@ -28,7 +28,7 @@ import "github.com/dotchain/dot/changes"
 // "github.com/dotchain/dot/changes/x/types" for "S8" and "S16"
 // implementations.
 type Formatted struct {
-	Text     changes.Value
+	Text     changes.Collection
 	Segments []Segment
 }
 
@@ -97,7 +97,7 @@ func (f Formatted) Concat(args ...Formatted) Formatted {
 			continue
 		}
 
-		text = text.Apply(changes.Splice{text.Count(), zero, arg.Text})
+		text = text.ApplyCollection(changes.Splice{text.Count(), zero, arg.Text})
 		seg := arg.Segments
 		if len(seg) == 0 {
 			seg = []Segment{{Count: arg.Text.Count()}}

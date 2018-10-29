@@ -77,21 +77,30 @@ type Change interface {
 }
 
 // Value represents an immutable JSON object that can apply
-// changes.
+// changes.  Array like values should also implement Collection
 type Value interface {
+	// Apply applies the specified change on the object and
+	// returns the updated value.
+	Apply(c Change) Value
+}
+
+// Collection represents array-like values
+type Collection interface {
+	// must also implement Value
+	Value
+
+	// ApplyCollection is just strongly typed Apply
+	ApplyCollection(c Change) Collection
+
 	// Slice should only be called on collection-like objects such
 	// as the Before/After fields of a Splice. Note that unlike
 	// Go's slice notation, the arguments are offset and count.
-	Slice(offset, count int) Value
+	Slice(offset, count int) Collection
 
 	// Count should noly be called on collection-like objects such
 	// as the Before/After fields of a Splice. It returns the size
 	// of the collection.
 	Count() int
-
-	// Apply applies the specified change on the object and
-	// returns the updated value.
-	Apply(c Change) Value
 }
 
 // ChangeSet represents a collection of changes. It implements the

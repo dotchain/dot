@@ -95,13 +95,3 @@ func (con Container) applyPathChange(c changes.PathChange) changes.Value {
 	val := con.Value.Apply(changes.PathChange{c.Path[1:], c.Change})
 	return Container{val, updated}
 }
-
-// Slice implements changes.Value:Slice
-func (con Container) Slice(offset, count int) changes.Value {
-	panic("refs.Container does not implement Slice")
-}
-
-// Count implements changes.Value:Count
-func (con Container) Count() int {
-	panic("refs.Container does not implement Count")
-}

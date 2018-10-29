@@ -15,16 +15,6 @@ var Nil = empty{}
 // another value.
 type empty struct{}
 
-// Slice should not be called on empty
-func (e empty) Slice(offset, count int) Value {
-	panic("Unexpected Slice call on empty value")
-}
-
-// Count should not be called on empty
-func (e empty) Count() int {
-	panic("Unexpected Count call on empty value")
-}
-
 // Apply can be called on empty but it only supports
 // Replace{IsInsert:true} type changes.
 func (e empty) Apply(c Change) Value {

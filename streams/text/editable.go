@@ -40,9 +40,6 @@ type Editable struct {
 
 	// SessionID uniquely defines the current "session"
 	SessionID interface{}
-
-	// atomic is not used, just there to provide the Count/Slice methods
-	changes.Atomic
 }
 
 var p = refs.Path{"Value"}
@@ -208,7 +205,7 @@ func (e *Editable) Apply(c changes.Change) changes.Value {
 	return e.fromList(l)
 }
 
-func (e *Editable) stringToValue(s string) changes.Value {
+func (e *Editable) stringToValue(s string) changes.Collection {
 	if e.Use16 {
 		return types.S16(s)
 	}
@@ -257,10 +254,10 @@ func (e *Editable) fromList(l refs.Container) *Editable {
 	if !ok {
 		cursor = refs.Range{refs.Caret{Path: p}, refs.Caret{Path: p}}
 	}
-	return &Editable{text, cursor, l.Refs(), e.Use16, e.SessionID, changes.Atomic{nil}}
+	return &Editable{text, cursor, l.Refs(), e.Use16, e.SessionID}
 }
 
-func (e *Editable) selection() (int, changes.Value) {
+func (e *Editable) selection() (int, changes.Collection) {
 	c := e.cursor()
 	v := e.stringToValue(e.Text)
 	start, end := c.Start.Index, c.End.Index
