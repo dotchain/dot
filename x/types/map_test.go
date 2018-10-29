@@ -90,16 +90,6 @@ func TestMPanics(t *testing.T) {
 	}
 
 	mustPanic(func() {
-		m := types.M{"x": types.S8("OK")}
-		m.Slice(0, 0)
-	})
-
-	mustPanic(func() {
-		m := types.M{"x": types.S8("OK")}
-		m.Count()
-	})
-
-	mustPanic(func() {
 		(types.M{}).Apply(poorlyDefinedChange{})
 	})
 

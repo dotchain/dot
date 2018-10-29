@@ -78,7 +78,7 @@ func TestPathChangeMergeSpliceMiddle(t *testing.T) {
 	right := changes.PathChange{Path{1}, changes.Replace{Before: initial[1], After: S("zoog")}}
 
 	lexpected := changes.Change(nil)
-	rexpected := changes.Splice{1, initial.Apply(right).Slice(1, 1), left.After}
+	rexpected := changes.Splice{1, initial.ApplyCollection(right).Slice(1, 1), left.After}
 
 	validateMergeResults(t, left, right, lexpected, rexpected)
 }

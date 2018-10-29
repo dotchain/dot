@@ -99,7 +99,7 @@ func (pc PathChange) mergeSubPath(o PathChange, reverse bool) (Change, Change) {
 		}
 		sub := append([]interface{}(nil), sub...)
 		sub[0] = idx - change.Offset
-		change.Before = change.Before.Apply(PathChange{sub, o.Change})
+		change.Before = change.Before.ApplyCollection(PathChange{sub, o.Change})
 		return nil, PathChange{pc.Path, change}
 	case Move:
 		idx := sub[0].(int)

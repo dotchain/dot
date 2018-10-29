@@ -12,18 +12,6 @@ import "github.com/dotchain/dot/changes"
 // case, the value is treated as if it were changes.Nil
 type M map[interface{}]changes.Value
 
-// Slice is not applicable to maps
-func (m M) Slice(offset, count int) changes.Value {
-	panic("Slice should not be called on maps")
-}
-
-// Count is not applicate to maps. In particular, it does not return
-// the number of keys.  changes.Value.Count is only meant for arrays
-// and calling it implies a fatal programming error.
-func (m M) Count() int {
-	panic("Count should not be called on maps")
-}
-
 // Apply applies the change and returns the updated value
 func (m M) Apply(c changes.Change) changes.Value {
 	switch c := c.(type) {

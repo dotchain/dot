@@ -90,22 +90,26 @@ func (r Run) mergeSplice(o changes.Splice) (changes.Change, changes.Change) {
 	case r.Offset+r.Count <= o.Offset:
 	case r.Offset >= o.Offset && r.Offset+r.Count <= oEnd:
 		r.Offset -= o.Offset
-		o.Before = o.Before.Apply(r)
+		o.Before = r.apply(o.Before, r)
 		return o, nil
 	case r.Offset <= o.Offset && r.Offset+r.Count >= oEnd:
-		o.Before = o.Before.Apply(Run{0, o.Before.Count(), r.Change})
+		o.Before = r.apply(o.Before, Run{0, o.Before.Count(), r.Change})
 		left := Run{r.Offset, o.Offset - r.Offset, r.Change}
 		right := Run{o.Offset + o.After.Count(), r.Offset + r.Count - oEnd, r.Change}
 		return o, changes.ChangeSet{left, right}
 	case r.Offset < o.Offset && o.Offset < r.Offset+r.Count:
-		o.Before = o.Before.Apply(Run{0, r.Offset + r.Count - o.Offset, r.Change})
+		o.Before = r.apply(o.Before, Run{0, r.Offset + r.Count - o.Offset, r.Change})
 		r.Count = o.Offset - r.Offset
 	case r.Offset > o.Offset && r.Offset < oEnd:
-		o.Before = o.Before.Apply(Run{r.Offset - o.Offset, oEnd - r.Offset, r.Change})
+		o.Before = r.apply(o.Before, Run{r.Offset - o.Offset, oEnd - r.Offset, r.Change})
 		r.Count = r.Offset + r.Count - oEnd
 		r.Offset = o.Offset + o.After.Count()
 	}
 	return o, r
+}
+
+func (r Run) apply(v changes.Value, c changes.Change) changes.Collection {
+	return v.Apply(c).(changes.Collection)
 }
 
 func (r Run) mergeMove(o changes.Move) (changes.Change, changes.Change) {

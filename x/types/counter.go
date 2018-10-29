@@ -13,7 +13,7 @@ type Counter int32
 
 // Slice implements changes.Value.Slice but it is not expected to ever
 // by used for Counters
-func (c Counter) Slice(offset, count int) changes.Value {
+func (c Counter) Slice(offset, count int) changes.Collection {
 	panic("Slice call not expected on counter")
 }
 
@@ -23,6 +23,16 @@ func (c Counter) Count() int {
 		return 1
 	}
 	return 0
+}
+
+// ApplyCollection implements Collection interface
+func (c Counter) ApplyCollection(cx changes.Change) changes.Collection {
+	switch cx := cx.(type) {
+	case changes.Splice:
+		after := cx.After.(Counter)
+		return c + after
+	}
+	panic("Unexpected change on Apply")
 }
 
 // Apply only supports Replace and Inserts
@@ -35,13 +45,10 @@ func (c Counter) Apply(cx changes.Change) changes.Value {
 			return changes.Nil
 		}
 		return cx.After
-	case changes.Splice:
-		after := cx.After.(Counter)
-		return c + after
 	case changes.Custom:
 		return cx.ApplyTo(c)
 	}
-	panic("Unexpected change on Apply")
+	return c.ApplyCollection(cx)
 }
 
 // Increment returns a change which implements the increment

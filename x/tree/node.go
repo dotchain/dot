@@ -28,16 +28,6 @@ func (n Node) Children() Nodes {
 	return nn
 }
 
-// Slice implements changes.Value
-func (n Node) Slice(offset, count int) changes.Value {
-	panic("Slice not implemented")
-}
-
-// Count implements changes.Value
-func (n Node) Count() int {
-	panic("Count not implemented")
-}
-
 // Apply implements changes.Value
 func (n *Node) Apply(c changes.Change) changes.Value {
 	switch c := c.(type) {

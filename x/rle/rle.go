@@ -18,7 +18,7 @@ type Run struct {
 type A []Run
 
 // Slice implements changes.Value.Slice
-func (a A) Slice(offset, count int) changes.Value {
+func (a A) Slice(offset, count int) changes.Collection {
 	return a.slice(offset, count)
 }
 
@@ -70,20 +70,9 @@ func (a A) IsEqual(o changes.Value) bool {
 	return false
 }
 
-// Apply applies the change and returns the updated value
-//
-// Note: deleting an element via changes.Replace simply replaces it
-// with nil.  It does not actually remove the element -- that needs a
-// changes.Splice.
-func (a A) Apply(c changes.Change) changes.Value {
+// ApplyCollection implements collection interface
+func (a A) ApplyCollection(c changes.Change) changes.Collection {
 	switch c := c.(type) {
-	case nil:
-		return a
-	case changes.Replace:
-		if c.IsDelete() {
-			return changes.Nil
-		}
-		return c.After
 	case changes.Splice:
 		remove := c.Before.Count()
 		right := a.Count() - c.Offset - remove
@@ -100,26 +89,43 @@ func (a A) Apply(c changes.Change) changes.Value {
 		slice3 := a.slice(ox+cx, dx)
 		slice4 := a.slice(ox+cx+dx, a.Count()-ox-cx-dx)
 		return slice1.append(slice3).append(slice2).append(slice4)
-
 	case changes.PathChange:
-		if len(c.Path) > 0 {
-			idx := c.Path[0].(int)
-			left, right, v := a.split(idx)
-			if v == nil {
-				v = changes.Nil
-			}
-			v = v.Apply(changes.PathChange{c.Path[1:], c.Change})
-			if v == changes.Nil {
-				v = nil
-			}
-			return left.append(A{{v, 1}}).append(right)
+		idx := c.Path[0].(int)
+		left, right, v := a.split(idx)
+		if v == nil {
+			v = changes.Nil
 		}
-		return c.ApplyTo(a)
+		v = v.Apply(changes.PathChange{c.Path[1:], c.Change})
+		if v == changes.Nil {
+			v = nil
+		}
+		return left.append(A{{v, 1}}).append(right)
+	}
+	panic("Unexpected change")
+}
 
+// Apply applies the change and returns the updated value
+//
+// Note: deleting an element via changes.Replace simply replaces it
+// with nil.  It does not actually remove the element -- that needs a
+// changes.Splice.
+func (a A) Apply(c changes.Change) changes.Value {
+	switch c := c.(type) {
+	case nil:
+		return a
+	case changes.Replace:
+		if c.IsDelete() {
+			return changes.Nil
+		}
+		return c.After
+	case changes.PathChange:
+		if len(c.Path) == 0 {
+			return a.Apply(c.Change)
+		}
 	case changes.Custom:
 		return c.ApplyTo(a)
 	}
-	panic("Unexpected change on Apply")
+	return a.ApplyCollection(c)
 }
 
 func (a A) append(o A) A {
