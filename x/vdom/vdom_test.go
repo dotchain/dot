@@ -94,7 +94,7 @@ func (n node) Key() interface{} {
 	return id
 }
 
-func (n node) ForEachAttribute(fn func(key, val string)) {
+func (n node) ForEachAttribute(fn func(key string, val interface{})) {
 	if n.Tag() == ":text:" {
 		fn(":data:", n.Node.Data)
 	}
@@ -110,7 +110,8 @@ func (n node) ForEachNode(fn func(vdom.Node)) {
 	}
 }
 
-func (n node) SetAttribute(key, val string) {
+func (n node) SetAttribute(key string, v interface{}) {
+	val := v.(string)
 	if key == ":data:" {
 		n.Node.Data = val
 	}
