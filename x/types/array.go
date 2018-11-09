@@ -31,10 +31,8 @@ func (a A) ApplyCollection(c changes.Change) changes.Collection {
 		start, end := c.Offset, c.Offset+remove
 		return append(append(a[:start:start], after...), a[end:]...)
 	case changes.Move:
+		c = c.Normalize()
 		ox, cx, dx := c.Offset, c.Count, c.Distance
-		if dx < 0 {
-			ox, cx, dx = ox+dx, -dx, cx
-		}
 		x1, x2, x3 := ox, ox+cx, ox+cx+dx
 		return append(append(append(a[:x1:x1], a[x2:x3]...), a[x1:x2]...), a[x3:]...)
 	case changes.PathChange:

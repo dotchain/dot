@@ -110,6 +110,17 @@ func TestMoveMapIndex(t *testing.T) {
 	}
 }
 
+func TestMoveNormalize(t *testing.T) {
+	m := changes.Move{1, 1, 1}
+	if m.Normalize() != m {
+		t.Error("normalize failed", m.Normalize())
+	}
+	m = changes.Move{1, 2, -1}
+	if m.Normalize() != (changes.Move{0, 1, 2}) {
+		t.Error("normalize failed", m.Normalize())
+	}
+}
+
 func TestEmptyAtomicAndUnexpectedChange(t *testing.T) {
 	expectPanic := func(msg string, fn func()) {
 		defer func() {

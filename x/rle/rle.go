@@ -80,10 +80,8 @@ func (a A) ApplyCollection(c changes.Change) changes.Collection {
 			append(c.After.(A)).
 			append(a.slice(c.Offset+remove, right))
 	case changes.Move:
+		c = c.Normalize()
 		ox, cx, dx := c.Offset, c.Count, c.Distance
-		if dx < 0 {
-			ox, cx, dx = ox+dx, -dx, cx
-		}
 		slice1 := a.slice(0, ox)
 		slice2 := a.slice(ox, cx)
 		slice3 := a.slice(ox+cx, dx)

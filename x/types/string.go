@@ -31,10 +31,8 @@ func (s S8) ApplyCollection(c changes.Change) changes.Collection {
 		replace := c.After.(S8)
 		return s[:o] + replace + s[o+len(remove):]
 	case changes.Move:
+		c = c.Normalize()
 		ox, cx, dx := c.Offset, c.Count, c.Distance
-		if c.Distance < 0 {
-			ox, cx, dx = ox+dx, -dx, cx
-		}
 		x1, x2, x3 := ox, ox+cx, ox+cx+dx
 		return s[:x1] + s[x2:x3] + s[x1:x2] + s[x3:]
 	}
@@ -81,10 +79,8 @@ func (s S16) ApplyCollection(c changes.Change) changes.Collection {
 		replace := c.After.(S16)
 		return s[:o] + replace + s[o+len(remove):]
 	case changes.Move:
+		c = c.Normalize()
 		ox, cx, dx := c.Offset, c.Count, c.Distance
-		if c.Distance < 0 {
-			ox, cx, dx = ox+dx, -dx, cx
-		}
 		x1, x2, x3 := s.FromUTF16(ox), s.FromUTF16(ox+cx), s.FromUTF16(ox+cx+dx)
 		return s[:x1] + s[x2:x3] + s[x1:x2] + s[x3:]
 	}

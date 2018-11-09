@@ -284,3 +284,11 @@ func (m *Move) Change() Change {
 	}
 	return *m
 }
+
+// Normalize ensures that distance is always positive
+func (m Move) Normalize() Move {
+	if m.Distance < 0 {
+		return Move{m.Offset + m.Distance, -m.Distance, m.Count}
+	}
+	return m
+}
