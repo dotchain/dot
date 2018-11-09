@@ -19,14 +19,14 @@ package vdom
 type Node interface {
 	Tag() string
 	Key() interface{}
-	ForEachAttribute(fn func(key, val string))
+	ForEachAttribute(fn func(key string, val interface{}))
 	ForEachNode(fn func(n Node))
 }
 
 // MutableNode represents an actual DOM node with mutable semantics.
 type MutableNode interface {
 	Node
-	SetAttribute(key, val string)
+	SetAttribute(key string, val interface{})
 	RemoveAttribute(key string)
 	Children() MutableNodes
 }
@@ -66,12 +66,12 @@ func (r Reconciler) Reconcile(m MutableNode, n Node) MutableNode {
 	}
 
 	keys := map[string]bool{}
-	n.ForEachAttribute(func(key, val string) {
+	n.ForEachAttribute(func(key string, val interface{}) {
 		m.SetAttribute(key, val)
 		keys[key] = true
 	})
 	deletions := []string(nil)
-	m.ForEachAttribute(func(key, val string) {
+	m.ForEachAttribute(func(key string, val interface{}) {
 		if _, ok := keys[key]; !ok {
 			deletions = append(deletions, key)
 		}
