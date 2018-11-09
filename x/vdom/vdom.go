@@ -5,7 +5,8 @@
 // Package vdom implement DOM reconciliation a la React
 //
 // The main export is a Reconciler which can be used to convert a
-// MutableNode into the same shape as the provided  "virtual" Node.
+// MutableNode into the same shape as the provided  "virtual"
+// Node. See the examples for how to use  it.
 package vdom
 
 // Node is the interface for a virtual node. It is read-only and
@@ -104,23 +105,22 @@ type reconciler struct {
 }
 
 func (r *reconciler) reconcileChildren(m MutableNode, n Node) {
+	var afterKeys []interface{}
 	r.stash = map[interface{}]Node{}
-	r.before, r.after = r.toMap(m), r.toMap(n)
-	r.keys = make([]interface{}, 0, len(r.before))
-	m.ForEachNode(func(child Node) {
-		r.keys = append(r.keys, child.Key())
-	})
+	r.keys, r.before = r.toKeys(m)
+	afterKeys, r.after = r.toKeys(n)
+
 	r.nodes = m.Children()
 	r.removeDeleted()
 	n.ForEachNode(func(child Node) {
-		for !r.handleChild(child) {
+		for !r.handleChild(child, afterKeys[0]) {
 		}
+		afterKeys = afterKeys[1:]
 	})
 }
 
-func (r *reconciler) handleChild(child Node) bool {
+func (r *reconciler) handleChild(child Node, key interface{}) bool {
 	defer r.removeDeleted()
-	key := child.Key()
 
 	if stashed, ok := r.stash[key]; ok {
 		r.nodes.Insert(stashed.(MutableNode))
@@ -133,8 +133,8 @@ func (r *reconciler) handleChild(child Node) bool {
 		r.Reconcile(own.(MutableNode), child)
 	} else {
 		node := r.nodes.Remove()
+		r.stash[r.keys[0]] = node
 		r.keys = r.keys[1:]
-		r.stash[node.Key()] = node
 		return false
 	}
 
@@ -151,10 +151,16 @@ func (r *reconciler) removeDeleted() {
 	}
 }
 
-func (r *reconciler) toMap(n Node) map[interface{}]bool {
-	result := map[interface{}]bool{}
+func (r *reconciler) toKeys(n Node) (keys []interface{}, exists map[interface{}]bool) {
+	exists = map[interface{}]bool{}
+	counters := map[interface{}]int{}
 	n.ForEachNode(func(child Node) {
-		result[child.Key()] = true
+		pair := [2]interface{}{child.Tag(), child.Key()}
+		count := counters[pair]
+		counters[pair] = count + 1
+		key := [3]interface{}{pair[0], pair[1], count}
+		keys = append(keys, key)
+		exists[key] = true
 	})
-	return result
+	return keys, exists
 }

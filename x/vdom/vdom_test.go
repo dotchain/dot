@@ -24,13 +24,7 @@ func Test(t *testing.T) {
 		`<x><z id="b">boo</z><y id="a">ok</y></x>`: `<x><y id="a">ok</y><z id="b">boo</z></x>`,
 	}
 
-	r := vdom.Reconciler(func(tag string, key interface{}) vdom.MutableNode {
-		n := &html.Node{Type: html.ElementNode, Data: tag}
-		if tag == ":text:" {
-			n.Type = html.TextNode
-		}
-		return node{n, nil}
-	})
+	r := vdom.Reconciler(newHTMLNode)
 
 	for before, after := range tests {
 		t.Run(before+"=>"+after, func(t *testing.T) {
@@ -38,6 +32,14 @@ func Test(t *testing.T) {
 			validate(t, r, after, before)
 		})
 	}
+}
+
+func newHTMLNode(tag string, key interface{}) vdom.MutableNode {
+	n := &html.Node{Type: html.ElementNode, Data: tag}
+	if tag == ":text:" {
+		n.Type = html.TextNode
+	}
+	return node{n}
 }
 
 func validate(t *testing.T, r vdom.Reconciler, before, after string) {
@@ -68,12 +70,11 @@ func parse(t *testing.T, s string) vdom.MutableNode {
 		t.Fatal("invalid HTML", err)
 	}
 	body := nodes[0].FirstChild.NextSibling
-	return node{body.FirstChild, nil}
+	return node{body.FirstChild}
 }
 
 type node struct {
 	*html.Node
-	keys map[*html.Node]interface{}
 }
 
 func (n node) Tag() string {
@@ -90,7 +91,7 @@ func (n node) Key() interface{} {
 			id = attr.Val
 		}
 	}
-	return [3]interface{}{n.Tag(), id, n.keys[n.Node]}
+	return id
 }
 
 func (n node) ForEachAttribute(fn func(key, val string)) {
@@ -105,7 +106,7 @@ func (n node) ForEachAttribute(fn func(key, val string)) {
 
 func (n node) ForEachNode(fn func(vdom.Node)) {
 	for nn := n.Node.FirstChild; nn != nil; nn = nn.NextSibling {
-		fn(node{nn, n.keys})
+		fn(node{nn})
 	}
 }
 
@@ -134,17 +135,16 @@ func (n node) RemoveAttribute(key string) {
 }
 
 func (n node) Children() vdom.MutableNodes {
-	return &nodes{n.Node, n.Node.FirstChild, n.keys}
+	return &nodes{n.Node, n.Node.FirstChild}
 }
 
 type nodes struct {
 	*html.Node
 	child *html.Node
-	keys  map[*html.Node]interface{}
 }
 
 func (n *nodes) Next() vdom.MutableNode {
-	result := node{n.child, n.keys}
+	result := node{n.child}
 	n.child = n.child.NextSibling
 	return result
 }
