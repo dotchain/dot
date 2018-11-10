@@ -7,7 +7,7 @@ package text_test
 import (
 	"fmt"
 	"github.com/dotchain/dot/streams"
-	"github.com/dotchain/dot/streams/text"
+	"github.com/dotchain/dot/ui/text"
 )
 
 func Example_stream_confluence() {

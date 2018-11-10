@@ -7,7 +7,7 @@ package text_test
 import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/refs"
-	"github.com/dotchain/dot/streams/text"
+	"github.com/dotchain/dot/ui/text"
 	"github.com/dotchain/dot/x/types"
 	"reflect"
 	"testing"
