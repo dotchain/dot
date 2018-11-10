@@ -2,10 +2,10 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package vdom_test
+package dom_test
 
 import (
-	"github.com/dotchain/dot/x/vdom"
+	"github.com/dotchain/dot/ui/dom"
 	"golang.org/x/net/html"
 	"strings"
 	"testing"
@@ -24,7 +24,7 @@ func Test(t *testing.T) {
 		`<x><z id="b">boo</z><y id="a">ok</y></x>`: `<x><y id="a">ok</y><z id="b">boo</z></x>`,
 	}
 
-	r := vdom.Reconciler(newHTMLNode)
+	r := dom.Reconciler(newHTMLNode)
 
 	for before, after := range tests {
 		t.Run(before+"=>"+after, func(t *testing.T) {
@@ -34,7 +34,7 @@ func Test(t *testing.T) {
 	}
 }
 
-func newHTMLNode(tag string, key interface{}) vdom.MutableNode {
+func newHTMLNode(tag string, key interface{}) dom.MutableNode {
 	n := &html.Node{Type: html.ElementNode, Data: tag}
 	if tag == ":text:" {
 		n.Type = html.TextNode
@@ -42,7 +42,7 @@ func newHTMLNode(tag string, key interface{}) vdom.MutableNode {
 	return node{n}
 }
 
-func validate(t *testing.T, r vdom.Reconciler, before, after string) {
+func validate(t *testing.T, r dom.Reconciler, before, after string) {
 	b, a := parse(t, before), parse(t, after)
 	result := r.Reconcile(b, a)
 	if toHTML(result) != toHTML(a) {
@@ -50,7 +50,7 @@ func validate(t *testing.T, r vdom.Reconciler, before, after string) {
 	}
 }
 
-func toHTML(n vdom.MutableNode) string {
+func toHTML(n dom.MutableNode) string {
 	if n == nil {
 		return ""
 	}
@@ -60,7 +60,7 @@ func toHTML(n vdom.MutableNode) string {
 	return builder.String()
 }
 
-func parse(t *testing.T, s string) vdom.MutableNode {
+func parse(t *testing.T, s string) dom.MutableNode {
 	if s == "" {
 		return nil
 	}
@@ -104,7 +104,7 @@ func (n node) ForEachAttribute(fn func(key string, val interface{})) {
 	}
 }
 
-func (n node) ForEachNode(fn func(vdom.Node)) {
+func (n node) ForEachNode(fn func(dom.Node)) {
 	for nn := n.Node.FirstChild; nn != nil; nn = nn.NextSibling {
 		fn(node{nn})
 	}
@@ -135,7 +135,7 @@ func (n node) RemoveAttribute(key string) {
 	}
 }
 
-func (n node) Children() vdom.MutableNodes {
+func (n node) Children() dom.MutableNodes {
 	return &nodes{n.Node, n.Node.FirstChild}
 }
 
@@ -144,19 +144,19 @@ type nodes struct {
 	child *html.Node
 }
 
-func (n *nodes) Next() vdom.MutableNode {
+func (n *nodes) Next() dom.MutableNode {
 	result := node{n.child}
 	n.child = n.child.NextSibling
 	return result
 }
 
-func (n *nodes) Remove() vdom.MutableNode {
+func (n *nodes) Remove() dom.MutableNode {
 	removed := n.Next().(node)
 	n.Node.RemoveChild(removed.Node)
 	return removed
 }
 
-func (n *nodes) Insert(m vdom.MutableNode) {
+func (n *nodes) Insert(m dom.MutableNode) {
 	child := m.(node).Node
 	n.Node.InsertBefore(child, n.child)
 }

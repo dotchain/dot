@@ -2,11 +2,11 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package vdom_test
+package dom_test
 
 import (
 	"fmt"
-	"github.com/dotchain/dot/x/vdom"
+	"github.com/dotchain/dot/ui/dom"
 	"golang.org/x/net/html"
 	"strings"
 )
@@ -19,7 +19,7 @@ func ExampleReconciler_append() {
 	fragment, _ = html.ParseFragment(strings.NewReader(after), nil)
 	expected := node{fragment[0].FirstChild.NextSibling}
 
-	r := vdom.Reconciler(newHTMLNode)
+	r := dom.Reconciler(newHTMLNode)
 	reconciled := r.Reconcile(initial, expected)
 	if reconciled != initial {
 		fmt.Println("Unexpected reconciled output", toHTML(reconciled))
@@ -42,7 +42,7 @@ func ExampleReconciler_reorder() {
 	fragment, _ = html.ParseFragment(strings.NewReader(after), nil)
 	expected := node{fragment[0].FirstChild.NextSibling.FirstChild}
 
-	r := vdom.Reconciler(newHTMLNode)
+	r := dom.Reconciler(newHTMLNode)
 	reconciled := r.Reconcile(initial, expected).(node)
 	if reconciled != initial {
 		fmt.Println("Unexpected reconciled output", toHTML(reconciled))

@@ -2,12 +2,12 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-// Package vdom implement DOM reconciliation a la React
+// Package dom implements DOM reconciliation a la React
 //
 // The main export is a Reconciler which can be used to convert a
 // MutableNode into the same shape as the provided  "virtual"
 // Node. See the examples for how to use  it.
-package vdom
+package dom
 
 // Node is the interface for a virtual node. It is read-only and
 // provides access to the Tag, attributes and child nodes.  There is
@@ -51,7 +51,7 @@ type MutableNodes interface {
 // the constructor for new mutable nodes created.
 type Reconciler func(tag string, key interface{}) MutableNode
 
-// Reconcile remakses the mutable node in the shape of the provided
+// Reconcile remakes the mutable node in the shape of the provided
 // virtual node. Note that if the root is itself modified (say,
 // because the Key changed or some such reason), the function just
 // returns the updated root node. The caller is expected to work with
