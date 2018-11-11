@@ -86,7 +86,13 @@ func (n Node) ForEachNode(fn func(dom.Node)) {
 // SetAttribute updates the provided attribute. If the attribute is
 // :data:, it updates the text content
 func (n Node) SetAttribute(key string, v interface{}) {
-	val := v.(string)
+	val, ok := v.(string)
+	if ok {
+		n.setAttribute(key, val)
+	}
+}
+
+func (n Node) setAttribute(key, val string) {
 	if key == ":data:" {
 		n.Node.Data = val
 	}
