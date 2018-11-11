@@ -6,21 +6,16 @@ package dom_test
 
 import (
 	"fmt"
-	"github.com/dotchain/dot/ui/dom"
-	"golang.org/x/net/html"
-	"strings"
+	"github.com/dotchain/dot/ui/html"
 )
 
 func ExampleReconciler_append() {
 	before := "<div>hello world</div>"
 	after := "<div>hello world<span>heya</span></div>"
-	fragment, _ := html.ParseFragment(strings.NewReader(before), nil)
-	initial := node{fragment[0].FirstChild.NextSibling}
-	fragment, _ = html.ParseFragment(strings.NewReader(after), nil)
-	expected := node{fragment[0].FirstChild.NextSibling}
+	initial, _ := html.Parse(before)
+	expected, _ := html.Parse(after)
 
-	r := dom.Reconciler(newHTMLNode)
-	reconciled := r.Reconcile(initial, expected)
+	reconciled := html.Reconciler.Reconcile(initial, expected)
 	if reconciled != initial {
 		fmt.Println("Unexpected reconciled output", toHTML(reconciled))
 	}
@@ -35,15 +30,13 @@ func ExampleReconciler_append() {
 func ExampleReconciler_reorder() {
 	before := `<div><span id="1">one</span><span id="2">two</span></div>`
 	after := `<div><span id="2">two</span><span id="1">one</span></div>`
-	fragment, _ := html.ParseFragment(strings.NewReader(before), nil)
-	initial := node{fragment[0].FirstChild.NextSibling.FirstChild}
+
+	initial, _ := html.Parse(before)
+	expected, _ := html.Parse(after)
 	firstChild := initial.Node.FirstChild
 	secondChild := firstChild.NextSibling
-	fragment, _ = html.ParseFragment(strings.NewReader(after), nil)
-	expected := node{fragment[0].FirstChild.NextSibling.FirstChild}
 
-	r := dom.Reconciler(newHTMLNode)
-	reconciled := r.Reconcile(initial, expected).(node)
+	reconciled := html.Reconciler.Reconcile(initial, expected).(html.Node)
 	if reconciled != initial {
 		fmt.Println("Unexpected reconciled output", toHTML(reconciled))
 	}
