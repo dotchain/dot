@@ -6,8 +6,7 @@ package dom_test
 
 import (
 	"github.com/dotchain/dot/ui/dom"
-	"golang.org/x/net/html"
-	"strings"
+	"github.com/dotchain/dot/ui/html"
 	"testing"
 )
 
@@ -24,27 +23,17 @@ func Test(t *testing.T) {
 		`<x><z id="b">boo</z><y id="a">ok</y></x>`: `<x><y id="a">ok</y><z id="b">boo</z></x>`,
 	}
 
-	r := dom.Reconciler(newHTMLNode)
-
 	for before, after := range tests {
 		t.Run(before+"=>"+after, func(t *testing.T) {
-			validate(t, r, before, after)
-			validate(t, r, after, before)
+			validate(t, before, after)
+			validate(t, after, before)
 		})
 	}
 }
 
-func newHTMLNode(tag string, key interface{}) dom.MutableNode {
-	n := &html.Node{Type: html.ElementNode, Data: tag}
-	if tag == ":text:" {
-		n.Type = html.TextNode
-	}
-	return node{n}
-}
-
-func validate(t *testing.T, r dom.Reconciler, before, after string) {
+func validate(t *testing.T, before, after string) {
 	b, a := parse(t, before), parse(t, after)
-	result := r.Reconcile(b, a)
+	result := html.Reconciler.Reconcile(b, a)
 	if toHTML(result) != toHTML(a) {
 		t.Error("Mismatched", toHTML(a), toHTML(result))
 	}
@@ -55,9 +44,11 @@ func toHTML(n dom.MutableNode) string {
 		return ""
 	}
 
-	var builder strings.Builder
-	html.Render(&builder, n.(node).Node)
-	return builder.String()
+	return n.(stringer).String()
+}
+
+type stringer interface {
+	String() string
 }
 
 func parse(t *testing.T, s string) dom.MutableNode {
@@ -65,98 +56,9 @@ func parse(t *testing.T, s string) dom.MutableNode {
 		return nil
 	}
 
-	nodes, err := html.ParseFragment(strings.NewReader(s), nil)
+	result, err := html.Parse(s)
 	if err != nil {
 		t.Fatal("invalid HTML", err)
 	}
-	body := nodes[0].FirstChild.NextSibling
-	return node{body.FirstChild}
-}
-
-type node struct {
-	*html.Node
-}
-
-func (n node) Tag() string {
-	if n.Node.Type == html.ElementNode {
-		return n.Data
-	}
-	return ":text:"
-}
-
-func (n node) Key() interface{} {
-	id := ""
-	for _, attr := range n.Node.Attr {
-		if attr.Key == "id" {
-			id = attr.Val
-		}
-	}
-	return id
-}
-
-func (n node) ForEachAttribute(fn func(key string, val interface{})) {
-	if n.Tag() == ":text:" {
-		fn(":data:", n.Node.Data)
-	}
-
-	for _, attr := range n.Node.Attr {
-		fn(attr.Key, attr.Val)
-	}
-}
-
-func (n node) ForEachNode(fn func(dom.Node)) {
-	for nn := n.Node.FirstChild; nn != nil; nn = nn.NextSibling {
-		fn(node{nn})
-	}
-}
-
-func (n node) SetAttribute(key string, v interface{}) {
-	val := v.(string)
-	if key == ":data:" {
-		n.Node.Data = val
-	}
-
-	for kk := range n.Node.Attr {
-		if n.Node.Attr[kk].Key == key {
-			n.Node.Attr[kk].Val = val
-			return
-		}
-	}
-	n.Node.Attr = append(n.Node.Attr, html.Attribute{"", key, val})
-}
-
-func (n node) RemoveAttribute(key string) {
-	attr := n.Node.Attr
-	for kk := range attr {
-		if attr[kk].Key == key {
-			n.Node.Attr = append(attr[:kk], attr[kk+1:]...)
-			return
-		}
-	}
-}
-
-func (n node) Children() dom.MutableNodes {
-	return &nodes{n.Node, n.Node.FirstChild}
-}
-
-type nodes struct {
-	*html.Node
-	child *html.Node
-}
-
-func (n *nodes) Next() dom.MutableNode {
-	result := node{n.child}
-	n.child = n.child.NextSibling
 	return result
-}
-
-func (n *nodes) Remove() dom.MutableNode {
-	removed := n.Next().(node)
-	n.Node.RemoveChild(removed.Node)
-	return removed
-}
-
-func (n *nodes) Insert(m dom.MutableNode) {
-	child := m.(node).Node
-	n.Node.InsertBefore(child, n.child)
 }
