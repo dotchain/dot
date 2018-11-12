@@ -15,14 +15,11 @@ import (
 // TextTag is the tag used by text nodes
 var TextTag = ":text:"
 
+// GlobalEvents is the global events handler when using the default reconciler.
+var GlobalEvents = Events{}
+
 // Reconciler implements a reconciler for html nodes
-var Reconciler = dom.Reconciler(func(tag string, key interface{}) dom.MutableNode {
-	n := &html.Node{Type: html.ElementNode, Data: tag}
-	if tag == TextTag {
-		n.Type = html.TextNode
-	}
-	return Node{n}
-})
+var Reconciler = GlobalEvents.Reconciler()
 
 // Parse parses the string into a mutable node structure
 func Parse(s string) (Node, error) {
@@ -30,12 +27,13 @@ func Parse(s string) (Node, error) {
 	if err != nil || len(nodes) == 0 || nodes[0].FirstChild == nil || nodes[0].FirstChild.NextSibling == nil || nodes[0].FirstChild.NextSibling.FirstChild == nil {
 		return Node{}, errors.New("parse error")
 	}
-	return Node{nodes[0].FirstChild.NextSibling.FirstChild}, nil
+	return Node{nodes[0].FirstChild.NextSibling.FirstChild, GlobalEvents}, nil
 }
 
 // Node implements MutableNode over a net/html Node
 type Node struct {
 	*html.Node
+	Events
 }
 
 // String converts it to a raw html
@@ -74,21 +72,23 @@ func (n Node) ForEachAttribute(fn func(key string, val interface{})) {
 	for _, attr := range n.Node.Attr {
 		fn(attr.Key, attr.Val)
 	}
+	n.Events.forEach(n.Node, fn)
 }
 
 // ForEachNode iterates over all the child nodes
 func (n Node) ForEachNode(fn func(dom.Node)) {
 	for nn := n.Node.FirstChild; nn != nil; nn = nn.NextSibling {
-		fn(Node{nn})
+		fn(Node{nn, n.Events})
 	}
 }
 
 // SetAttribute updates the provided attribute. If the attribute is
 // :data:, it updates the text content
 func (n Node) SetAttribute(key string, v interface{}) {
-	val, ok := v.(string)
-	if ok {
+	if val, ok := v.(string); ok {
 		n.setAttribute(key, val)
+	} else {
+		n.Events.Update(n.Node, key, v.(func(interface{})))
 	}
 }
 
@@ -116,21 +116,23 @@ func (n Node) RemoveAttribute(key string) {
 			return
 		}
 	}
+	n.Events.Update(n.Node, key, nil)
 }
 
 // Children returns an iterator that allows inserting and removing
 // nodes.
 func (n Node) Children() dom.MutableNodes {
-	return &nodes{n.Node, n.Node.FirstChild}
+	return &nodes{n.Node, n.Node.FirstChild, n.Events}
 }
 
 type nodes struct {
 	*html.Node
 	child *html.Node
+	Events
 }
 
 func (n *nodes) Next() dom.MutableNode {
-	result := Node{n.child}
+	result := Node{n.child, n.Events}
 	n.child = n.child.NextSibling
 	return result
 }
@@ -138,6 +140,7 @@ func (n *nodes) Next() dom.MutableNode {
 func (n *nodes) Remove() dom.MutableNode {
 	removed := n.Next().(Node)
 	n.Node.RemoveChild(removed.Node)
+	n.Events.Remove(removed.Node)
 	return removed
 }
 
