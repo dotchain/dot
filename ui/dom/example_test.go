@@ -15,8 +15,8 @@ func ExampleReconciler_append() {
 	initial, _ := html.Parse(before)
 	expected, _ := html.Parse(after)
 
-	reconciled := html.Reconciler.Reconcile(initial, expected)
-	if reconciled != initial {
+	reconciled := html.Reconciler.Reconcile(initial, expected).(html.Node)
+	if reconciled.Node != initial.Node {
 		fmt.Println("Unexpected reconciled output", toHTML(reconciled))
 	}
 
@@ -37,7 +37,7 @@ func ExampleReconciler_reorder() {
 	secondChild := firstChild.NextSibling
 
 	reconciled := html.Reconciler.Reconcile(initial, expected).(html.Node)
-	if reconciled != initial {
+	if reconciled.Node != initial.Node {
 		fmt.Println("Unexpected reconciled output", toHTML(reconciled))
 	}
 

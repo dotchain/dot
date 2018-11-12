@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func Test(t *testing.T) {
+func TestMutableNode(t *testing.T) {
 	if n, err := html.Parse("<html><html>"); err == nil {
 		t.Error("Unexpected successful parse", n)
 	}
@@ -35,5 +35,48 @@ func validate(t *testing.T, before, after string) {
 	result := html.Reconciler.Reconcile(b, a)
 	if fmt.Sprintf("%v", result) != fmt.Sprintf("%v", a) {
 		t.Error("Mismatched", a, result)
+	}
+}
+
+func TestEventHandlers(t *testing.T) {
+	e := html.Events{}
+	div, _ := html.Parse("<div><div></div></div>")
+
+	clicked := ""
+	div.Children().Next().SetAttribute("onclick", func(arg interface{}) {
+		clicked = arg.(string)
+	})
+
+	node := div.Children().Next().(html.Node).Node
+	e.Fire(node, "onclick", "hello")
+	if clicked != "" {
+		t.Fatal("Unexpected firing yo")
+	}
+
+	root := e.Reconciler().Reconcile(nil, div)
+	node = root.Children().Next().(html.Node).Node
+	e.Fire(node, "onclick", "boo")
+	if clicked != "boo" {
+		t.Fatal("Firing failed", clicked)
+	}
+
+	div.Children().Next().RemoveAttribute("onclick")
+	root = e.Reconciler().Reconcile(root, div)
+
+	e.Fire(node, "onclick", "boohoo")
+	if clicked != "boo" {
+		t.Fatal("Firing failed", clicked)
+	}
+
+	div.Children().Next().SetAttribute("onclick", func(arg interface{}) {
+		clicked = arg.(string)
+	})
+	e.Reconciler().Reconcile(root, div)
+	div.Children().Remove()
+	e.Reconciler().Reconcile(root, div)
+
+	e.Fire(node, "onclick", "boohoo")
+	if clicked != "boo" {
+		t.Fatal("Firing failed", clicked)
 	}
 }
