@@ -7,6 +7,7 @@ package collab_test
 import (
 	"fmt"
 	"github.com/dotchain/dot/refs"
+	"github.com/dotchain/dot/streams"
 	"github.com/dotchain/dot/ui/collab"
 	"github.com/dotchain/dot/ui/html"
 	"github.com/yosssi/gohtml"
@@ -104,4 +105,69 @@ func ExampleNode_sharedCarets() {
 	//   <span class="caret both"></span>
 	//   <span>ello World</span>
 	// </div>
+}
+
+func ExampleNode_insert() {
+	v := collab.Text{
+		Text:      "Hullo World",
+		SessionID: "me",
+		Refs: map[interface{}]refs.Ref{
+			"me": refs.Range{refs.Caret{p, 2, true}, refs.Caret{p, 2, true}},
+		},
+		Stream: streams.New(),
+	}
+
+	events := html.Events{}
+	r := events.Reconciler().Reconcile(nil, collab.Node(v)).(html.Node)
+
+	// three random events
+	events.Fire(r.Node, "onkeydown", event{})
+	events.Fire(r.Node, "onkeyup", event{"ArrowLeft", ""})
+	events.Fire(r.Node, "onkeyup", event{"ArrowRight", ""})
+
+	// convert Hullo World to Hey World via a sequence of events
+	events.Fire(r.Node, "onkeyup", event{"ArrowLeft", ""})
+	events.Fire(r.Node, "onkeyup", event{"ArrowRight", ""})
+	events.Fire(r.Node, "onkeyup", event{"ShiftArrowLeft", ""})
+	events.Fire(r.Node, "onkeyup", event{"Insert", "e"})
+	events.Fire(r.Node, "onkeyup", event{"ShiftArrowRight", ""})
+	events.Fire(r.Node, "onkeyup", event{"ShiftArrowRight", ""})
+	events.Fire(r.Node, "onkeyup", event{"ShiftArrowRight", ""})
+	events.Fire(r.Node, "onkeyup", event{"ShiftArrowRight", ""})
+	events.Fire(r.Node, "onkeyup", event{"Backspace", ""})
+	events.Fire(r.Node, "onkeyup", event{"Insert", "y"})
+	events.Fire(r.Node, "onkeyup", event{"Space", ""})
+
+	// render the latest
+	r = events.Reconciler().Reconcile(r, collab.Node(v.Latest())).(html.Node)
+
+	// display
+	condense := gohtml.Condense
+	defer func() {
+		gohtml.Condense = condense
+	}()
+	gohtml.Condense = true
+	fmt.Printf("%s", gohtml.Format(fmt.Sprintf("%v", r)))
+
+	// Output:
+	// <div contenteditable="true">
+	//   <span>Hey </span>
+	//   <span class="caret own"></span>
+	//   <span>World</span>
+	// </div>
+}
+
+type event struct {
+	code, char string
+}
+
+func (e event) PreventDefault() {
+}
+
+func (e event) Code() string {
+	return e.code
+}
+
+func (e event) Char() string {
+	return e.char
 }

@@ -118,6 +118,20 @@ func (t Text) Copy() string {
 	return string(sel)
 }
 
+// Paste is like insert except it keeps the cursor around the pasted
+// string.
+func (t Text) Paste(s string) (Text, changes.Change) {
+	offset, before := t.selection()
+	after := types.S8(s)
+	splice := changes.PathChange{p, changes.Splice{offset, before, after}}
+	l := t.toList().Apply(splice).(refs.Container)
+	start := refs.Caret{p, offset, after.Count() == 0}
+	end := refs.Caret{p, offset + after.Count(), true}
+	lx, cx := l.UpdateRef(t.SessionID, refs.Range{start, end})
+	cx = changes.ChangeSet{splice, cx}
+	return t.fromList(lx, cx), cx
+}
+
 // StartOf returns the cursor index of the specified session. If the
 // session does not exist, it default to zero index.
 func (t Text) StartOf(sessionID interface{}) (int, bool) {
@@ -135,20 +149,6 @@ func (t Text) EndOf(sessionID interface{}) (int, bool) {
 		return caret.Index, caret.IsLeft
 	}
 	return 0, true
-}
-
-// Paste is like insert except it keeps the cursor around the pasted
-// string.
-func (t Text) Paste(s string) (Text, changes.Change) {
-	offset, before := t.selection()
-	after := types.S8(s)
-	splice := changes.PathChange{p, changes.Splice{offset, before, after}}
-	l := t.toList().Apply(splice).(refs.Container)
-	start := refs.Caret{p, offset, after.Count() == 0}
-	end := refs.Caret{p, offset + after.Count(), true}
-	lx, cx := l.UpdateRef(t.SessionID, refs.Range{start, end})
-	cx = changes.ChangeSet{splice, cx}
-	return t.fromList(lx, cx), cx
 }
 
 // Next returns the next value of data as determined from the
