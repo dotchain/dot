@@ -10,6 +10,14 @@ import (
 	"sort"
 )
 
+// KeyboardEvent is the interface expected for onkeyup and onkeydown
+// event handlers.
+type KeyboardEvent interface {
+	PreventDefault()
+	Code() string
+	Char() string
+}
+
 // Node implements dom.Node on top of a Text value
 func Node(t Text) dom.Node {
 	return node(t)
@@ -27,6 +35,30 @@ func (n node) Key() interface{} {
 
 func (n node) ForEachAttribute(fn func(key string, val interface{})) {
 	fn("contenteditable", "true")
+	fn("onkeydown", func(v interface{}) {
+		v.(KeyboardEvent).PreventDefault()
+	})
+	x := Text(n)
+	fn("onkeyup", func(v interface{}) {
+		k := v.(KeyboardEvent)
+		x = x.Latest()
+		switch k.Code() {
+		case "Insert":
+			x.Insert(k.Char())
+		case "Backspace":
+			x.Delete()
+		case "Space":
+			x.Insert(" ")
+		case "ArrowLeft":
+			x.ArrowLeft()
+		case "ShiftArrowLeft":
+			x.ShiftArrowLeft()
+		case "ArrowRight":
+			x.ArrowRight()
+		case "ShiftArrowRight":
+			x.ShiftArrowRight()
+		}
+	})
 }
 
 func (n node) ForEachNode(fn func(n dom.Node)) {
