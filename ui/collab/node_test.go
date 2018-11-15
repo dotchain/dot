@@ -117,29 +117,29 @@ func ExampleNode_insert() {
 		Stream: streams.New(),
 	}
 
-	events := html.Events{}
-	r := html.Reconciler(events, nil).Reconcile(nil, collab.Node(v)).(html.Node)
+	kbd := html.Keyboard{}
+	r := html.Reconciler(nil, kbd).Reconcile(nil, collab.Node(v)).(html.Node)
 
-	// three random events
-	events.Fire(r.Node, "onkeydown", event{})
-	events.Fire(r.Node, "onkeyup", event{"ArrowLeft", ""})
-	events.Fire(r.Node, "onkeyup", event{"ArrowRight", ""})
+	f := kbd.Focus()
+	// a couple of random events
+	f.ArrowLeft()
+	f.ArrowRight()
 
 	// convert Hullo World to Hey World via a sequence of events
-	events.Fire(r.Node, "onkeyup", event{"ArrowLeft", ""})
-	events.Fire(r.Node, "onkeyup", event{"ArrowRight", ""})
-	events.Fire(r.Node, "onkeyup", event{"ShiftArrowLeft", ""})
-	events.Fire(r.Node, "onkeyup", event{"Insert", "e"})
-	events.Fire(r.Node, "onkeyup", event{"ShiftArrowRight", ""})
-	events.Fire(r.Node, "onkeyup", event{"ShiftArrowRight", ""})
-	events.Fire(r.Node, "onkeyup", event{"ShiftArrowRight", ""})
-	events.Fire(r.Node, "onkeyup", event{"ShiftArrowRight", ""})
-	events.Fire(r.Node, "onkeyup", event{"Backspace", ""})
-	events.Fire(r.Node, "onkeyup", event{"Insert", "y"})
-	events.Fire(r.Node, "onkeyup", event{"Space", ""})
+	f.ArrowLeft()
+	f.ArrowRight()
+	f.ShiftArrowLeft()
+	f.Insert("e")
+	f.ShiftArrowRight()
+	f.ShiftArrowRight()
+	f.ShiftArrowRight()
+	f.ShiftArrowRight()
+	f.Remove()
+	f.Insert("y")
+	f.Insert(" ")
 
 	// render the latest
-	r = html.Reconciler(events, nil).Reconcile(r, collab.Node(v.Latest())).(html.Node)
+	r = html.Reconciler(nil, kbd).Reconcile(r, collab.Node(v.Latest())).(html.Node)
 
 	// display
 	condense := gohtml.Condense
@@ -155,19 +155,4 @@ func ExampleNode_insert() {
 	//   <span class="caret own"></span>
 	//   <span>World</span>
 	// </div>
-}
-
-type event struct {
-	code, char string
-}
-
-func (e event) PreventDefault() {
-}
-
-func (e event) Code() string {
-	return e.code
-}
-
-func (e event) Char() string {
-	return e.char
 }
