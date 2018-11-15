@@ -8,6 +8,7 @@ package html
 import (
 	"errors"
 	"github.com/dotchain/dot/ui/dom"
+	"github.com/dotchain/dot/ui/input"
 	"golang.org/x/net/html"
 	"strings"
 )
@@ -15,25 +16,20 @@ import (
 // TextTag is the tag used by text nodes
 var TextTag = ":text:"
 
-// GlobalEvents is the global events handler when using the default reconciler.
-var GlobalEvents = Events{}
-
-// Reconciler implements a reconciler for html nodes
-var Reconciler = GlobalEvents.Reconciler()
-
 // Parse parses the string into a mutable node structure
 func Parse(s string) (Node, error) {
 	nodes, err := html.ParseFragment(strings.NewReader(s), nil)
 	if err != nil || len(nodes) == 0 || nodes[0].FirstChild == nil || nodes[0].FirstChild.NextSibling == nil || nodes[0].FirstChild.NextSibling.FirstChild == nil {
 		return Node{}, errors.New("parse error")
 	}
-	return Node{nodes[0].FirstChild.NextSibling.FirstChild, GlobalEvents}, nil
+	return Node{nodes[0].FirstChild.NextSibling.FirstChild, Events{}, Keyboard{}}, nil
 }
 
 // Node implements MutableNode over a net/html Node
 type Node struct {
 	*html.Node
 	Events
+	Keyboard
 }
 
 // String converts it to a raw html
@@ -69,6 +65,15 @@ func (n Node) ForEachAttribute(fn func(key string, val interface{})) {
 		fn(":data:", n.Node.Data)
 	}
 
+	id, keyboard := n.Keyboard.Get(n.Node)
+	if keyboard != nil {
+		fn("keyboard", keyboard)
+	}
+
+	if id != 0 {
+		fn("focus", id)
+	}
+
 	for _, attr := range n.Node.Attr {
 		fn(attr.Key, attr.Val)
 	}
@@ -78,14 +83,20 @@ func (n Node) ForEachAttribute(fn func(key string, val interface{})) {
 // ForEachNode iterates over all the child nodes
 func (n Node) ForEachNode(fn func(dom.Node)) {
 	for nn := n.Node.FirstChild; nn != nil; nn = nn.NextSibling {
-		fn(Node{nn, n.Events})
+		fn(Node{nn, n.Events, n.Keyboard})
 	}
 }
 
 // SetAttribute updates the provided attribute. If the attribute is
 // :data:, it updates the text content
 func (n Node) SetAttribute(key string, v interface{}) {
-	if val, ok := v.(string); ok {
+	if key == "focus" {
+		_, kbd := n.Keyboard.Get(n.Node)
+		n.Keyboard.Update(n.Node, v.(int), kbd)
+	} else if key == "keyboard" {
+		id, _ := n.Keyboard.Get(n.Node)
+		n.Keyboard.Update(n.Node, id, v.(input.Keyboard))
+	} else if val, ok := v.(string); ok {
 		n.setAttribute(key, val)
 	} else {
 		n.Events.Update(n.Node, key, v.(func(interface{})))
@@ -109,30 +120,40 @@ func (n Node) setAttribute(key, val string) {
 // RemoveAttribute removes the provided attribute. Note that there is
 // no way to remove the :data: attribute
 func (n Node) RemoveAttribute(key string) {
-	attr := n.Node.Attr
-	for kk := range attr {
-		if attr[kk].Key == key {
-			n.Node.Attr = append(attr[:kk], attr[kk+1:]...)
-			return
+	switch key {
+	case "focus":
+		_, kbd := n.Keyboard.Get(n.Node)
+		n.Keyboard.Update(n.Node, 0, kbd)
+	case "keyboard":
+		id, _ := n.Keyboard.Get(n.Node)
+		n.Keyboard.Update(n.Node, id, nil)
+	default:
+		attr := n.Node.Attr
+		for kk := range attr {
+			if attr[kk].Key == key {
+				n.Node.Attr = append(attr[:kk], attr[kk+1:]...)
+				return
+			}
 		}
+		n.Events.Update(n.Node, key, nil)
 	}
-	n.Events.Update(n.Node, key, nil)
 }
 
 // Children returns an iterator that allows inserting and removing
 // nodes.
 func (n Node) Children() dom.MutableNodes {
-	return &nodes{n.Node, n.Node.FirstChild, n.Events}
+	return &nodes{n.Node, n.Node.FirstChild, n.Events, n.Keyboard}
 }
 
 type nodes struct {
 	*html.Node
 	child *html.Node
 	Events
+	Keyboard
 }
 
 func (n *nodes) Next() dom.MutableNode {
-	result := Node{n.child, n.Events}
+	result := Node{n.child, n.Events, n.Keyboard}
 	n.child = n.child.NextSibling
 	return result
 }

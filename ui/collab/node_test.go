@@ -28,7 +28,7 @@ func ExampleNode_overlappingRegions() {
 		Stream: nil,
 	}
 
-	r := html.Reconciler.Reconcile(nil, collab.Node(v))
+	r := html.Reconciler(nil, nil).Reconcile(nil, collab.Node(v))
 	condense := gohtml.Condense
 	defer func() {
 		gohtml.Condense = condense
@@ -60,7 +60,7 @@ func ExampleNode_carets() {
 		Stream: nil,
 	}
 
-	r := html.Reconciler.Reconcile(nil, collab.Node(v))
+	r := html.Reconciler(nil, nil).Reconcile(nil, collab.Node(v))
 	condense := gohtml.Condense
 	defer func() {
 		gohtml.Condense = condense
@@ -91,7 +91,7 @@ func ExampleNode_sharedCarets() {
 		Stream: nil,
 	}
 
-	r := html.Reconciler.Reconcile(nil, collab.Node(v))
+	r := html.Reconciler(nil, nil).Reconcile(nil, collab.Node(v))
 	condense := gohtml.Condense
 	defer func() {
 		gohtml.Condense = condense
@@ -118,7 +118,7 @@ func ExampleNode_insert() {
 	}
 
 	events := html.Events{}
-	r := events.Reconciler().Reconcile(nil, collab.Node(v)).(html.Node)
+	r := html.Reconciler(events, nil).Reconcile(nil, collab.Node(v)).(html.Node)
 
 	// three random events
 	events.Fire(r.Node, "onkeydown", event{})
@@ -139,7 +139,7 @@ func ExampleNode_insert() {
 	events.Fire(r.Node, "onkeyup", event{"Space", ""})
 
 	// render the latest
-	r = events.Reconciler().Reconcile(r, collab.Node(v.Latest())).(html.Node)
+	r = html.Reconciler(events, nil).Reconcile(r, collab.Node(v.Latest())).(html.Node)
 
 	// display
 	condense := gohtml.Condense

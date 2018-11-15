@@ -32,7 +32,7 @@ func TestMutableNode(t *testing.T) {
 func validate(t *testing.T, before, after string) {
 	b, _ := html.Parse(before)
 	a, _ := html.Parse(after)
-	result := html.Reconciler.Reconcile(b, a)
+	result := html.Reconciler(nil, nil).Reconcile(b, a)
 	if fmt.Sprintf("%v", result) != fmt.Sprintf("%v", a) {
 		t.Error("Mismatched", a, result)
 	}
@@ -40,6 +40,7 @@ func validate(t *testing.T, before, after string) {
 
 func TestEventHandlers(t *testing.T) {
 	e := html.Events{}
+	r := html.Reconciler(e, html.Keyboard{})
 	div, _ := html.Parse("<div><div></div></div>")
 
 	clicked := ""
@@ -53,7 +54,7 @@ func TestEventHandlers(t *testing.T) {
 		t.Fatal("Unexpected firing yo")
 	}
 
-	root := e.Reconciler().Reconcile(nil, div)
+	root := r.Reconcile(nil, div)
 	node = root.Children().Next().(html.Node).Node
 	e.Fire(node, "onclick", "boo")
 	if clicked != "boo" {
@@ -61,7 +62,7 @@ func TestEventHandlers(t *testing.T) {
 	}
 
 	div.Children().Next().RemoveAttribute("onclick")
-	root = e.Reconciler().Reconcile(root, div)
+	root = r.Reconcile(root, div)
 
 	e.Fire(node, "onclick", "boohoo")
 	if clicked != "boo" {
@@ -71,12 +72,79 @@ func TestEventHandlers(t *testing.T) {
 	div.Children().Next().SetAttribute("onclick", func(arg interface{}) {
 		clicked = arg.(string)
 	})
-	e.Reconciler().Reconcile(root, div)
+	r.Reconcile(root, div)
 	div.Children().Remove()
-	e.Reconciler().Reconcile(root, div)
+	r.Reconcile(root, div)
 
 	e.Fire(node, "onclick", "boohoo")
 	if clicked != "boo" {
 		t.Fatal("Firing failed", clicked)
 	}
+}
+
+func TestFocusHandling(t *testing.T) {
+	k := html.Keyboard{}
+	r := html.Reconciler(html.Events{}, k)
+	div, _ := html.Parse("<div><div></div></div>")
+	event := ""
+	div.Children().Next().SetAttribute("keyboard", kbd(func(s string) {
+		event = s
+	}))
+
+	root := r.Reconcile(nil, div)
+	if k.Focus() != nil {
+		t.Fatal("Unexpected keyboard")
+	}
+
+	div.Children().Next().SetAttribute("focus", -2)
+	root = r.Reconcile(root, div)
+	if k.Focus() != nil {
+		t.Fatal("Unexpected keyboard")
+	}
+
+	div.Children().Next().SetAttribute("focus", 1)
+	root = r.Reconcile(root, div)
+	if k.Focus() == nil {
+		t.Fatal("Unexpected keyboard")
+	}
+	k.Focus().Insert("x")
+	if event != "Insert: x" {
+		t.Error("Unexpected event", event)
+	}
+
+	div.Children().Next().RemoveAttribute("focus")
+	root = r.Reconcile(root, div)
+	if k.Focus() != nil {
+		t.Fatal("Unexpected keyboard")
+	}
+
+	div.Children().Next().RemoveAttribute("keyboard")
+	r.Reconcile(root, div)
+	if k.Focus() != nil {
+		t.Fatal("Unexpected keyboard")
+	}
+}
+
+type kbd func(s string)
+
+func (k kbd) Insert(ch string) {
+	k("Insert: " + ch)
+}
+func (k kbd) Remove() {
+	k("Remove")
+}
+func (k kbd) ArrowRight() {
+	k("ArrowRight")
+}
+
+func (k kbd) ArrowLeft() {
+	k("ArrowLeft")
+}
+
+func (k kbd) ShiftArrowRight() {
+	k("ShiftArrowRight")
+}
+
+func (k kbd) ShiftArrowLeft() {
+	k("ShiftArrowLeft")
 }
