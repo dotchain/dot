@@ -4,10 +4,7 @@
 
 package html
 
-import (
-	"github.com/dotchain/dot/ui/dom"
-	"golang.org/x/net/html"
-)
+import "golang.org/x/net/html"
 
 type eventKey struct {
 	*html.Node
@@ -42,17 +39,6 @@ func (e Events) Remove(n *html.Node) {
 			delete(e, k)
 		}
 	}
-}
-
-// Reconciler returns a dom.Reconciler
-func (e Events) Reconciler() dom.Reconciler {
-	return dom.Reconciler(func(tag string, key interface{}) dom.MutableNode {
-		n := &html.Node{Type: html.ElementNode, Data: tag}
-		if tag == TextTag {
-			n.Type = html.TextNode
-		}
-		return Node{n, e}
-	})
 }
 
 func (e Events) forEach(n *html.Node, fn func(key string, v interface{})) {

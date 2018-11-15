@@ -33,7 +33,7 @@ func Test(t *testing.T) {
 
 func validate(t *testing.T, before, after string) {
 	b, a := parse(t, before), parse(t, after)
-	result := html.Reconciler.Reconcile(b, a)
+	result := html.Reconciler(nil, nil).Reconcile(b, a)
 	if toHTML(result) != toHTML(a) {
 		t.Error("Mismatched", toHTML(a), toHTML(result))
 	}
