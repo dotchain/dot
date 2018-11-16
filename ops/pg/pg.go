@@ -6,7 +6,7 @@
 //
 // A http server can be implemented like so:
 //      import "github.com/dotchain/dot/ops/pg"
-//      import "github.com/dotchain/dot/x/nw"
+//      import "github.com/dotchain/dot/ops/nw"
 //      dataSource := "dbname=mydb user=xyz"
 //      store, _ := sql.New(dataSource, "instance", nil)
 //      defer  store.Close()
@@ -31,7 +31,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/dotchain/dot/ops"
-	"github.com/dotchain/dot/x/nw"
+	"github.com/dotchain/dot/ops/nw"
 	"github.com/lib/pq"
 	"log"
 	"sync"

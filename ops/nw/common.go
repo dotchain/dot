@@ -9,7 +9,7 @@ import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/ops"
 	"github.com/dotchain/dot/refs"
-	"github.com/dotchain/dot/x/types"
+	"github.com/dotchain/dot/changes/types"
 	"io"
 	"time"
 )

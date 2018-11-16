@@ -11,7 +11,7 @@
 // Both Slice and Move work on strings as well as strings are just a
 // form of arrays as far as OT is concerned. The actual representation
 // of strings is abstracted away.  See
-// https://godoc.org/github.com/dotchain/dot/x/types#S8 for the
+// https://godoc.org/github.com/dotchain/dot/changes/types#S8 for the
 // implementation of an OT-compatible string type.
 //
 // ChangeSet allows a set of mutations to be grouped together.
@@ -37,7 +37,7 @@
 // not permitted.
 //
 // Any custom Value implementation should implement the Value
-// interface.  See https://godoc.org/github.com/dotchain/dot/x/types
+// interface.  See https://godoc.org/github.com/dotchain/dot/changes/types
 // for a set of custom value types such as string, arrays and
 // counters.
 //

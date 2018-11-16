@@ -9,7 +9,7 @@ import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/streams"
 	"github.com/dotchain/dot/x/fold"
-	"github.com/dotchain/dot/x/types"
+	"github.com/dotchain/dot/changes/types"
 	"testing"
 )
 

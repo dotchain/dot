@@ -35,7 +35,7 @@ The DOT project is based on *immutable* or *persistent* **values** and
 look like this:
 
 ```golang
-        // import "github.com/dotchain/x/types.S8
+        // import "github.com/dotchain/changes/types.S8
         // S8 is DOT-compatible string type with UTF8 string indices
         initial := types.S8("hello")
 
@@ -90,7 +90,7 @@ array element or a dictionary path:
 ```
 
 
-The [types](https://godoc.org/github.com/dotchain/dot/x/types) package
+The [types](https://godoc.org/github.com/dotchain/dot/changes/types) package
 implements standard value types (strings, arrays and maps) with which
 arbitrary json-like value can be created.
 
@@ -129,7 +129,7 @@ both individually and in composition.
 In addition to convergence, the set of change types are chosen
 carefully to make it easy to implement *Revert()* (undo of the
 change). This allows the ability to build a generic
-[undo stack](https://godoc.org/github.com/dotchain/dot/x/undo) as well
+[undo stack](https://godoc.org/github.com/dotchain/dot/streams/undo) as well
 as somewhat fancy features like
 [folding](https://godoc.org/github.com/dotchain/dot/x/fold).
 
@@ -250,7 +250,7 @@ client/app logic to be written agnostic of the network.
 ```golang
 
 import (
-       "github.com/dotchain/dot/x/nw"
+       "github.com/dotchain/dot/ops/nw"
        "github.com/dotchain/dot/ops"
        "github.com/dotchain/dot/streams"
        "github.com/dotchain/dot/x/idgen"       
@@ -286,7 +286,7 @@ A simple HTTP server can be created using the bolt/pg store implementations:
 
 ```golang
         // import "github.com/dotchain/dot/ops/bolt"
-        // import "github.com/dotchain/dot/x/nw"        
+        // import "github.com/dotchain/dot/ops/nw"        
 
         store, _ := bolt.New("file.bolt", "instance", nil)
         defer  store.Close()
@@ -308,7 +308,7 @@ A simple HTTP server can be created using the bolt/pg store implementations:
 
 The streams abstraction provides the basis for implementing
 system-wide
-[undo](https://godoc.org/github.com/dotchain/dot/x/undo).
+[undo](https://godoc.org/github.com/dotchain/dot/streams/undo).
 
 More interestingly, there is the ability to implement **Folding**. A
 client can have a set of temporary changes (such as config or view

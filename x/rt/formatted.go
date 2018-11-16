@@ -25,7 +25,7 @@ import "github.com/dotchain/dot/changes"
 //
 // The actual text requires a changes.Value so that the formatting can
 // be usesd with UTF8 or UTF16 strings.  See
-// "github.com/dotchain/dot/changes/x/types" for "S8" and "S16"
+// "github.com/dotchain/dot/changes/changes/types" for "S8" and "S16"
 // implementations.
 type Formatted struct {
 	Text     changes.Collection
