@@ -8,7 +8,7 @@ import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/refs"
 	"github.com/dotchain/dot/streams"
-	"github.com/dotchain/dot/ui/collab"
+	"github.com/dotchain/dot/x/ui/collab"
 	"github.com/dotchain/dot/changes/types"
 	"reflect"
 	"testing"

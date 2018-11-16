@@ -6,7 +6,7 @@ package collab
 
 import (
 	"github.com/dotchain/dot/refs"
-	"github.com/dotchain/dot/ui/dom"
+	"github.com/dotchain/dot/x/ui/dom"
 	"sort"
 )
 

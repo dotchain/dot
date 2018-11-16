@@ -6,7 +6,7 @@ package html_test
 
 import (
 	"fmt"
-	"github.com/dotchain/dot/ui/html"
+	"github.com/dotchain/dot/x/ui/html"
 	"testing"
 )
 

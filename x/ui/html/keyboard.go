@@ -5,7 +5,7 @@
 package html
 
 import (
-	"github.com/dotchain/dot/ui/input"
+	"github.com/dotchain/dot/x/ui/input"
 	"golang.org/x/net/html"
 )
 
