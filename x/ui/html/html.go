@@ -7,8 +7,8 @@ package html
 
 import (
 	"errors"
-	"github.com/dotchain/dot/ui/dom"
-	"github.com/dotchain/dot/ui/input"
+	"github.com/dotchain/dot/x/ui/dom"
+	"github.com/dotchain/dot/x/ui/input"
 	"golang.org/x/net/html"
 	"strings"
 )

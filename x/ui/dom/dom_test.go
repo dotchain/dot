@@ -5,8 +5,8 @@
 package dom_test
 
 import (
-	"github.com/dotchain/dot/ui/dom"
-	"github.com/dotchain/dot/ui/html"
+	"github.com/dotchain/dot/x/ui/dom"
+	"github.com/dotchain/dot/x/ui/html"
 	"testing"
 )
 

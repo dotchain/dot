@@ -6,7 +6,7 @@ package collab
 
 import "github.com/dotchain/dot/changes"
 
-// Keyboard implements the dot/ui/input:Keyboard interface
+// Keyboard implements the dot/x/ui/input:Keyboard interface
 type Keyboard Text
 
 // Insert character(s) at the curreent cursor. If the cursor is not
