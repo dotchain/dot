@@ -38,8 +38,8 @@ client.
 ## Building, testing, linting
 
 While standard `go get -u ./...` and `go test ./...` should work, all
-pull requests to this project will be tested against ./lint.sh and
-./coverage.sh.
+pull requests to this project will be tested against ./x/lint.sh and
+./x/coverage.sh.
 
 ```
 go test --coverprofile=cover.out
@@ -47,13 +47,13 @@ go tool cover --html=cover.out
 ```
 
 Linting is done using [gometalinter](https://github.com/alecthomas/gometalinter) but with
-a very specific set of lint rules.  Please run `./lint.sh` to lint the project.
+a very specific set of lint rules.  Please run `./x/lint.sh` to lint the project.
 
 
 ```
 go get -u github.com/alecthomas/gometalinter
 gometalinter --install --update
-./lint.sh
+./x/lint.sh
 ```
 
 ## Filing issues

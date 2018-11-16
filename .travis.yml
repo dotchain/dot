@@ -10,8 +10,8 @@ before_script:
 - gometalinter --install --update
 - psql -c 'CREATE DATABASE dot_test;' -U postgres
 - mongo dot_test --eval 'db.createUser({user:"root",pwd:"test",roles:["readWrite"]});'
-- bash ./lint.sh
+- bash ./x/lint.sh
 notifications:
   email: false
-script: bash ./coverage.sh
-after_success: bash ./upload_coverage.sh bash <(curl -s https://codecov.io/bash)
+script: bash ./x/coverage.sh
+after_success: bash ./upload_x/coverage.sh bash <(curl -s https://codecov.io/bash)
