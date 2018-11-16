@@ -42,7 +42,7 @@
 // The DOT project is based on *immutable* or *persistent* **values** and
 // **changes**. For example, inserting a character into a string would
 // look like this:
-//        // import "github.com/dotchain/x/types.S8
+//        // import "github.com/dotchain/changes/types.S8
 //        // S8 is DOT-compatible string type with UTF8 string indices
 //        initial := types.S8("hello")
 //        append := changes.Splice{5, types.S8(""), types.S8(" world")}
@@ -81,7 +81,7 @@
 //      updated := initial.Apply(changes.PathChange{path, replace})
 //
 //
-// The https://godoc.org/github.com/dotchain/dot/x/types package
+// The https://godoc.org/github.com/dotchain/dot/changes/types package
 // implements standard value types (strings, arrays and maps) with
 // which arbitrary json-like value can be created.
 //
@@ -121,7 +121,7 @@
 // well as somewhat fancy features like
 //  folding (https://godoc.org/github.com/dotchain/dot/x/fold).
 //
-// The types (https://godoc.org/github.com/dotchain/dot/x/types) package
+// The types (https://godoc.org/github.com/dotchain/dot/changes/types) package
 // implements standard value types (strings, arrays and maps) with which
 // arbitrary json-like value can be created.
 //
@@ -224,7 +224,7 @@
 // mechanism to connect it to a stream which allows much of the
 // client/app logic to be written agnostic of the network.
 //    import(
-//        "github.com/dotchain/dot/x/nw"
+//        "github.com/dotchain/dot/ops/nw"
 //        "github.com/dotchain/dot/ops"
 //        "github.com/dotchain/dot/streams"
 //        "github.com/dotchain/dot/x/idgen"
@@ -255,7 +255,7 @@
 //
 // A simple HTTP server can be created using the bolt/pg store implementations.
 //      import "github.com/dotchain/dot/ops/bolt"
-//      import "github.com/dotchain/dot/x/nw"
+//      import "github.com/dotchain/dot/ops/nw"
 //      store, _ := bolt.New("file.bolt", "instance", nil)
 //      defer  store.Close()
 //      handler := &nw.Handler{Store: store}

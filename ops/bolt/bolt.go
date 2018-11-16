@@ -6,7 +6,7 @@
 //
 // A http server can be implemented like so:
 //      import "github.com/dotchain/dot/ops/bolt"
-//      import "github.com/dotchain/dot/x/nw"
+//      import "github.com/dotchain/dot/ops/nw"
 //      store, _ := bolt.New("file.bolt", "instance", nil)
 //      defer  store.Close()
 //      handler := &nw.Handler{Store: store}
@@ -32,7 +32,7 @@ import (
 	"bytes"
 	"context"
 	"github.com/dotchain/dot/ops"
-	"github.com/dotchain/dot/x/nw"
+	"github.com/dotchain/dot/ops/nw"
 	bolt "github.com/etcd-io/bbolt"
 	"strconv"
 )

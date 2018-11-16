@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/ops"
-	"github.com/dotchain/dot/x/nw"
+	"github.com/dotchain/dot/ops/nw"
 	"net/http/httptest"
 )
 
