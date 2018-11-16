@@ -117,7 +117,7 @@
 // In addition to convergence, the set of change types are chosen
 // carefully to make it easy to implement Revert() (undo of the
 // change. This allows the ability to build a generic
-// undo stack (https://godoc.org/github.com/dotchain/dot/x/undo) as
+// undo stack (https://godoc.org/github.com/dotchain/dot/streams/undo) as
 // well as somewhat fancy features like
 //  folding (https://godoc.org/github.com/dotchain/dot/x/fold).
 //
@@ -274,7 +274,7 @@
 //
 // The streams abstraction provides the basis for implementing
 // system-wide
-// [undo](https://godoc.org/github.com/dotchain/dot/x/undo).
+// [undo](https://godoc.org/github.com/dotchain/dot/streams/undo).
 //
 // More interestingly, there is the ability to implement **Folding**. A
 // client can have a set of temporary changes (such as config or view
