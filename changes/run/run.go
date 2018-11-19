@@ -2,7 +2,9 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package rt
+// Package run implements a custom change that applies to a sequence
+// of array elements.  
+package run
 
 import (
 	"github.com/dotchain/dot/changes"
@@ -10,7 +12,7 @@ import (
 )
 
 // Run implements a custom change type which applies a provided
-// inner change to a range of items in an array.  This is particularly
+// inner change to a run of items in an array.  This is particularly
 // useful for rich text operations
 type Run struct {
 	Offset, Count int
@@ -55,7 +57,7 @@ func (r Run) MergePath(p []interface{}) *refs.MergeResult {
 	return refs.Merge(p[1:], r.Change).Prefix(p[:1])
 }
 
-func (r Run) merge(o changes.Change, reverse bool) (changes.Change, changes.Change) {
+func (r Run) merge(o changes.Change, reverse bool) (ox, rx changes.Change) {
 	if r.Change == nil {
 		return o, nil
 	}
@@ -77,9 +79,11 @@ func (r Run) merge(o changes.Change, reverse bool) (changes.Change, changes.Chan
 	}
 
 	if reverse {
-		return swap(o.Merge(r))
+		rx, ox = o.Merge(r)
+	} else {
+		rx, ox = o.(changes.Custom).ReverseMerge(r)
 	}
-	return swap(o.(revMerge).ReverseMerge(r))
+	return ox, rx
 }
 
 func (r Run) mergeSplice(o changes.Splice) (changes.Change, changes.Change) {
@@ -210,10 +214,4 @@ func (r Run) split3(dest int, o changes.Move) (changes.Change, changes.Change) {
 	return changes.ChangeSet(c).Merge(o)
 }
 
-type revMerge interface {
-	ReverseMerge(changes.Change) (changes.Change, changes.Change)
-}
 
-func swap(x, y changes.Change) (xx, yy changes.Change) {
-	return y, x
-}

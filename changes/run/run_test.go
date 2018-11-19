@@ -2,12 +2,12 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package rt_test
+package run_test
 
 import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/refs"
-	"github.com/dotchain/dot/x/rt"
+	"github.com/dotchain/dot/changes/run"
 	"github.com/dotchain/dot/changes/types"
 	"reflect"
 	"testing"
@@ -17,20 +17,20 @@ type S = types.S8
 type A = types.A
 
 func TestRunRevert(t *testing.T) {
-	r := rt.Run{0, 5, nil}
+	r := run.Run{0, 5, nil}
 	if r.Revert() != nil {
 		t.Error("Unexpected revert", r.Revert())
 	}
 
-	r = rt.Run{0, 5, changes.Move{1, 2, 2}}
-	expected := rt.Run{0, 5, r.Change.Revert()}
+	r = run.Run{0, 5, changes.Move{1, 2, 2}}
+	expected := run.Run{0, 5, r.Change.Revert()}
 	if r.Revert() != expected {
 		t.Error("Unexpected revert", r.Revert())
 	}
 }
 
 func TestRunMergeNils(t *testing.T) {
-	r := rt.Run{0, 5, changes.Move{5, 5, 1}}
+	r := run.Run{0, 5, changes.Move{5, 5, 1}}
 	ox, rx := r.Merge(nil)
 	if ox != nil || rx != r {
 		t.Error("Unexpected merge", ox, rx)
@@ -59,14 +59,14 @@ var third = A{S("e"), S("f")}
 var initial = A{first, second, third}
 
 func TestRunMergeReplace(t *testing.T) {
-	l := rt.Run{0, 2, changes.Move{0, 1, 1}}
+	l := run.Run{0, 2, changes.Move{0, 1, 1}}
 	r := changes.Replace{Before: initial, After: S("OK")}
 	validateMerge(t, l, r)
 	validateMerge(t, l, changes.Replace{initial, changes.Nil})
 }
 
 func TestRunMergeSplice(t *testing.T) {
-	l := rt.Run{1, 1, changes.Move{0, 1, 1}}
+	l := run.Run{1, 1, changes.Move{0, 1, 1}}
 	r := changes.Splice{Offset: 0, Before: A{}, After: A{S("OK")}}
 	validateMerge(t, l, r)
 	r = changes.Splice{Offset: 0, Before: A{first}, After: A{}}
@@ -78,14 +78,14 @@ func TestRunMergeSplice(t *testing.T) {
 	r = changes.Splice{Offset: 0, Before: initial, After: A{S("OK")}}
 	validateMerge(t, l, r)
 
-	l = rt.Run{0, 2, changes.Move{0, 1, 1}}
+	l = run.Run{0, 2, changes.Move{0, 1, 1}}
 	r = changes.Splice{1, A{second, third}, A{S("OK")}}
 	validateMerge(t, l, r)
-	l = rt.Run{1, 2, changes.Move{0, 1, 1}}
+	l = run.Run{1, 2, changes.Move{0, 1, 1}}
 	r = changes.Splice{0, A{first, second}, A{S("OK")}}
 	validateMerge(t, l, r)
 
-	l = rt.Run{0, 3, changes.Move{0, 1, 1}}
+	l = run.Run{0, 3, changes.Move{0, 1, 1}}
 	r = changes.Splice{1, A{second}, A{S("OK")}}
 	validateMerge(t, l, r)
 }
@@ -101,11 +101,11 @@ func TestRunMergeMove(t *testing.T) {
 				if dest < offset {
 					r.Distance = dest - offset
 				}
-				l := rt.Run{1, 1, changes.Move{0, 1, 1}}
+				l := run.Run{1, 1, changes.Move{0, 1, 1}}
 				validateMerge(t, l, r)
-				l = rt.Run{0, 2, changes.Move{0, 1, 1}}
+				l = run.Run{0, 2, changes.Move{0, 1, 1}}
 				validateMerge(t, l, r)
-				l = rt.Run{0, 3, changes.Move{0, 1, 1}}
+				l = run.Run{0, 3, changes.Move{0, 1, 1}}
 				validateMerge(t, l, r)
 			}
 		}
@@ -113,19 +113,19 @@ func TestRunMergeMove(t *testing.T) {
 }
 
 func TestRunMergeRun(t *testing.T) {
-	ForEachRun(changes.Splice{0, A{}, A{S("Left")}}, func(l rt.Run) {
-		ForEachRun(changes.Splice{0, A{}, A{S("Right")}}, func(r rt.Run) {
+	ForEachRun(changes.Splice{0, A{}, A{S("Left")}}, func(l run.Run) {
+		ForEachRun(changes.Splice{0, A{}, A{S("Right")}}, func(r run.Run) {
 			validateMerge(t, l, r)
 		})
 	})
 }
 
 func TestRunMergePathChange(t *testing.T) {
-	l := rt.Run{1, 1, changes.Splice{0, A{}, A{S("Left")}}}
+	l := run.Run{1, 1, changes.Splice{0, A{}, A{S("Left")}}}
 	r := changes.PathChange{nil, changes.Replace{initial, changes.Nil}}
 	validateMerge(t, l, r)
 
-	l = rt.Run{1, 2, changes.Splice{0, A{}, A{S("Left")}}}
+	l = run.Run{1, 2, changes.Splice{0, A{}, A{S("Left")}}}
 	for kk := 0; kk < 3; kk++ {
 		replace := changes.Replace{initial[kk], changes.Nil}
 		r := changes.PathChange{[]interface{}{kk}, replace}
@@ -135,7 +135,7 @@ func TestRunMergePathChange(t *testing.T) {
 }
 
 func TestRunMergePath(t *testing.T) {
-	r := rt.Run{5, 10, changes.Replace{S("OK"), S("boo")}}
+	r := run.Run{5, 10, changes.Replace{S("OK"), S("boo")}}
 	p := refs.Path(nil)
 	px, cx := p.Merge(r)
 	if !reflect.DeepEqual(px, p) || !reflect.DeepEqual(cx, r) {
@@ -162,7 +162,7 @@ func TestRunMergePath(t *testing.T) {
 
 	p = refs.Path{14, "x"}
 	move := changes.Move{2, 3, 4}
-	r = rt.Run{5, 10, changes.PathChange{[]interface{}{"x"}, move}}
+	r = run.Run{5, 10, changes.PathChange{[]interface{}{"x"}, move}}
 	px, cx = p.Merge(r)
 	if !reflect.DeepEqual(px, p) ||
 		!reflect.DeepEqual(cx, changes.PathChange{[]interface{}{}, move}) {
@@ -170,17 +170,17 @@ func TestRunMergePath(t *testing.T) {
 	}
 
 	p = refs.Path{14, 2}
-	r = rt.Run{5, 10, move}
+	r = run.Run{5, 10, move}
 	px, cx = p.Merge(r)
 	if !reflect.DeepEqual(px, refs.Path{14, 6}) || cx != nil {
 		t.Fatal("Affected refs.Path merge failed", px, cx)
 	}
 }
 
-func ForEachRun(change changes.Change, fn func(r rt.Run)) {
+func ForEachRun(change changes.Change, fn func(r run.Run)) {
 	for count := 1; count <= 3; count++ {
 		for offset := 0; offset <= 3-count; offset++ {
-			fn(rt.Run{offset, count, change})
+			fn(run.Run{offset, count, change})
 		}
 	}
 }
