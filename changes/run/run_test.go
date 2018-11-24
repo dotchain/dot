@@ -6,9 +6,9 @@ package run_test
 
 import (
 	"github.com/dotchain/dot/changes"
-	"github.com/dotchain/dot/refs"
 	"github.com/dotchain/dot/changes/run"
 	"github.com/dotchain/dot/changes/types"
+	"github.com/dotchain/dot/refs"
 	"reflect"
 	"testing"
 )

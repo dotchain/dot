@@ -6,8 +6,8 @@ package undo_test
 
 import (
 	"github.com/dotchain/dot/changes"
-	"github.com/dotchain/dot/streams"
 	"github.com/dotchain/dot/changes/types"
+	"github.com/dotchain/dot/streams"
 	"github.com/dotchain/dot/streams/undo"
 	"testing"
 )
