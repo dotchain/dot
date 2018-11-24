@@ -7,9 +7,9 @@ package types
 import "github.com/dotchain/dot/changes"
 
 // The M type represents a map of arbitrary key/values. It implements
-// the changes.Value interface.  The actual values can be non-nil
-// (unlike the regular requirement for values to be non-nil. In this
-// case, the value is treated as if it were changes.Nil
+// the changes.Value interface.  As with all values, a nil value
+// should be expressed via changes.Atomic{nil} to distinguish it from
+// an attempt to remove a key.
 type M map[interface{}]changes.Value
 
 // Apply applies the change and returns the updated value
@@ -24,22 +24,28 @@ func (m M) Apply(c changes.Change) changes.Value {
 		return c.After
 	case changes.PathChange:
 		if len(c.Path) > 0 {
-			clone := map[interface{}]changes.Value{}
-			for k, v := range m {
-				clone[k] = v
-			}
-			if clone[c.Path[0]] == nil {
-				clone[c.Path[0]] = changes.Nil
-			}
-			clone[c.Path[0]] = clone[c.Path[0]].Apply(changes.PathChange{c.Path[1:], c.Change})
-			if clone[c.Path[0]] == changes.Nil {
-				clone[c.Path[0]] = nil
-			}
-			return M(clone)
+			key := c.Path[0]
+			c.Path = c.Path[1:]
+			return m.applyKey(key, c)
 		}
-		return c.ApplyTo(m)
-	case changes.Custom:
-		return c.ApplyTo(m)
 	}
-	panic("Unexpected change on Apply")
+	return c.(changes.Custom).ApplyTo(m)
+}
+
+func (m M) applyKey(key interface{}, c changes.Change) changes.Value {
+	v, ok := m[key]
+	if !ok {
+		v = changes.Nil
+	}
+	v = v.Apply(c)
+	result := make(M, len(m))
+	for k, v := range m {
+		if k != key {
+			result[k] = v
+		}
+	}
+	if v != changes.Nil {
+		result[key] = v
+	}
+	return result
 }
