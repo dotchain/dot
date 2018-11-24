@@ -5,7 +5,9 @@
 package changes_test
 
 import (
+	"context"
 	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/changes/types"
 	"reflect"
 	"testing"
 )
@@ -45,4 +47,27 @@ func TestConvergenceMeta(t *testing.T) {
 			validate(initial, right, changes.Meta{"boo", left})
 		})
 	})
+}
+
+func TestMetaContext(t *testing.T) {
+	c := changes.Meta{types.S8("good"), nil}
+	if v := c.ApplyTo(nil, testValue{}); v != c.Data {
+		t.Error("Unexpected value")
+	}
+
+	ctx := context.WithValue(context.Background(), "ignore", true)
+	if v := c.ApplyTo(ctx, testValue{}); v != types.S8("ignored") {
+		t.Error("Unexpected value")
+	}
+}
+
+type testValue struct{}
+
+func (t testValue) Apply(ctx changes.Context, c changes.Change) changes.Value {
+	if ctx.Value("ignore") != nil {
+		return types.S8("ignored")
+	}
+
+	v, _ := changes.MetaValue(ctx)
+	return v.(changes.Value)
 }
