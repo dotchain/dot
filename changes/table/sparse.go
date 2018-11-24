@@ -38,7 +38,7 @@ type Sparse struct {
 func (s Sparse) SpliceRows(offset, remove int, ids []interface{}) (Sparse, changes.Change) {
 	before := s.RowIDs.Slice(offset, remove)
 	c := changes.Splice{offset, before, s.toValues(ids)}
-	s.RowIDs = s.RowIDs.Apply(c).(types.A)
+	s.RowIDs = s.RowIDs.Apply(nil, c).(types.A)
 	return s, changes.PathChange{[]interface{}{"RowIDs"}, c}
 }
 
@@ -47,7 +47,7 @@ func (s Sparse) SpliceRows(offset, remove int, ids []interface{}) (Sparse, chang
 func (s Sparse) SpliceCols(offset, remove int, ids []interface{}) (Sparse, changes.Change) {
 	before := s.ColIDs.Slice(offset, remove)
 	c := changes.Splice{offset, before, s.toValues(ids)}
-	s.ColIDs = s.ColIDs.Apply(c).(types.A)
+	s.ColIDs = s.ColIDs.Apply(nil, c).(types.A)
 	return s, changes.PathChange{[]interface{}{"ColIDs"}, c}
 }
 
@@ -65,7 +65,7 @@ func (s Sparse) UpdateCell(row, col, value interface{}) (Sparse, changes.Change)
 		c.Before = before
 	}
 	pc := changes.PathChange{[]interface{}{key}, c}
-	s.Data = s.Data.Apply(pc).(types.M)
+	s.Data = s.Data.Apply(nil, pc).(types.M)
 	return s, changes.PathChange{[]interface{}{"Data", key}, c}
 }
 
@@ -79,7 +79,7 @@ func (s Sparse) RemoveCell(row, col interface{}) (Sparse, changes.Change) {
 		return s, nil
 	}
 	pc := changes.PathChange{[]interface{}{key}, c}
-	s.Data = s.Data.Apply(pc).(types.M)
+	s.Data = s.Data.Apply(nil, pc).(types.M)
 	return s, changes.PathChange{[]interface{}{"Data", key}, c}
 }
 
@@ -121,27 +121,27 @@ func (s Sparse) GC(rowKey, colKey func(interface{}) interface{}) (Sparse, change
 }
 
 // Apply implements changes.Value:Apply
-func (s Sparse) Apply(c changes.Change) changes.Value {
+func (s Sparse) Apply(ctx changes.Context, c changes.Change) changes.Value {
 	switch c := c.(type) {
 	case nil:
 		return s
 	case changes.PathChange:
 		if len(c.Path) == 0 {
-			return s.Apply(c.Change)
+			return s.Apply(ctx, c.Change)
 		}
 		field := c.Path[0].(string)
 		c.Path = c.Path[1:]
 		switch field {
 		case "RowIDs":
-			s.RowIDs = s.RowIDs.Apply(c).(types.A)
+			s.RowIDs = s.RowIDs.Apply(ctx, c).(types.A)
 		case "ColIDs":
-			s.ColIDs = s.ColIDs.Apply(c).(types.A)
+			s.ColIDs = s.ColIDs.Apply(ctx, c).(types.A)
 		case "Data":
-			s.Data = s.Data.Apply(c).(types.M)
+			s.Data = s.Data.Apply(ctx, c).(types.M)
 		}
 		return s
 	}
-	return c.(changes.Custom).ApplyTo(s)
+	return c.(changes.Custom).ApplyTo(ctx, s)
 }
 
 func (s Sparse) toValues(v []interface{}) types.A {

@@ -12,7 +12,7 @@ type Atomic struct {
 
 // Apply only accepts one type of change: one that Replace's the
 // value.
-func (a Atomic) Apply(c Change) Value {
+func (a Atomic) Apply(ctx Context, c Change) Value {
 	switch c := c.(type) {
 	case nil:
 		return a
@@ -20,8 +20,6 @@ func (a Atomic) Apply(c Change) Value {
 		if !c.IsCreate() {
 			return c.After
 		}
-	case Custom:
-		return c.ApplyTo(a)
 	}
-	panic("Unexpected change applied on atomic")
+	return c.(Custom).ApplyTo(ctx, a)
 }

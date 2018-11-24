@@ -13,7 +13,7 @@ import "github.com/dotchain/dot/changes"
 type M map[interface{}]changes.Value
 
 // Apply applies the change and returns the updated value
-func (m M) Apply(c changes.Change) changes.Value {
+func (m M) Apply(ctx changes.Context, c changes.Change) changes.Value {
 	switch c := c.(type) {
 	case nil:
 		return m
@@ -26,18 +26,18 @@ func (m M) Apply(c changes.Change) changes.Value {
 		if len(c.Path) > 0 {
 			key := c.Path[0]
 			c.Path = c.Path[1:]
-			return m.applyKey(key, c)
+			return m.applyKey(ctx, key, c)
 		}
 	}
-	return c.(changes.Custom).ApplyTo(m)
+	return c.(changes.Custom).ApplyTo(ctx, m)
 }
 
-func (m M) applyKey(key interface{}, c changes.Change) changes.Value {
+func (m M) applyKey(ctx changes.Context, key interface{}, c changes.Change) changes.Value {
 	v, ok := m[key]
 	if !ok {
 		v = changes.Nil
 	}
-	v = v.Apply(c)
+	v = v.Apply(ctx, c)
 	result := make(M, len(m))
 	for k, v := range m {
 		if k != key {

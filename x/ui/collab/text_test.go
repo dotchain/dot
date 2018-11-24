@@ -262,7 +262,7 @@ func (s textSuite) testEmptyDelete(t *testing.T) {
 
 func (s textSuite) testReplace(t *testing.T) {
 	x := s.text("HelOKlo")
-	result := x.Apply(changes.Replace{x, types.S8("boo")})
+	result := x.Apply(nil, changes.Replace{x, types.S8("boo")})
 	if result != types.S8("boo") {
 		t.Error("Unexpected Next", result)
 	}

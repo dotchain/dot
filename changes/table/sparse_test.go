@@ -32,7 +32,7 @@ func (x Sparse) TestSpliceRows(t *testing.T) {
 		t.Error("Unexpected splice result", ac)
 	}
 
-	s2 := s.Apply(c1).Apply(c2)
+	s2 := s.Apply(nil, c1).Apply(nil, c2)
 	if !reflect.DeepEqual(s2, expected) {
 		t.Error("Unexpected changes", s2)
 	}
@@ -47,7 +47,7 @@ func (x Sparse) TestSpliceCols(t *testing.T) {
 		t.Error("Unexpected splice result", ac)
 	}
 
-	s2 := s.Apply(c1).Apply(c2)
+	s2 := s.Apply(nil, c1).Apply(nil, c2)
 	if !reflect.DeepEqual(s2, expected) {
 		t.Error("Unexpected changes", s2)
 	}
@@ -68,7 +68,7 @@ func (x Sparse) TestCell(t *testing.T) {
 		t.Error("Update resulted in wrong value", v, ok)
 	}
 
-	if z := s.Apply(c1); !reflect.DeepEqual(z, s1) {
+	if z := s.Apply(nil, c1); !reflect.DeepEqual(z, s1) {
 		t.Error("Update change does not match result", z)
 	}
 
@@ -77,7 +77,7 @@ func (x Sparse) TestCell(t *testing.T) {
 		t.Error("Update resulted in wrong value", v, ok)
 	}
 
-	if z := s1.Apply(c2); !reflect.DeepEqual(z, s2) {
+	if z := s1.Apply(nil, c2); !reflect.DeepEqual(z, s2) {
 		t.Error("Update change does not match result", z)
 	}
 
@@ -86,7 +86,7 @@ func (x Sparse) TestCell(t *testing.T) {
 		t.Fatal("Unexpected cell value", v)
 	}
 
-	if z := s2.Apply(c3); !reflect.DeepEqual(z, s3) {
+	if z := s2.Apply(nil, c3); !reflect.DeepEqual(z, s3) {
 		t.Error("Update change does not match result", z)
 	}
 }
@@ -110,7 +110,7 @@ func (x Sparse) TestGC(t *testing.T) {
 		t.Error("GC didnt work", s6)
 	}
 
-	z := s.Apply(changes.ChangeSet{c1, c2, c3, c4, c5, c6})
+	z := s.Apply(nil, changes.ChangeSet{c1, c2, c3, c4, c5, c6})
 	if !reflect.DeepEqual(z, s3) {
 		t.Error("GC didnt work", x, c6)
 	}
@@ -119,12 +119,12 @@ func (x Sparse) TestGC(t *testing.T) {
 func (x Sparse) TestEdgeCases(t *testing.T) {
 	s := table.Sparse{Data: types.M{}}
 	s1, c1 := s.SpliceRows(0, 0, []interface{}{"row1"})
-	s2 := s.Apply(changes.PathChange{nil, c1})
+	s2 := s.Apply(nil, changes.PathChange{nil, c1})
 	if !reflect.DeepEqual(s2, s1) {
 		t.Error("Nonconsequential path change had wrong effect", s2)
 	}
 
-	s2 = s.Apply(nil)
+	s2 = s.Apply(nil, nil)
 	if !reflect.DeepEqual(s2, s) {
 		t.Error("Nil change had wrong effect", s2)
 	}

@@ -26,7 +26,7 @@ func (c Counter) Count() int {
 }
 
 // ApplyCollection implements Collection interface
-func (c Counter) ApplyCollection(cx changes.Change) changes.Collection {
+func (c Counter) ApplyCollection(ctx changes.Context, cx changes.Change) changes.Collection {
 	switch cx := cx.(type) {
 	case changes.Splice:
 		after := cx.After.(Counter)
@@ -36,7 +36,7 @@ func (c Counter) ApplyCollection(cx changes.Change) changes.Collection {
 }
 
 // Apply only supports Replace and Inserts
-func (c Counter) Apply(cx changes.Change) changes.Value {
+func (c Counter) Apply(ctx changes.Context, cx changes.Change) changes.Value {
 	switch cx := cx.(type) {
 	case nil:
 		return c
@@ -46,9 +46,9 @@ func (c Counter) Apply(cx changes.Change) changes.Value {
 		}
 		return cx.After
 	case changes.Custom:
-		return cx.ApplyTo(c)
+		return cx.ApplyTo(ctx, c)
 	}
-	return c.ApplyCollection(cx)
+	return c.ApplyCollection(ctx, cx)
 }
 
 // Increment returns a change which implements the increment

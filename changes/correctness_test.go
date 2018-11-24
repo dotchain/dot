@@ -36,8 +36,8 @@ func TestCorrectnessOfStandardSequences(t *testing.T) {
 			left := l.(changes.Change)
 			right := r.(changes.Change)
 			leftx, rightx := left.Merge(right)
-			lval := S(initial).Apply(changes.ChangeSet{left, leftx})
-			rval := S(initial).Apply(changes.ChangeSet{right, rightx})
+			lval := S(initial).Apply(nil, changes.ChangeSet{left, leftx})
+			rval := S(initial).Apply(nil, changes.ChangeSet{right, rightx})
 			if lval != rval {
 				t.Error("Diverged", lval, rval, left, right)
 			}

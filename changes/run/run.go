@@ -20,9 +20,9 @@ type Run struct {
 }
 
 // ApplyTo just converts the method into a set of path changes
-func (r Run) ApplyTo(v changes.Value) changes.Value {
+func (r Run) ApplyTo(ctx changes.Context, v changes.Value) changes.Value {
 	for kk := r.Offset; kk < r.Offset+r.Count; kk++ {
-		v = v.Apply(changes.PathChange{[]interface{}{kk}, r.Change})
+		v = v.Apply(ctx, changes.PathChange{[]interface{}{kk}, r.Change})
 	}
 	return v
 }
@@ -66,7 +66,7 @@ func (r Run) merge(o changes.Change, reverse bool) (ox, rx changes.Change) {
 	case nil:
 		return nil, r
 	case changes.Replace:
-		o.Before = o.Before.Apply(r)
+		o.Before = o.Before.Apply(nil, r)
 		return o, nil
 	case changes.Splice:
 		return r.mergeSplice(o)
@@ -94,26 +94,26 @@ func (r Run) mergeSplice(o changes.Splice) (changes.Change, changes.Change) {
 	case r.Offset+r.Count <= o.Offset:
 	case r.Offset >= o.Offset && r.Offset+r.Count <= oEnd:
 		r.Offset -= o.Offset
-		o.Before = r.apply(o.Before, r)
+		o.Before = r.apply(nil, o.Before, r)
 		return o, nil
 	case r.Offset <= o.Offset && r.Offset+r.Count >= oEnd:
-		o.Before = r.apply(o.Before, Run{0, o.Before.Count(), r.Change})
+		o.Before = r.apply(nil, o.Before, Run{0, o.Before.Count(), r.Change})
 		left := Run{r.Offset, o.Offset - r.Offset, r.Change}
 		right := Run{o.Offset + o.After.Count(), r.Offset + r.Count - oEnd, r.Change}
 		return o, changes.ChangeSet{left, right}
 	case r.Offset < o.Offset && o.Offset < r.Offset+r.Count:
-		o.Before = r.apply(o.Before, Run{0, r.Offset + r.Count - o.Offset, r.Change})
+		o.Before = r.apply(nil, o.Before, Run{0, r.Offset + r.Count - o.Offset, r.Change})
 		r.Count = o.Offset - r.Offset
 	case r.Offset > o.Offset && r.Offset < oEnd:
-		o.Before = r.apply(o.Before, Run{r.Offset - o.Offset, oEnd - r.Offset, r.Change})
+		o.Before = r.apply(nil, o.Before, Run{r.Offset - o.Offset, oEnd - r.Offset, r.Change})
 		r.Count = r.Offset + r.Count - oEnd
 		r.Offset = o.Offset + o.After.Count()
 	}
 	return o, r
 }
 
-func (r Run) apply(v changes.Value, c changes.Change) changes.Collection {
-	return v.Apply(c).(changes.Collection)
+func (r Run) apply(ctx changes.Context, v changes.Value, c changes.Change) changes.Collection {
+	return v.Apply(ctx, c).(changes.Collection)
 }
 
 func (r Run) mergeMove(o changes.Move) (changes.Change, changes.Change) {

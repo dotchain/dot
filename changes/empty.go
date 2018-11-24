@@ -17,7 +17,7 @@ type empty struct{}
 
 // Apply can be called on empty but it only supports
 // Replace{IsInsert:true} type changes.
-func (e empty) Apply(c Change) Value {
+func (e empty) Apply(ctx Context, c Change) Value {
 	switch c := c.(type) {
 	case nil:
 		return e
@@ -25,8 +25,6 @@ func (e empty) Apply(c Change) Value {
 		if c.IsCreate() {
 			return c.After
 		}
-	case Custom:
-		return c.ApplyTo(e)
 	}
-	panic("Unexpected change applied on empty")
+	return c.(Custom).ApplyTo(ctx, e)
 }

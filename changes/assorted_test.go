@@ -130,27 +130,27 @@ func TestEmptyAtomicAndUnexpectedChange(t *testing.T) {
 		}()
 		fn()
 	}
-	expectPanic("Nil.Replace.Delete", func() { changes.Nil.Apply(changes.Replace{types.S8(""), changes.Nil}) })
-	expectPanic("Nil.Apply", func() { changes.Nil.Apply(changes.Move{0, 5, 1}) })
+	expectPanic("Nil.Replace.Delete", func() { changes.Nil.Apply(nil, changes.Replace{types.S8(""), changes.Nil}) })
+	expectPanic("Nil.Apply", func() { changes.Nil.Apply(nil, changes.Move{0, 5, 1}) })
 
-	if x := changes.Nil.Apply(changes.ChangeSet{changes.PathChange{}}); x != changes.Nil {
+	if x := changes.Nil.Apply(nil, changes.ChangeSet{changes.PathChange{}}); x != changes.Nil {
 		t.Error("Unexpected apply(...)", x)
 	}
 
-	x := changes.Nil.Apply(changes.Replace{changes.Nil, S("a")})
+	x := changes.Nil.Apply(nil, changes.Replace{changes.Nil, S("a")})
 	if x != S("a") {
 		t.Error("Unexpected replace", x)
 	}
 
 	a := changes.Atomic{nil}
-	expectPanic("Atomic.Apply", func() { a.Apply(changes.Move{0, 5, 1}) })
-	expectPanic("Atomic.Create", func() { a.Apply(changes.Replace{changes.Nil, types.S8("")}) })
+	expectPanic("Atomic.Apply", func() { a.Apply(nil, changes.Move{0, 5, 1}) })
+	expectPanic("Atomic.Create", func() { a.Apply(nil, changes.Replace{changes.Nil, types.S8("")}) })
 
-	if x := a.Apply(changes.ChangeSet{changes.PathChange{}}); x != a {
+	if x := a.Apply(nil, changes.ChangeSet{changes.PathChange{}}); x != a {
 		t.Error("Unexpected apply(...)", x)
 	}
 
-	x = a.Apply(changes.Replace{a, S("a")})
+	x = a.Apply(nil, changes.Replace{a, S("a")})
 	if x != S("a") {
 		t.Error("Unexpected replace", x)
 	}
@@ -162,10 +162,10 @@ func TestEmptyAtomicAndUnexpectedChange(t *testing.T) {
 
 	expectPanic("ApplyTo", func() {
 		p := changes.PathChange{[]interface{}{"OK"}, nil}
-		p.ApplyTo(S(""))
+		p.ApplyTo(nil, S(""))
 	})
 	p := changes.PathChange{nil, changes.Move{2, 2, 2}}
-	if x := p.ApplyTo(S("abcdef")); x != S("abefcd") {
+	if x := p.ApplyTo(nil, S("abcdef")); x != S("abefcd") {
 		t.Error("PathChange.ApplyTo failed", x)
 	}
 }

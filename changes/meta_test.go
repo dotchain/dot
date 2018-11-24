@@ -31,8 +31,8 @@ func TestConvergenceMeta(t *testing.T) {
 			}
 		}
 
-		lval := initial.Apply(changes.ChangeSet{left, leftx})
-		rval := initial.Apply(changes.ChangeSet{right, rightx})
+		lval := initial.Apply(nil, changes.ChangeSet{left, leftx})
+		rval := initial.Apply(nil, changes.ChangeSet{right, rightx})
 		if lval != rval {
 			t.Error("Diverged", lval, rval, left, right)
 		}

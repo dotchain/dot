@@ -23,7 +23,7 @@ func (s S8) Count() int {
 }
 
 // ApplyCollection implements changes.Collection
-func (s S8) ApplyCollection(c changes.Change) changes.Collection {
+func (s S8) ApplyCollection(ctx changes.Context, c changes.Change) changes.Collection {
 	switch c := c.(type) {
 	case changes.Splice:
 		o := c.Offset
@@ -40,7 +40,7 @@ func (s S8) ApplyCollection(c changes.Change) changes.Collection {
 }
 
 // Apply implements Value.Apply
-func (s S8) Apply(c changes.Change) changes.Value {
+func (s S8) Apply(ctx changes.Context, c changes.Change) changes.Value {
 	switch c := c.(type) {
 	case nil:
 		return s
@@ -50,9 +50,9 @@ func (s S8) Apply(c changes.Change) changes.Value {
 		}
 		return c.After
 	case changes.Custom:
-		return c.ApplyTo(s)
+		return c.ApplyTo(ctx, s)
 	}
-	return s.ApplyCollection(c)
+	return s.ApplyCollection(ctx, c)
 }
 
 // S16 implements string with offsets and counts referring to utf16
@@ -71,7 +71,7 @@ func (s S16) Count() int {
 }
 
 // ApplyCollection implements changes.Collection
-func (s S16) ApplyCollection(c changes.Change) changes.Collection {
+func (s S16) ApplyCollection(ctx changes.Context, c changes.Change) changes.Collection {
 	switch c := c.(type) {
 	case changes.Splice:
 		o := s.FromUTF16(c.Offset)
@@ -88,7 +88,7 @@ func (s S16) ApplyCollection(c changes.Change) changes.Collection {
 }
 
 // Apply implements Value.Apply
-func (s S16) Apply(c changes.Change) changes.Value {
+func (s S16) Apply(ctx changes.Context, c changes.Change) changes.Value {
 	switch c := c.(type) {
 	case nil:
 		return s
@@ -98,9 +98,9 @@ func (s S16) Apply(c changes.Change) changes.Value {
 		}
 		return c.After
 	case changes.Custom:
-		return c.ApplyTo(s)
+		return c.ApplyTo(ctx, s)
 	}
-	return s.ApplyCollection(c)
+	return s.ApplyCollection(ctx, c)
 }
 
 // FromUTF16 converts an UTF16 offset into a regular string offset

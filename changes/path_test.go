@@ -58,7 +58,7 @@ func TestPathChangeMergeReplace(t *testing.T) {
 
 	right := changes.PathChange{Path{0}, changes.Replace{Before: initial[0], After: A{S("")}}}
 	lexpected := changes.Change(nil)
-	rexpected := changes.Replace{Before: initial.Apply(right), After: left.After}
+	rexpected := changes.Replace{Before: initial.Apply(nil, right), After: left.After}
 	validateMergeResults(t, left, right, lexpected, rexpected)
 }
 
@@ -78,7 +78,7 @@ func TestPathChangeMergeSpliceMiddle(t *testing.T) {
 	right := changes.PathChange{Path{1}, changes.Replace{Before: initial[1], After: S("zoog")}}
 
 	lexpected := changes.Change(nil)
-	rexpected := changes.Splice{1, initial.ApplyCollection(right).Slice(1, 1), left.After}
+	rexpected := changes.Splice{1, initial.ApplyCollection(nil, right).Slice(1, 1), left.After}
 
 	validateMergeResults(t, left, right, lexpected, rexpected)
 }

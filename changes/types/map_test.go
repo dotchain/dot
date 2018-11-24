@@ -17,17 +17,17 @@ func TestMApply(t *testing.T) {
 		5.3:  types.S8("float"),
 	}
 
-	x := m.Apply(nil)
+	x := m.Apply(nil, nil)
 	if !reflect.DeepEqual(x, m) {
 		t.Error("Unexpected Apply.nil", x)
 	}
 
-	x = m.Apply(changes.Replace{m, changes.Nil})
+	x = m.Apply(nil, changes.Replace{m, changes.Nil})
 	if x != changes.Nil {
 		t.Error("Unexpeted Apply.Replace-Delete", x)
 	}
 
-	x = m.Apply(changes.Replace{m, types.S16("OK")})
+	x = m.Apply(nil, changes.Replace{m, types.S16("OK")})
 	if x != types.S16("OK") {
 		t.Error("Unexpected Apply.Replace", x)
 	}
@@ -39,17 +39,17 @@ func TestMApply(t *testing.T) {
 		"new": types.S8("string"),
 	}
 
-	x = m.Apply(insert)
+	x = m.Apply(nil, insert)
 	if !reflect.DeepEqual(x, expected) {
 		t.Error("Unexpected insert", x)
 	}
 
-	x = m.Apply(changes.ChangeSet{insert})
+	x = m.Apply(nil, changes.ChangeSet{insert})
 	if !reflect.DeepEqual(x, expected) {
 		t.Error("Unexpected Apply.ChangeSet", x)
 	}
 
-	x = m.Apply(changes.PathChange{nil, insert})
+	x = m.Apply(nil, changes.PathChange{nil, insert})
 	if !reflect.DeepEqual(x, expected) {
 		t.Error("Unexpected Apply.PathChange", x)
 	}
@@ -59,14 +59,14 @@ func TestMApply(t *testing.T) {
 		true: types.S8("BOOL"),
 		5.3:  types.S8("float"),
 	}
-	x = m.Apply(modify)
+	x = m.Apply(nil, modify)
 	if !reflect.DeepEqual(x, expected) {
 		t.Error("Unexpected Apply.PathChange", x)
 	}
 
 	remove := changes.PathChange{[]interface{}{5.3}, changes.Replace{types.S8("float"), changes.Nil}}
 	expected = types.M{true: types.S8("BOOL")}
-	x = x.Apply(remove)
+	x = x.Apply(nil, remove)
 	if !reflect.DeepEqual(x, expected) {
 		t.Error("Unexpected Apply.PathChange", x)
 	}
@@ -83,14 +83,14 @@ func TestMPanics(t *testing.T) {
 	}
 
 	mustPanic(func() {
-		(types.M{}).Apply(poorlyDefinedChange{})
+		(types.M{}).Apply(nil, poorlyDefinedChange{})
 	})
 
 	mustPanic(func() {
-		(types.M{}).Apply(changes.Move{1, 1, 1})
+		(types.M{}).Apply(nil, changes.Move{1, 1, 1})
 	})
 
 	mustPanic(func() {
-		(types.M{}).Apply(changes.Splice{Before: types.S8(""), After: types.S8("OK")})
+		(types.M{}).Apply(nil, changes.Splice{Before: types.S8(""), After: types.S8("OK")})
 	})
 }

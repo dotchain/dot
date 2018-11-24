@@ -37,6 +37,6 @@ func (m Meta) ReverseMerge(c Change) (Change, Change) {
 }
 
 // ApplyTo implements Custom.ApplyTo
-func (m Meta) ApplyTo(v Value) Value {
-	return v.Apply(m.Change)
+func (m Meta) ApplyTo(ctx Context, v Value) Value {
+	return v.Apply(ctx, m.Change)
 }

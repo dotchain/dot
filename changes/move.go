@@ -18,7 +18,7 @@ func (m Move) Revert() Change {
 
 // MergeReplace merges a move against a Replace.  The replace always wins
 func (m Move) MergeReplace(other Replace) (other1 *Replace, m1 *Splice) {
-	other.Before = other.Before.Apply(m)
+	other.Before = other.Before.Apply(nil, m)
 	return &other, nil
 }
 

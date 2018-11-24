@@ -36,7 +36,7 @@ func (con Container) UpdateRef(key interface{}, r Ref) (Container, changes.Chang
 		return con, nil
 	}
 	c := Update{key, old, r}
-	return con.Apply(c).(Container), c
+	return con.Apply(nil, c).(Container), c
 }
 
 // GetRef returns the current ref for the provided key
@@ -45,7 +45,7 @@ func (con Container) GetRef(key interface{}) Ref {
 }
 
 // Apply implements changes.Value:Apply
-func (con Container) Apply(c changes.Change) changes.Value {
+func (con Container) Apply(ctx changes.Context, c changes.Change) changes.Value {
 	switch c := c.(type) {
 	case nil:
 		return con
@@ -69,16 +69,15 @@ func (con Container) Apply(c changes.Change) changes.Value {
 		return Container{con.Value, refs}
 	case changes.PathChange:
 		if len(c.Path) == 0 {
-			return con.Apply(c.Change)
+			return con.Apply(ctx, c.Change)
 		}
-		return con.applyPathChange(c)
-	case changes.Custom:
-		return c.ApplyTo(con)
+		return con.applyPathChange(ctx, c)
 	}
-	panic("Unknown change type")
+
+	return c.(changes.Custom).ApplyTo(ctx, con)
 }
 
-func (con Container) applyPathChange(c changes.PathChange) changes.Value {
+func (con Container) applyPathChange(ctx changes.Context, c changes.PathChange) changes.Value {
 	updated := map[interface{}]Ref{}
 	for k, ref := range con.refs {
 		ref, _ = ref.Merge(c)
@@ -92,6 +91,6 @@ func (con Container) applyPathChange(c changes.PathChange) changes.Value {
 	if c.Path[0] != "Value" {
 		panic("Unexpected path")
 	}
-	val := con.Value.Apply(changes.PathChange{c.Path[1:], c.Change})
+	val := con.Value.Apply(ctx, changes.PathChange{c.Path[1:], c.Change})
 	return Container{val, updated}
 }

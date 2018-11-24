@@ -23,7 +23,7 @@ func TestReverts(t *testing.T) {
 		changes.Move{0, 2, 1},
 	}
 	for _, c := range cx {
-		changed := initial.Apply(c).Apply(c.Revert())
+		changed := initial.Apply(nil, c).Apply(nil, c.Revert())
 		if changed != initial {
 			t.Error("Revert failed to properly revert", c)
 		}
@@ -40,7 +40,7 @@ func TestRevertsChangeSet(t *testing.T) {
 		changes.Splice{0, S(""), S("OK")},
 		changes.Splice{3, S("el"), S("je")},
 	}
-	changed := initial.Apply(cx).Apply(cx.Revert())
+	changed := initial.Apply(nil, cx).Apply(nil, cx.Revert())
 	if changed != initial {
 		t.Error("Unexpected revert", changed)
 	}

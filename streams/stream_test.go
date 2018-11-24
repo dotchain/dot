@@ -22,7 +22,7 @@ func TestStream(t *testing.T) {
 	ev := func() {
 		var c changes.Change
 		latest, c = latest.Next()
-		v = v.Apply(c)
+		v = v.Apply(nil, c)
 	}
 	s := streams.New()
 	latest = s
@@ -58,7 +58,7 @@ func TestBranch(t *testing.T) {
 	ev := func() {
 		var c changes.Change
 		latest, c = latest.Next()
-		v = v.Apply(c)
+		v = v.Apply(nil, c)
 	}
 	s := streams.New()
 	latest = s
@@ -99,12 +99,12 @@ func TestConnectedBranches(t *testing.T) {
 	bm.Nextf("key", func() {
 		var c changes.Change
 		bm, c = bm.Next()
-		master = master.Apply(c)
+		master = master.Apply(nil, c)
 	})
 	bl.Nextf("key", func() {
 		var c changes.Change
 		bl, c = bl.Next()
-		local = local.Apply(c)
+		local = local.Apply(nil, c)
 	})
 
 	streams.Connect(bm, bl)
@@ -164,7 +164,7 @@ func TestStreamNilChange(t *testing.T) {
 	ev := func() {
 		var c changes.Change
 		latest, c = latest.Next()
-		v = v.Apply(c)
+		v = v.Apply(nil, c)
 	}
 	s := streams.New()
 	latest = s
