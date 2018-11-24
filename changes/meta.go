@@ -38,5 +38,34 @@ func (m Meta) ReverseMerge(c Change) (Change, Change) {
 
 // ApplyTo implements Custom.ApplyTo
 func (m Meta) ApplyTo(ctx Context, v Value) Value {
-	return v.Apply(ctx, m.Change)
+	return v.Apply(metacontext{m.Data, ctx}, m.Change)
+}
+
+// MetaValue fetches the meta value and the previous context
+// associated with the current change context.
+func MetaValue(ctx Context) (v interface{}, p Context) {
+	if vx := ctx.Value(metakey); vx != nil {
+		v = vx.(metacontext).value
+		p = vx.(metacontext).parent
+	}
+	return v, p
+}
+
+type metacontext struct {
+	value  interface{}
+	parent Context
+}
+
+type mckey int
+
+var metakey = mckey(0)
+
+func (mc metacontext) Value(key interface{}) interface{} {
+	switch {
+	case key == metakey:
+		return mc
+	case mc.parent == nil:
+		return nil
+	}
+	return mc.parent.Value(key)
 }
