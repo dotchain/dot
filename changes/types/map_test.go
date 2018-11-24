@@ -64,18 +64,11 @@ func TestMApply(t *testing.T) {
 		t.Error("Unexpected Apply.PathChange", x)
 	}
 
-	// validate that nil values can be replaced
-	m = types.M{"nil": nil}
-	rep := changes.Replace{changes.Nil, types.S8("OK")}
-	x = m.Apply(changes.PathChange{[]interface{}{"nil"}, rep})
-	if !reflect.DeepEqual(x, types.M{"nil": types.S8("OK")}) {
-		t.Error("Unexpected apply with nil element", x)
-	}
-
-	remove := changes.Replace{types.S8("OK"), changes.Nil}
-	x = x.Apply(changes.PathChange{[]interface{}{"nil"}, remove})
-	if !reflect.DeepEqual(x, m) {
-		t.Error("Unexpected apply with nil element", x)
+	remove := changes.PathChange{[]interface{}{5.3}, changes.Replace{types.S8("float"), changes.Nil}}
+	expected = types.M{true: types.S8("BOOL")}
+	x = x.Apply(remove)
+	if !reflect.DeepEqual(x, expected) {
+		t.Error("Unexpected Apply.PathChange", x)
 	}
 }
 
