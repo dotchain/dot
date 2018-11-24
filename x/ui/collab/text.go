@@ -7,9 +7,9 @@ package collab
 
 import (
 	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/refs"
 	"github.com/dotchain/dot/streams"
-	"github.com/dotchain/dot/changes/types"
 	"golang.org/x/text/unicode/norm"
 )
 

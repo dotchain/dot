@@ -20,14 +20,14 @@ import (
 // The row ID and column ID collections can also be used to store
 // other row-ID specific or column-ID specific data but in that case,
 // the caller must implement a rowKey and/or colKey function that maps
-// these to teh corresponding key in the data map. This is only used
+// these to the corresponding key in the data map. This is only used
 // by GC().
 //
 // Under some very contrived conditions, RowIDs and ColIDs may contain
 // duplicates. For this reason, the callers should take care when
 // iterating these arrays. To maintain consistency, only the first
-// occurence of an ID should be considered and all further occurences
-// ignored.
+// occurrence of an ID should be considered and all further
+// occurrences ignored.
 type Sparse struct {
 	RowIDs, ColIDs types.A
 	Data           types.M

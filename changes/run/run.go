@@ -3,7 +3,7 @@
 // that can be found in the LICENSE file.
 
 // Package run implements a custom change that applies to a sequence
-// of array elements.  
+// of array elements.
 package run
 
 import (
@@ -213,5 +213,3 @@ func (r Run) split3(dest int, o changes.Move) (changes.Change, changes.Change) {
 	c = r.splitRuns(c, o.Offset+o.Count)
 	return changes.ChangeSet(c).Merge(o)
 }
-
-
