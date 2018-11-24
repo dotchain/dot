@@ -49,7 +49,7 @@ func (t Text) Insert(s string) (Text, changes.Change) {
 	offset, before := t.selection()
 	after := types.S8(s)
 	splice := changes.PathChange{p, changes.Splice{offset, before, after}}
-	l := t.toList().Apply(splice).(refs.Container)
+	l := t.toList().Apply(nil, splice).(refs.Container)
 	caret := refs.Caret{p, offset + after.Count(), false}
 	lx, cx := l.UpdateRef(t.SessionID, refs.Range{caret, caret})
 	cx = changes.ChangeSet{splice, cx}
@@ -76,7 +76,7 @@ func (t Text) Delete() (Text, changes.Change) {
 	splice := changes.PathChange{p, changes.Splice{offset, before, after}}
 	l := t.toList()
 	lx, cx := l.UpdateRef(t.SessionID, refs.Range{caret, caret})
-	lx = lx.Apply(splice).(refs.Container)
+	lx = lx.Apply(nil, splice).(refs.Container)
 	cx = changes.ChangeSet{cx, splice}
 	return t.fromList(lx, cx), cx
 }
@@ -124,7 +124,7 @@ func (t Text) Paste(s string) (Text, changes.Change) {
 	offset, before := t.selection()
 	after := types.S8(s)
 	splice := changes.PathChange{p, changes.Splice{offset, before, after}}
-	l := t.toList().Apply(splice).(refs.Container)
+	l := t.toList().Apply(nil, splice).(refs.Container)
 	start := refs.Caret{p, offset, after.Count() == 0}
 	end := refs.Caret{p, offset + after.Count(), true}
 	lx, cx := l.UpdateRef(t.SessionID, refs.Range{start, end})
@@ -156,7 +156,7 @@ func (t Text) EndOf(sessionID interface{}) (int, bool) {
 // or if the next value is not a valit Text.
 func (t Text) Next() (Text, bool) {
 	if s, c := t.Stream.Next(); s != nil {
-		if result, ok := t.Apply(c).(Text); ok {
+		if result, ok := t.Apply(nil, c).(Text); ok {
 			result.Stream = s
 			return result, true
 		}
@@ -174,8 +174,8 @@ func (t Text) Latest() Text {
 
 // Apply implements changes.Value. Note that this does not update the
 // stream and as such should be used with care.
-func (t Text) Apply(c changes.Change) changes.Value {
-	result := t.toList().Apply(c)
+func (t Text) Apply(ctx changes.Context, c changes.Change) changes.Value {
+	result := t.toList().Apply(ctx, c)
 	if l, ok := result.(refs.Container); ok {
 		text := string(l.Value.(types.S8))
 		return Text{text, t.SessionID, l.Refs(), nil}

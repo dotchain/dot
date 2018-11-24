@@ -29,13 +29,13 @@ func (s Replace) MergeReplace(other Replace) (other1, s1 *Replace) {
 
 // MergeSplice merges against a Splice change.  The replace wins
 func (s Replace) MergeSplice(other Splice) (other1 *Splice, s1 *Replace) {
-	s.Before = s.Before.Apply(other)
+	s.Before = s.Before.Apply(nil, other)
 	return nil, &s
 }
 
 // MergeMove merges against a Move change.  The replace wins
 func (s Replace) MergeMove(other Move) (other1 *Move, s1 *Replace) {
-	s.Before = s.Before.Apply(other)
+	s.Before = s.Before.Apply(nil, other)
 	return nil, &s
 }
 

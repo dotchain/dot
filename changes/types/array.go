@@ -23,7 +23,7 @@ func (a A) Count() int {
 }
 
 // ApplyCollection implements changes.Collection
-func (a A) ApplyCollection(c changes.Change) changes.Collection {
+func (a A) ApplyCollection(ctx changes.Context, c changes.Change) changes.Collection {
 	switch c := c.(type) {
 	case changes.Splice:
 		remove := c.Before.Count()
@@ -41,7 +41,7 @@ func (a A) ApplyCollection(c changes.Change) changes.Collection {
 		if clone[idx] == nil {
 			clone[idx] = changes.Nil
 		}
-		clone[idx] = clone[idx].Apply(changes.PathChange{c.Path[1:], c.Change})
+		clone[idx] = clone[idx].Apply(ctx, changes.PathChange{c.Path[1:], c.Change})
 		if clone[idx] == changes.Nil {
 			clone[idx] = nil
 		}
@@ -56,7 +56,7 @@ func (a A) ApplyCollection(c changes.Change) changes.Collection {
 // Note: deleting an element via changes.Replace simply replaces it
 // with nil.  It does not actually remove the element -- that needs a
 // changes.Splice.
-func (a A) Apply(c changes.Change) changes.Value {
+func (a A) Apply(ctx changes.Context, c changes.Change) changes.Value {
 	switch c := c.(type) {
 	case nil:
 		return a
@@ -67,10 +67,10 @@ func (a A) Apply(c changes.Change) changes.Value {
 		return c.After
 	case changes.PathChange:
 		if len(c.Path) == 0 {
-			return a.Apply(c.Change)
+			return a.Apply(ctx, c.Change)
 		}
 	case changes.Custom:
-		return c.ApplyTo(a)
+		return c.ApplyTo(ctx, a)
 	}
-	return a.ApplyCollection(c)
+	return a.ApplyCollection(ctx, c)
 }

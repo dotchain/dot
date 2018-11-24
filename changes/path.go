@@ -42,9 +42,9 @@ func (pc PathChange) ReverseMerge(o Change) (Change, Change) {
 
 // ApplyTo is not relevant to PathChange.  It only works when the path
 // is empty. In all other cases, it panics.
-func (pc PathChange) ApplyTo(v Value) Value {
+func (pc PathChange) ApplyTo(ctx Context, v Value) Value {
 	if len(pc.Path) == 0 {
-		return v.Apply(pc.Change)
+		return v.Apply(ctx, pc.Change)
 	}
 	panic("Unexpected use of PathChange.ApplyTo")
 }
@@ -86,7 +86,7 @@ func (pc PathChange) mergeSubPath(o PathChange, reverse bool) (Change, Change) {
 	case nil:
 		return o, nil
 	case Replace:
-		change.Before = change.Before.Apply(PathChange{sub, o.Change})
+		change.Before = change.Before.Apply(nil, PathChange{sub, o.Change})
 		return nil, PathChange{pc.Path, change}
 	case Splice:
 		idx := sub[0].(int)
@@ -99,7 +99,7 @@ func (pc PathChange) mergeSubPath(o PathChange, reverse bool) (Change, Change) {
 		}
 		sub := append([]interface{}(nil), sub...)
 		sub[0] = idx - change.Offset
-		change.Before = change.Before.ApplyCollection(PathChange{sub, o.Change})
+		change.Before = change.Before.ApplyCollection(nil, PathChange{sub, o.Change})
 		return nil, PathChange{pc.Path, change}
 	case Move:
 		idx := sub[0].(int)

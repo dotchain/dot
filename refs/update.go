@@ -32,7 +32,7 @@ func (u Update) Merge(c changes.Change) (cx, ux changes.Change) {
 	case nil:
 		return nil, u
 	case changes.Replace:
-		c.Before = c.Before.Apply(u)
+		c.Before = c.Before.Apply(nil, u)
 		return c, nil
 	case changes.PathChange:
 		if len(c.Path) == 0 {
@@ -60,7 +60,7 @@ func (u Update) ReverseMerge(c changes.Change) (cx, ux changes.Change) {
 	case nil:
 		return nil, u
 	case changes.Replace:
-		c.Before = c.Before.Apply(u)
+		c.Before = c.Before.Apply(nil, u)
 		return c, nil
 	case changes.PathChange:
 		if len(c.Path) == 0 {
@@ -84,9 +84,9 @@ func (u Update) ReverseMerge(c changes.Change) (cx, ux changes.Change) {
 }
 
 // ApplyTo implements changes.Custom
-func (u Update) ApplyTo(v changes.Value) changes.Value {
+func (u Update) ApplyTo(ctx changes.Context, v changes.Value) changes.Value {
 	if con, ok := v.(Container); ok {
-		return con.Apply(u)
+		return con.Apply(ctx, u)
 	}
 	panic("Update does not implement ApplyTo")
 }

@@ -71,7 +71,7 @@ func TestTransformerBranched(t *testing.T) {
 		if !reflect.DeepEqual(item.WithChanges(op.Changes()), op) {
 			t.Fatal("Unexpected ID and other info", kk, op)
 		}
-		value = value.Apply(op.Changes())
+		value = value.Apply(nil, op.Changes())
 	}
 
 	if !reflect.DeepEqual(value, final) {

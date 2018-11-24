@@ -195,8 +195,8 @@ func validateMerge(t *testing.T, l, r changes.Change) {
 
 func validateMerge1(t *testing.T, initial changes.Value, l, r changes.Change) {
 	lx, rx := l.Merge(r)
-	lval := initial.Apply(l).Apply(lx)
-	rval := initial.Apply(r).Apply(rx)
+	lval := initial.Apply(nil, l).Apply(nil, lx)
+	rval := initial.Apply(nil, r).Apply(nil, rx)
 	if !reflect.DeepEqual(lval, rval) {
 		t.Error("merge failed", lval, rval, "---", l, "---", r)
 	}

@@ -111,7 +111,7 @@ type Custom interface {
 	// apply their changes onto known "values".  This allows Value
 	// implementations to be written without awareness of all
 	// possible Change implementations
-	ApplyTo(v Value) Value
+	ApplyTo(ctx Context, v Value) Value
 }
 
 // Value represents an immutable JSON object that can apply
@@ -119,7 +119,7 @@ type Custom interface {
 type Value interface {
 	// Apply applies the specified change on the object and
 	// returns the updated value.
-	Apply(c Change) Value
+	Apply(ctx Context, c Change) Value
 }
 
 // Collection represents array-like values
@@ -128,7 +128,7 @@ type Collection interface {
 	Value
 
 	// ApplyCollection is just strongly typed Apply
-	ApplyCollection(c Change) Collection
+	ApplyCollection(ctx Context, c Change) Collection
 
 	// Slice should only be called on collection-like objects such
 	// as the Before/After fields of a Splice. Note that unlike
@@ -208,12 +208,23 @@ func (c ChangeSet) Revert() Change {
 
 // ApplyTo simply walks through the individual changes and applies
 // them to the value.
-func (c ChangeSet) ApplyTo(v Value) Value {
+func (c ChangeSet) ApplyTo(ctx Context, v Value) Value {
 	for _, cx := range c {
-		v = v.Apply(cx)
+		v = v.Apply(ctx, cx)
 
 	}
 	return v
+}
+
+// Context defines the context in which a change is being
+// applied. This is useful to capture data such as the "current user"
+// or "virtual time" etc.  For true convergence, the context itself
+// should be derived from the change -- say via Meta.
+//
+// Note that this interface is a subset of the standard golang package
+// "context"
+type Context interface {
+	Value(key interface{}) interface{}
 }
 
 // helper method

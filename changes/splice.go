@@ -18,7 +18,7 @@ func (s Splice) Revert() Change {
 
 // MergeReplace merges a move against a Replace.  The replace always wins
 func (s Splice) MergeReplace(other Replace) (other1 *Replace, s1 *Splice) {
-	other.Before = other.Before.Apply(s)
+	other.Before = other.Before.Apply(nil, s)
 	return &other, nil
 }
 
@@ -43,17 +43,17 @@ func (s Splice) MergeSplice(other Splice) (other1, s1 *Splice) {
 		return &other, &s
 
 	case sstart == ostart && send < oend: // [<  ]   >
-		other.Before = other.Before.ApplyCollection(Splice{0, s.Before, s.After})
+		other.Before = other.Before.ApplyCollection(nil, Splice{0, s.Before, s.After})
 		return &other, nil
 
 	case sstart <= ostart && send >= oend: // [ < > ]
 		sliced := s.Before.Slice(ostart-sstart, oend-ostart)
-		s.Before = s.Before.ApplyCollection(Splice{ostart - sstart, sliced, other.After})
+		s.Before = s.Before.ApplyCollection(nil, Splice{ostart - sstart, sliced, other.After})
 		return nil, &s
 
 	case sstart > ostart && send <= oend: // < [ ]>
 		sliced := other.Before.Slice(sstart-ostart, send-sstart)
-		other.Before = other.Before.ApplyCollection(Splice{sstart - ostart, sliced, s.After})
+		other.Before = other.Before.ApplyCollection(nil, Splice{sstart - ostart, sliced, s.After})
 		return &other, nil
 	default: // sstart < oend: // < [ > ]
 		other.Before = other.Before.Slice(0, sstart-ostart)
@@ -157,13 +157,13 @@ func (s Splice) mergeNonOverlappingMove(o Move) (ox, sx Change) {
 func (s Splice) mergeContainedMove(o Move) (ox, sx Change) {
 	beforeSize, odest := s.Before.Count(), o.dest()
 	if odest >= s.Offset && odest <= s.Offset+beforeSize {
-		s.Before = s.Before.ApplyCollection(Move{o.Offset - s.Offset, o.Count, o.Distance})
+		s.Before = s.Before.ApplyCollection(nil, Move{o.Offset - s.Offset, o.Count, o.Distance})
 		return nil, s
 	}
 
 	sliced := s.Before.Slice(o.Offset-s.Offset, o.Count)
 	empty := sliced.Slice(0, 0)
-	spliced := s.Before.ApplyCollection(Splice{o.Offset - s.Offset, sliced, empty})
+	spliced := s.Before.ApplyCollection(nil, Splice{o.Offset - s.Offset, sliced, empty})
 
 	if odest < s.Offset {
 		ox = Splice{odest, empty, sliced}
