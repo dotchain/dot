@@ -9,39 +9,41 @@ package dom
 // Use NewCheckbox to create a checkbox element. It can then  be
 // updated with calls to Update().
 type Checkbox struct {
-	raw
+	// Element is the dom element associated with this widget
+	Element Element
+
+	// styles is private state, cached for use in Update()
 	styles Styles
 
 	// Consumers of Checkbox can get the current value by
 	// inspecting this field.  Changes can be subscribed by
-	// calling On on the stream. Calling Update on this field
-	// will not update the UI though. Instead call Update on the
-	// Checkbox itself.
+	// calling On on this field.
 	Checked *BoolStream
 }
 
 // NewCheckbox creates a new checkbox with the provided styles and
 // checked value.
 func NewCheckbox(styles Styles, checked bool) *Checkbox {
-	c := &CheckBox{Styles: styles, Checked: &BoolStream{&Notifier{}, checked, nil, nil}}
+	c := &Checkbox{nil, styles, &BoolStream{&Notifier{}, checked, nil, nil}}
 	on := func(MouseEvent) {
-		c.raw.SetProp("Checked", !c.Checked.Value)
+		c.Element.SetProp("Checked", !c.Checked.Value)
 		c.Checked = c.Checked.Update(nil, !c.Checked.Value)
 		c.Checked.Notify()
 	}
 
-	c.raw = driver.Raw(Props{Checked: checked, Styles: styles, OnClick: on})
+	props := Props{Checked: checked, Styles: styles, OnClick: on}
+	c.Element = driver.NewElement(props, nil)
 	return c
 }
 
 // Update updates the value or styles of the checkbox.
 func (c *Checkbox) Update(styles Styles, checked bool) {
 	if c.Checked.Value != checked {
-		c.raw.SetProp("Checked", checked)
+		c.Element.SetProp("Checked", checked)
 		c.Checked = c.Checked.Update(nil, checked)
 	}
-	if c.Styles != styles {
-		c.Styles = styles
-		c.raw.SetProp("Styles", styles)
+	if c.styles != styles {
+		c.styles = styles
+		c.Element.SetProp("Styles", styles)
 	}
 }

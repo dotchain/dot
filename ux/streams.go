@@ -28,7 +28,7 @@ type BoolStream struct {
 }
 
 // Latest returns the latest value of this stream
-func (s BoolStream) Latest() *BoolStream {
+func (s *BoolStream) Latest() *BoolStream {
 	for s.Next != nil {
 		s = s.Next
 	}

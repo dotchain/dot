@@ -7,11 +7,13 @@ package dom
 
 // Driver represents the interface to be implemented by drivers
 type Driver interface {
-	Raw(props Props) Raw
+	NewElement(props Props, children []Element) Element
 }
 
-// Raw represents a raw DOM element to be implemented by a driver
-type Raw interface {
+// Element represents a raw DOM element to be implemented by a
+// driver
+type Element interface {
+	// SetProp updates the prop to the provided value
 	SetProp(key string, value interface{})
 }
 
@@ -35,6 +37,8 @@ func RegisterDriver(d Driver) {
 
 var driver Driver
 
-// NYI
+// MouseEvent is not yet implemented
 type MouseEvent struct{}
+
+// Change is not yet implemented
 type Change interface{}

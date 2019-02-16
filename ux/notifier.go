@@ -32,10 +32,9 @@ func (n *Notifier) Off(h ChangeHandler) {
 	}
 }
 
-// Notify notifies all registered handlers of a change and unregisters them
+// Notify notifies all registered handlers of a change
 func (n *Notifier) Notify() {
-	handlers, n.handlers = n.handlers, nil
-	for _, h := range handlers {
+	for _, h := range n.handlers {
 		h.HandleChange()
 	}
 }
