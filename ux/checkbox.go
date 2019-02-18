@@ -25,18 +25,18 @@ type Checkbox struct {
 // checked value.
 func NewCheckbox(styles Styles, checked bool) *Checkbox {
 	c := &Checkbox{nil, styles, &BoolStream{&Notifier{}, checked, nil, nil}}
-	on := func(MouseEvent) {
+	on := func(Event) {
 		c.Element.SetProp("Checked", !c.Checked.Value)
 		c.Checked = c.Checked.Update(nil, !c.Checked.Value)
 		c.Checked.Notify()
 	}
 
-	props := Props{Checked: checked, Styles: styles, OnClick: on}
-	c.Element = driver.NewElement(props, nil)
+	props := Props{Tag: "input", Type: "checkbox", Checked: checked, Styles: styles, OnChange: on}
+	c.Element = driver.NewElement(props)
 	return c
 }
 
-// Update updates the value or styles of the checkbox.
+// Update updates the value and styles of the checkbox.
 func (c *Checkbox) Update(styles Styles, checked bool) {
 	if c.Checked.Value != checked {
 		c.Element.SetProp("Checked", checked)

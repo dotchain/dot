@@ -7,7 +7,7 @@ package dom
 
 // Driver represents the interface to be implemented by drivers
 type Driver interface {
-	NewElement(props Props, children []Element) Element
+	NewElement(props Props, children ...Element) Element
 }
 
 // Element represents a raw DOM element to be implemented by a
@@ -15,6 +15,9 @@ type Driver interface {
 type Element interface {
 	// SetProp updates the prop to the provided value
 	SetProp(key string, value interface{})
+
+	// Value is the equivalent of HTMLInputElement.value
+	Value() string
 }
 
 // Styles represents a set of CSS Styles
@@ -24,18 +27,25 @@ type Styles struct {
 
 // Props represents the props of an element
 type Props struct {
-	Checked bool
+	Tag         string
+	Checked     bool
+	Type        string
+	TextContent string
 	Styles
-	OnClick func(MouseEvent)
+	OnClick  func(MouseEvent)
+	OnChange func(Event)
 }
 
-// RegisterDriver is meant to be called by a driver to register
-// itself. There can only be one driver at given time.
+// RegisterDriver allows drivers to register their concrete
+// implementation
 func RegisterDriver(d Driver) {
 	driver = d
 }
 
 var driver Driver
+
+// Event is not yet implemented
+type Event struct{}
 
 // MouseEvent is not yet implemented
 type MouseEvent struct{}
