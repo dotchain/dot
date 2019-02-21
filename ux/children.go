@@ -9,7 +9,7 @@ package ux
 func UpdateChildren(parent Element, after []Element) {
 	before := parent.Children()
 	for _, op := range bestDiff(before, after, 0, nil) {
-		if op.insert == true {
+		if op.insert {
 			parent.InsertChild(op.index, op.elt)
 		} else {
 			parent.RemoveChild(op.index)
@@ -26,6 +26,7 @@ type diff struct {
 func bestDiff(before, after []Element, offset int, ops []diff) []diff {
 	for len(before) > 0 && len(after) > 0 && before[0] == after[0] {
 		offset++
+		before, after = before[1:], after[1:]
 	}
 
 	switch {

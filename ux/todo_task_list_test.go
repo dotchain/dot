@@ -4,7 +4,10 @@
 
 package ux_test
 
-import "github.com/dotchain/dot/ux"
+import (
+	"fmt"
+	"github.com/dotchain/dot/ux"
+)
 
 type TaskList struct {
 	ShowDone, ShowUndone bool
@@ -33,6 +36,9 @@ func (t *TodoTaskList) Update(styles ux.Styles, data TaskList) {
 		t.Root.SetProp("Styles", styles)
 	}
 
+	t.tasksCache.Reset()
+	defer t.tasksCache.Cleanup()
+
 	children := []ux.Element{}
 	for _, td := range data.Tasks {
 		if td.Done && !data.ShowDone || !td.Done && !data.ShowUndone {
@@ -50,4 +56,29 @@ func (t *TodoTaskList) Update(styles ux.Styles, data TaskList) {
 
 func (t *TodoTaskList) on() {
 	// need to aggregate all received changes and generate the updated changes
+}
+
+func Example_renderTaskList() {
+	tasks := []TaskData{
+		{"one", false, "first task"},
+		{"two", true, "second task"},
+	}
+	list := TaskList{true, false, tasks}
+	t := NewTodoTaskList(ux.Styles{}, list)
+	fmt.Println(t.Root)
+
+	list = TaskList{false, false, tasks}
+	t.Update(ux.Styles{Color: "red"}, list)
+	fmt.Println(t.Root)
+
+	list = TaskList{true, false, tasks}
+	t.Update(ux.Styles{}, list)
+	list = TaskList{true, true, tasks}
+	t.Update(ux.Styles{}, list)
+	fmt.Println(t.Root)
+
+	// Output:
+	// div[]( div[]( input[type:checkbox checked]() input[type:text](second task)))
+	// div[styles:{red}]()
+	// div[]( div[]( input[type:checkbox]() input[type:text](first task)) div[]( input[type:checkbox checked]() input[type:text](second task)))
 }
