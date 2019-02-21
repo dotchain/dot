@@ -92,3 +92,22 @@ func (e *element) Click() {
 		cx.Handle(ux.MouseEvent{})
 	}
 }
+
+func (e *element) Children() []ux.Element {
+	return e.children
+}
+
+func (e *element) RemoveChild(index int) {
+	c := make([]ux.Element, len(e.children)-1)
+	copy(c, e.children[:index])
+	copy(c[index:], e.children[index+1:])
+	e.children = c
+}
+
+func (e *element) InsertChild(index int, elt ux.Element) {
+	c := make([]ux.Element, len(e.children)+1)
+	copy(c, e.children[:index])
+	c[index] = elt
+	copy(c[index+1:], e.children[index:])
+	e.children = c
+}
