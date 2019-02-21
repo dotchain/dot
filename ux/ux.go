@@ -2,12 +2,17 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-// Package dom implements simple dom widgets
-package dom
+// Package ux implements basic UX controls
+package ux
 
 // Driver represents the interface to be implemented by drivers
 type Driver interface {
 	NewElement(props Props, children ...Element) Element
+}
+
+// NewElement creates a new element using the registered driver
+func NewElement(props Props, children ...Element) Element {
+	return driver.NewElement(props, children...)
 }
 
 // Element represents a raw DOM element to be implemented by a

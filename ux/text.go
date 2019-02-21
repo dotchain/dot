@@ -2,77 +2,82 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package dom
+package ux
 
-// TextSpan implements a simple text segment.
+// TextSpan implements a simple text control.
 type TextSpan struct {
-	// Element is the dom element associated with this widget
-	Element Element
+	// Root is the root dom element of this control
+	Root Element
 
-	// styles and text are private state, cached for use in Update()
+	// private state
 	styles Styles
 	text   string
 }
 
-// NewTextSpaan creates a new text span with the provided styles and
-// text.
+// NewTextSpan creates a new text control.
 func NewTextSpan(styles Styles, text string) *TextSpan {
-	s := &TextSpan{nil, styles, text}
-	props := Props{Tag: "span", TextContent: text, Styles: styles}
-	s.Element = driver.NewElement(props)
-	return s
+	root := NewElement(Props{
+		Tag:         "span",
+		TextContent: text,
+		Styles:      styles,
+	})
+	return &TextSpan{root, styles, text}
 }
 
 // Update updates the text or styles of the checkbox.
 func (s *TextSpan) Update(styles Styles, text string) {
 	if s.text != text {
-		s.Element.SetProp("TextContent", text)
+		s.Root.SetProp("TextContent", text)
 		s.text = text
 	}
 	if s.styles != styles {
 		s.styles = styles
-		s.Element.SetProp("Styles", styles)
+		s.Root.SetProp("Styles", styles)
 	}
 }
 
-// TextEdit implements a simple text edit control
+// TextEdit implements a simple text edit control.
 type TextEdit struct {
-	// Element is the dom element associated with this widget
-	Element Element
+	// Root is the root dom element of this control
+	Root Element
 
-	// styles is private state, cached for use in Update()
+	// private state
 	styles Styles
 
-	// Consumers of Checkbox can get the current value by
+	// Consumers of TextEdit can get the latest value by
 	// inspecting this field.  Changes can be subscribed by
 	// calling On on this field.
 	Text *TextStream
 }
 
-// NewTextEdit creates a new text edit widget with the provided styles
-// and text value
+// NewTextEdit creates a new text edit control.
 func NewTextEdit(styles Styles, text string) *TextEdit {
 	n := &Notifier{}
 	t := &TextEdit{nil, styles, &TextStream{n, text, nil, nil}}
-	on := func(Event) {
-		t.Text = t.Text.Update(nil, t.Element.Value())
-		t.Text.Notify()
-	}
-
-	props := Props{Tag: "input", Type: "text", TextContent: text, Styles: styles, OnChange: on}
-	t.Element = driver.NewElement(props)
+	t.Root = NewElement(Props{
+		Tag:         "input",
+		Type:        "text",
+		TextContent: text,
+		Styles:      styles,
+		OnChange:    t.onChange,
+	})
 	return t
 }
 
 // Update updates the value and style for the text edit widget.
 func (t *TextEdit) Update(styles Styles, text string) {
 	if t.Text.Value != text {
-		t.Element.SetProp("TextContent", text)
+		t.Root.SetProp("TextContent", text)
 		t.Text = t.Text.Update(nil, text)
 	}
 
 	if t.styles != styles {
 		t.styles = styles
-		t.Element.SetProp("Styles", styles)
+		t.Root.SetProp("Styles", styles)
 	}
+}
+
+func (t *TextEdit) onChange(e Event) {
+	t.Text = t.Text.Update(nil, t.Root.Value())
+	t.Text.Notify()
 }

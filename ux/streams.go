@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package dom
+package ux
 
 // BoolStream holds a boolean value and tracks changes of it.  The
 // value is itself almost immutable.

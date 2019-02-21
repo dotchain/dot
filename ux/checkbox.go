@@ -2,48 +2,48 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package dom
+package ux
 
-// Checkbox implements a checkbox.
-//
-// Use NewCheckbox to create a checkbox element. It can then  be
-// updated with calls to Update().
+// Checkbox implements a checkbox control.
 type Checkbox struct {
-	// Element is the dom element associated with this widget
-	Element Element
+	// Root is the root dom element of this control
+	Root Element
 
-	// styles is private state, cached for use in Update()
+	// private state
 	styles Styles
 
-	// Consumers of Checkbox can get the current value by
+	// Consumers of Checkbox can get the latest value by
 	// inspecting this field.  Changes can be subscribed by
 	// calling On on this field.
 	Checked *BoolStream
 }
 
-// NewCheckbox creates a new checkbox with the provided styles and
-// checked value.
+// NewCheckbox creates a new checkbox control.
 func NewCheckbox(styles Styles, checked bool) *Checkbox {
 	c := &Checkbox{nil, styles, &BoolStream{&Notifier{}, checked, nil, nil}}
-	on := func(Event) {
-		c.Element.SetProp("Checked", !c.Checked.Value)
-		c.Checked = c.Checked.Update(nil, !c.Checked.Value)
-		c.Checked.Notify()
-	}
-
-	props := Props{Tag: "input", Type: "checkbox", Checked: checked, Styles: styles, OnChange: on}
-	c.Element = driver.NewElement(props)
+	c.Root = NewElement(Props{
+		Tag:      "input",
+		Type:     "checkbox",
+		Checked:  checked,
+		Styles:   styles,
+		OnChange: c.onChange,
+	})
 	return c
 }
 
 // Update updates the value and styles of the checkbox.
 func (c *Checkbox) Update(styles Styles, checked bool) {
 	if c.Checked.Value != checked {
-		c.Element.SetProp("Checked", checked)
+		c.Root.SetProp("Checked", checked)
 		c.Checked = c.Checked.Update(nil, checked)
 	}
 	if c.styles != styles {
 		c.styles = styles
-		c.Element.SetProp("Styles", styles)
+		c.Root.SetProp("Styles", styles)
 	}
+}
+
+func (c *Checkbox) onChange(e Event) {
+	c.Checked = c.Checked.Update(nil, c.Root.Value() == "on")
+	c.Checked.Notify()
 }
