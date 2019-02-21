@@ -10,6 +10,7 @@ import (
 )
 
 type TaskData struct {
+	ID          string
 	Done        bool
 	Description string
 }
@@ -69,7 +70,8 @@ func (t *TodoTask) Update(styles ux.Styles, data TaskData) {
 }
 
 func (t *TodoTask) on() {
-	data := TaskData{t.cb.Checked.Value, t.description.Text.Value}
+	id := t.TaskData.TaskData.ID
+	data := TaskData{id, t.cb.Checked.Value, t.description.Text.Value}
 	t.TaskData = t.TaskData.Update(data)
 	t.TaskData.Notify()
 }

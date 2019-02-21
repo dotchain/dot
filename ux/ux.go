@@ -23,6 +23,15 @@ type Element interface {
 
 	// Value is the equivalent of HTMLInputElement.value
 	Value() string
+
+	// Children returns a readonly slice of children
+	Children() []Element
+
+	// RemoveChild remove a child element at the provided index
+	RemoveChild(index int)
+
+	// InsertChild inserts a child element at the provided index
+	InsertChild(index int, elt Element)
 }
 
 // Styles represents a set of CSS Styles
