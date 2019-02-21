@@ -59,7 +59,7 @@ func NewTextEdit(styles Styles, text string) *TextEdit {
 		Type:        "text",
 		TextContent: text,
 		Styles:      styles,
-		OnChange:    t.onChange,
+		OnChange:    &EventHandler{t.onChange},
 	})
 	return t
 }

@@ -37,8 +37,18 @@ type Props struct {
 	Type        string
 	TextContent string
 	Styles
-	OnClick  func(MouseEvent)
-	OnChange func(Event)
+	OnClick  *MouseEventHandler
+	OnChange *EventHandler
+}
+
+// MouseEventHandler is struct to hold a callback function
+type MouseEventHandler struct {
+	Handle func(MouseEvent)
+}
+
+// EventHandler is struct to hold a callback function
+type EventHandler struct {
+	Handle func(Event)
 }
 
 // RegisterDriver allows drivers to register their concrete

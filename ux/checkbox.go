@@ -26,7 +26,7 @@ func NewCheckbox(styles Styles, checked bool) *Checkbox {
 		Type:     "checkbox",
 		Checked:  checked,
 		Styles:   styles,
-		OnChange: c.onChange,
+		OnChange: &EventHandler{c.onChange},
 	})
 	return c
 }

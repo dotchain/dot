@@ -58,9 +58,9 @@ func (e *element) SetProp(key string, value interface{}) {
 	case "Styles":
 		e.props.Styles = value.(ux.Styles)
 	case "OnClick":
-		e.props.OnClick = value.(func(ux.MouseEvent))
+		e.props.OnClick = value.(*ux.MouseEventHandler)
 	case "OnChange":
-		e.props.OnChange = value.(func(ux.Event))
+		e.props.OnChange = value.(*ux.EventHandler)
 	default:
 		panic("Unknown key: " + key)
 	}
@@ -83,12 +83,12 @@ func (e *element) ChangeValue(s string) {
 		e.props.TextContent = s
 	}
 	if cx := e.props.OnChange; cx != nil {
-		cx(ux.Event{})
+		cx.Handle(ux.Event{})
 	}
 }
 
 func (e *element) Click() {
 	if cx := e.props.OnClick; cx != nil {
-		cx(ux.MouseEvent{})
+		cx.Handle(ux.MouseEvent{})
 	}
 }
