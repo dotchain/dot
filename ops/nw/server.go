@@ -55,7 +55,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer done()
 
 	var res response
-	res.Error = errors.New("Unknown error")
+	res.Error = errors.New("unknown error")
 	switch req.Name {
 	case "Append":
 		res.Error = h.Append(ctx, req.Ops)

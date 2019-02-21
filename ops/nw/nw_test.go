@@ -36,7 +36,7 @@ func TestClientErrors(t *testing.T) {
 
 	// simulate server error
 	errout := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "boo", 300)
+		http.Error(w, "boo", http.StatusMultipleChoices)
 	})
 	srv := httptest.NewServer(errout)
 	defer srv.Close()
