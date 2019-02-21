@@ -77,18 +77,17 @@ func (t *TodoTask) on() {
 func Example_renderTask() {
 	data := TaskData{Done: false, Description: "first task"}
 	t := NewTodoTask(ux.Styles{Color: "blue"}, data)
-	fmt.Println("Task:", t.Root)
+	fmt.Println(t.Root)
 
 	t.Update(ux.Styles{Color: "red"}, data)
-	fmt.Println("Task:", t.Root)
+	fmt.Println(t.Root)
 
 	data.Done = true
 	t.Update(ux.Styles{Color: "red"}, data)
-	fmt.Println("Task:", t.Root)
+	fmt.Println(t.Root)
 
 	// Output:
-	// Task: Props{div false   {blue} <nil> <nil>}( Props{input false checkbox  {} <nil> 0x10f0470}() Props{input false text first task {} <nil> 0x10f04b0}())
-	// Task: Props{div false   {red} <nil> <nil>}( Props{input false checkbox  {} <nil> 0x10f0470}() Props{input false text first task {} <nil> 0x10f04b0}())
-	// Task: Props{div false   {red} <nil> <nil>}( Props{input true checkbox  {} <nil> 0x10f0470}() Props{input false text first task {} <nil> 0x10f04b0}())
-
+	// div[styles:{blue}]( input[type:checkbox]() input[type:text](first task))
+	// div[styles:{red}]( input[type:checkbox]() input[type:text](first task))
+	// div[styles:{red}]( input[type:checkbox checked]() input[type:text](first task))
 }

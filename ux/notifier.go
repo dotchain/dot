@@ -34,6 +34,8 @@ func (n *Notifier) Notify() {
 	}
 }
 
+// Handler is a generic structure to hold a function that allows
+// function pointers to be properly compared.
 type Handler struct {
 	Handle func()
 }

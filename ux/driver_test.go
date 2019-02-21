@@ -4,8 +4,10 @@
 
 package ux_test
 
-import "fmt"
-import "github.com/dotchain/dot/ux"
+import (
+	"fmt"
+	"github.com/dotchain/dot/ux"
+)
 
 func init() {
 	ux.RegisterDriver(driver{})
@@ -23,10 +25,27 @@ type element struct {
 }
 
 func (e *element) String() string {
-	s := fmt.Sprint("Props", e.props) + "("
+	s := "div"
+	if e.props.Tag != "" {
+		s = e.props.Tag
+	}
+
+	props := []string{}
+	if e.props.Type != "" {
+		props = append(props, fmt.Sprint("type:", e.props.Type))
+	}
+	if e.props.Styles != (ux.Styles{}) {
+		props = append(props, fmt.Sprint("styles:", e.props.Styles))
+	}
+	if e.props.Checked {
+		props = append(props, "checked")
+	}
+
+	s += fmt.Sprint(props) + "("
 	for _, child := range e.children {
 		s += " " + child.(*element).String()
 	}
+	s += e.props.TextContent
 	return s + ")"
 }
 

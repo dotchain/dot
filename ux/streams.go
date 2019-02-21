@@ -47,7 +47,7 @@ func (s *BoolStream) Update(c Change, b bool) *BoolStream {
 	return result
 }
 
-// TexxtStream holds a text value and tracks changes of it.  The
+// TextStream holds a text value and tracks changes of it.  The
 // value is itself almost immutable.
 //
 // Changes can be listened to via the Notifier and actual change values
