@@ -57,8 +57,6 @@ func (e *element) SetProp(key string, value interface{}) {
 		e.props.TextContent = value.(string)
 	case "Styles":
 		e.props.Styles = value.(ux.Styles)
-	case "OnClick":
-		e.props.OnClick = value.(*ux.MouseEventHandler)
 	case "OnChange":
 		e.props.OnChange = value.(*ux.EventHandler)
 	default:
