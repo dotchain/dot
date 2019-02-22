@@ -76,7 +76,7 @@ func (e *element) Value() string {
 	return "off"
 }
 
-func (e *element) ChangeValue(s string) {
+func (e *element) setValue(s string) {
 	if e.props.Type == "checkbox" {
 		e.props.Checked = s == "on"
 	} else {
@@ -84,12 +84,6 @@ func (e *element) ChangeValue(s string) {
 	}
 	if cx := e.props.OnChange; cx != nil {
 		cx.Handle(ux.Event{})
-	}
-}
-
-func (e *element) Click() {
-	if cx := e.props.OnClick; cx != nil {
-		cx.Handle(ux.MouseEvent{})
 	}
 }
 
