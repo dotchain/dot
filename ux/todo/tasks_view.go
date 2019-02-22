@@ -48,6 +48,10 @@ func (view *TasksView) Update(styles ux.Styles, showDone bool, showNotDone bool,
 	view.cache.Reset()
 	defer view.cache.Cleanup()
 
+	if !view.areTasksSame(view.Tasks.Value, tasks) {
+		view.Tasks = view.Tasks.Update(nil, tasks)
+	}
+
 	children := []ux.Element{}
 	for _, task := range tasks {
 		if task.Done && !showDone || !task.Done && !showNotDone {
@@ -72,6 +76,18 @@ func (view *TasksView) on() {
 			result[kk] = edit.Task.Value
 		}
 	}
-	view.Tasks.Update(nil, result)
+	view.Tasks = view.Tasks.Update(nil, result)
 	view.Tasks.Notify()
+}
+
+func (view *TasksView) areTasksSame(t1, t2 Tasks) bool {
+	if len(t1) != len(t2) {
+		return false
+	}
+	for kk, task := range t1 {
+		if task != t2[kk] {
+			return false
+		}
+	}
+	return true
 }
