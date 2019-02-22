@@ -68,7 +68,7 @@ func (view *TasksView) on() {
 
 	result := append(Tasks(nil), view.Tasks.Value...)
 	for kk, task := range result {
-		if edit, ok := view.cache.current[task.ID]; ok && edit.Task.Next != nil {
+		if edit, ok := view.cache.current[task.ID]; ok {
 			result[kk] = edit.Task.Value
 		}
 	}
