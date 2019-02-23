@@ -42,3 +42,7 @@ func (v *TextEdit) Update(styles core.Styles, text string) {
 		OnChange:    &v.changeHandler,
 	})
 }
+
+// generate TextEditCache
+
+//go:generate go run ../templates/gen.go ../templates/cache.template Package=simple Base=TextEdit BaseType=TextEdit "Args=styles, text" "ArgsDef=styles core.Styles, text string" Constructor=NewTextEdit out=text_edit_cache.go

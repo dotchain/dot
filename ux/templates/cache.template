@@ -7,7 +7,7 @@
 
 package {{.Package}}
 
-import "github.com/dotchain/dot/ux"
+import "github.com/dotchain/dot/ux/core"
 
 // {{.Base}}Cache holds a cache of {{.BaseType}} controls.
 //
@@ -63,6 +63,11 @@ func (c *{{.Base}}Cache) TryGet(key interface{}, {{.ArgsDef}}) (*{{.BaseType}}, 
 	}
 
 	return c.current[key], exists
+}
+
+// Item fetches the item at the specific key
+func (c *{{.Base}}Cache) Item(key interface{}) *{{.BaseType}} {
+	return c.current[key]
 }
 
 // Get fetches a {{.BaseType}} from the cache (updating it)
