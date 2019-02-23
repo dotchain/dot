@@ -27,7 +27,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	
+
 	t, err := template.New(data["template"]).Parse(string(text))
 	if err != nil {
 		panic(err)
