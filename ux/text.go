@@ -4,6 +4,14 @@
 
 package ux
 
+import "github.com/dotchain/dot/ux/streams"
+
+// TextStream alias
+type TextStream = streams.TextStream
+
+// Notifier alias
+type Notifier = streams.Notifier
+
 // TextSpan implements a simple text control.
 type TextSpan struct {
 	// Root is the root dom element of this control

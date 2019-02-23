@@ -4,8 +4,11 @@
 
 package todo
 
-import "github.com/dotchain/dot/ux"
-import "github.com/dotchain/dot/ux/simple"
+import (
+	"github.com/dotchain/dot/ux"
+	"github.com/dotchain/dot/ux/simple"
+	"github.com/dotchain/dot/ux/streams"
+)
 
 // Task represents an item in the TODO list.
 type Task struct {
@@ -45,8 +48,8 @@ func NewTaskEdit(styles ux.Styles, task Task) *TaskEdit {
 		desc,
 		&TaskStream{&ux.Notifier{}, task, nil, nil},
 	}
-	cb.Checked.On(&ux.Handler{t.on})
-	desc.Text.On(&ux.Handler{t.on})
+	cb.Checked.On(&streams.Handler{t.on})
+	desc.Text.On(&streams.Handler{t.on})
 	return t
 }
 

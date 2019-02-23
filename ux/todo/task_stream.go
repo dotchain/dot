@@ -7,10 +7,8 @@
 
 package todo
 
-import (
-	"github.com/dotchain/dot/changes"
-	"github.com/dotchain/dot/ux"
-)
+import "github.com/dotchain/dot/changes"
+import "github.com/dotchain/dot/ux/streams"
 
 // TaskStream holds a Task value and tracks changes to it.
 //
@@ -18,7 +16,7 @@ import (
 // change values are tracked in a linked-list using the Next field.
 type TaskStream struct {
 	// Notifier provides On/Off/Notify support.
-	*ux.Notifier
+	*streams.Notifier
 
 	// Value represents the current value. Use Latest() to get the
 	// latest value.

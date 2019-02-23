@@ -7,6 +7,7 @@ package todo
 import (
 	"github.com/dotchain/dot/ux"
 	"github.com/dotchain/dot/ux/simple"
+	"github.com/dotchain/dot/ux/streams"
 )
 
 // App is a thin wrapper on top of TasksView
@@ -34,9 +35,9 @@ func NewApp(styles ux.Styles, tasks Tasks) *App {
 		tasksView.Root,
 	)
 	app := &App{root, styles, showDone, showNotDone, tasksView, tasksView.Tasks}
-	showDone.Checked.On(&ux.Handler{app.refresh})
-	showNotDone.Checked.On(&ux.Handler{app.refresh})
-	tasksView.Tasks.On(&ux.Handler{app.refresh})
+	showDone.Checked.On(&streams.Handler{app.refresh})
+	showNotDone.Checked.On(&streams.Handler{app.refresh})
+	tasksView.Tasks.On(&streams.Handler{app.refresh})
 
 	return app
 }

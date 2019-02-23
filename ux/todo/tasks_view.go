@@ -4,7 +4,10 @@
 
 package todo
 
-import "github.com/dotchain/dot/ux"
+import (
+	"github.com/dotchain/dot/ux"
+	"github.com/dotchain/dot/ux/streams"
+)
 
 // Tasks represents a collection of tasks
 type Tasks []Task
@@ -60,7 +63,7 @@ func (view *TasksView) Update(styles ux.Styles, showDone bool, showNotDone bool,
 
 		taskEdit, exists := view.cache.Get(task.ID, ux.Styles{}, task)
 		if !exists {
-			taskEdit.Task.On(&ux.Handler{view.on})
+			taskEdit.Task.On(&streams.Handler{view.on})
 		}
 		children = append(children, taskEdit.Root)
 	}
