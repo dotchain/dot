@@ -6,20 +6,20 @@ package todo_test
 
 import (
 	"fmt"
-	"github.com/dotchain/dot/ux"
+	"github.com/dotchain/dot/ux/core"
 	"github.com/dotchain/dot/ux/todo"
 )
 
 func Example_renderTask() {
 	task := todo.Task{Done: false, Description: "first task"}
-	t := todo.NewTaskEdit(ux.Styles{Color: "blue"}, task)
+	t := todo.NewTaskEdit(core.Styles{Color: "blue"}, task)
 	fmt.Println(t.Root)
 
-	t.Update(ux.Styles{Color: "red"}, task)
+	t.Update(core.Styles{Color: "red"}, task)
 	fmt.Println(t.Root)
 
 	task.Done = true
-	t.Update(ux.Styles{Color: "red"}, task)
+	t.Update(core.Styles{Color: "red"}, task)
 	fmt.Println(t.Root)
 
 	// Output:

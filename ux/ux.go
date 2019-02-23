@@ -7,11 +7,7 @@
 // A UX component is a strongly typed struct with a minimal set of
 // constraints:
 //
-//
 // Root Element Constaint
-//
-//      1. The struct should expose a Root field of core.Element
-//      type.
 //
 // All UX components should expose their Root element so that the
 // parent can effectively manage the collection of children.  This
@@ -31,22 +27,22 @@
 //             ... other fields
 //        }
 //
-// The sub-package defines Element which automatically exposes the
-// Root field within. In addition, the props and children can be
-// specified to simple.Element in a declarative fashion using the
-// Declare method.
-//
+// The simple sub-package defines Element which automatically exposes
+// the Root field within. In addition, the props and children can be
+// specified in a declarative fashion using the Element:Declare
+// method.
 //
 // Constructor And Update
 //
-//        2. Components should implement an Update method that matches
-//        the signature of the constructor.
+// Components should implement an Update method that matches the
+// signature of the constructor.
 //
-// Components are expected to have a constructor when the root element
-// and any private state are created. The signature of the constructor
+// Components are expected to have a constructor to create the root
+// element and any private state. The signature of the constructor
 // can be arbitrary and so is expected to be strongly typed.  When the
 // values provided as input to the constructor changes, the component
-// is informed via the Update method with the exact same signature.
+// is informed via the Update method with the exact same signature
+// allowing it to update its children in a top-down fashion.
 //
 // This constraint allows uniformity of components. A stateful
 // component can simply detect changes in the props and apply them. A
@@ -60,9 +56,9 @@
 //
 // Events And Notifications
 //
-//         3. Components should expose the latest value of any mutable
-//         field with a streams like interface.  Events are simulated
-//         with a strongly typed field for the event.
+// Components should expose the latest value of any mutable
+// field with a streams like interface.  Events are simulated
+// with a strongly typed field for the event.
 //
 // It is expected that a component will expose changeable fields
 // (such as text input) via a linked list.  The specific interface can
@@ -111,35 +107,3 @@
 // requires passing the children down as props and updating them via
 // the Update method.
 package ux
-
-import "github.com/dotchain/dot/ux/core"
-
-// the following types are derived from core which should change very
-// rarely, if at all.
-
-// Driver is a type alias
-type Driver = core.Driver
-
-// Element is a type alias
-type Element = core.Element
-
-// Styles is a type alias
-type Styles = core.Styles
-
-// Props is a type alias
-type Props = core.Props
-
-// EventHandler is a type alias
-type EventHandler = core.EventHandler
-
-// Event is a type alias
-type Event = core.Event
-
-// Change is a type alias
-type Change = core.Change
-
-// NewElement is an alias
-var NewElement = core.NewElement
-
-// RegisterDriver is an alias
-var RegisterDriver = core.RegisterDriver

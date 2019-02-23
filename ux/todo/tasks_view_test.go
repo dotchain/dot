@@ -6,7 +6,7 @@ package todo_test
 
 import (
 	"fmt"
-	"github.com/dotchain/dot/ux"
+	"github.com/dotchain/dot/ux/core"
 	"github.com/dotchain/dot/ux/todo"
 )
 
@@ -15,14 +15,14 @@ func Example_renderTasks() {
 		{"one", false, "first task"},
 		{"two", true, "second task"},
 	}
-	t := todo.NewTasksView(ux.Styles{}, true, false, tasks)
+	t := todo.NewTasksView(core.Styles{}, true, false, tasks)
 	fmt.Println(t.Root)
 
-	t.Update(ux.Styles{Color: "red"}, false, false, tasks)
+	t.Update(core.Styles{Color: "red"}, false, false, tasks)
 	fmt.Println(t.Root)
 
-	t.Update(ux.Styles{}, true, false, tasks)
-	t.Update(ux.Styles{}, true, true, tasks)
+	t.Update(core.Styles{}, true, false, tasks)
+	t.Update(core.Styles{}, true, true, tasks)
 	fmt.Println(t.Root)
 
 	// Output:
