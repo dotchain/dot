@@ -29,6 +29,11 @@ type TextStream struct {
 	Next *TextStream
 }
 
+// NewTextStream creates a new string stream
+func NewTextStream(v string) *TextStream {
+	return &TextStream{&Notifier{}, v, nil, nil}
+}
+
 // Update updates the stream with a new value and returns the
 // latest value.  To notify listeners, an explicit call to Notify
 // is required.

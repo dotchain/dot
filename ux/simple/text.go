@@ -2,29 +2,26 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package ux
+package simple
 
-import "github.com/dotchain/dot/ux/streams"
-
-// TextStream alias
-type TextStream = streams.TextStream
-
-// Notifier alias
-type Notifier = streams.Notifier
+import (
+	"github.com/dotchain/dot/ux/core"
+	"github.com/dotchain/dot/ux/streams"
+)
 
 // TextSpan implements a simple text control.
 type TextSpan struct {
 	// Root is the root dom element of this control
-	Root Element
+	Root core.Element
 
 	// private state
-	styles Styles
+	styles core.Styles
 	text   string
 }
 
 // NewTextSpan creates a new text control.
-func NewTextSpan(styles Styles, text string) *TextSpan {
-	root := NewElement(Props{
+func NewTextSpan(styles core.Styles, text string) *TextSpan {
+	root := core.NewElement(core.Props{
 		Tag:         "span",
 		TextContent: text,
 		Styles:      styles,
@@ -33,7 +30,7 @@ func NewTextSpan(styles Styles, text string) *TextSpan {
 }
 
 // Update updates the text or styles of the checkbox.
-func (s *TextSpan) Update(styles Styles, text string) {
+func (s *TextSpan) Update(styles core.Styles, text string) {
 	if s.text != text {
 		s.Root.SetProp("TextContent", text)
 		s.text = text
@@ -47,33 +44,32 @@ func (s *TextSpan) Update(styles Styles, text string) {
 // TextEdit implements a simple text edit control.
 type TextEdit struct {
 	// Root is the root dom element of this control
-	Root Element
+	Root core.Element
 
 	// private state
-	styles Styles
+	styles core.Styles
 
 	// Consumers of TextEdit can get the latest value by
 	// inspecting this field.  Changes can be subscribed by
 	// calling On on this field.
-	Text *TextStream
+	Text *streams.TextStream
 }
 
 // NewTextEdit creates a new text edit control.
-func NewTextEdit(styles Styles, text string) *TextEdit {
-	n := &Notifier{}
-	t := &TextEdit{nil, styles, &TextStream{n, text, nil, nil}}
-	t.Root = NewElement(Props{
+func NewTextEdit(styles core.Styles, text string) *TextEdit {
+	t := &TextEdit{nil, styles, streams.NewTextStream(text)}
+	t.Root = core.NewElement(core.Props{
 		Tag:         "input",
 		Type:        "text",
 		TextContent: text,
 		Styles:      styles,
-		OnChange:    &EventHandler{t.onChange},
+		OnChange:    &core.EventHandler{t.onChange},
 	})
 	return t
 }
 
 // Update updates the value and style for the text edit widget.
-func (t *TextEdit) Update(styles Styles, text string) {
+func (t *TextEdit) Update(styles core.Styles, text string) {
 	if t.Text.Value != text {
 		t.Root.SetProp("TextContent", text)
 		t.Text = t.Text.Update(nil, text)
@@ -85,7 +81,7 @@ func (t *TextEdit) Update(styles Styles, text string) {
 	}
 }
 
-func (t *TextEdit) onChange(e Event) {
+func (t *TextEdit) onChange(e core.Event) {
 	t.Text = t.Text.Update(nil, t.Root.Value())
 	t.Text.Notify()
 }

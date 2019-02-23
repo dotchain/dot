@@ -28,7 +28,7 @@ type TaskEdit struct {
 
 	styles      ux.Styles
 	cb          *simple.Checkbox
-	description *ux.TextEdit
+	description *simple.TextEdit
 
 	Task *TaskStream
 }
@@ -40,13 +40,13 @@ type TaskEdit struct {
 // NewTaskEdit is the constructor for creating a TaskEdit control
 func NewTaskEdit(styles ux.Styles, task Task) *TaskEdit {
 	cb := simple.NewCheckbox(ux.Styles{}, task.Done)
-	desc := ux.NewTextEdit(ux.Styles{}, task.Description)
+	desc := simple.NewTextEdit(ux.Styles{}, task.Description)
 	t := &TaskEdit{
 		ux.NewElement(ux.Props{Tag: "div", Styles: styles}, cb.Root, desc.Root),
 		styles,
 		cb,
 		desc,
-		&TaskStream{&ux.Notifier{}, task, nil, nil},
+		NewTaskStream(task),
 	}
 	cb.Checked.On(&streams.Handler{t.on})
 	desc.Text.On(&streams.Handler{t.on})
