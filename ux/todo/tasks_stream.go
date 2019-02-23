@@ -30,6 +30,11 @@ type TasksStream struct {
 	Next *TasksStream
 }
 
+// NewTasksStream creates a new Tasks stream
+func NewTasksStream(v Tasks) *TasksStream {
+	return &TasksStream{&streams.Notifier{}, v, nil, nil}
+}
+
 // Update updates the stream with a new value and returns the
 // latest value.  To notify listeners, an explicit call to Notify
 // is required.

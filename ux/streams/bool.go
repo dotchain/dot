@@ -29,6 +29,11 @@ type BoolStream struct {
 	Next *BoolStream
 }
 
+// NewBoolStream creates a new bool stream
+func NewBoolStream(v bool) *BoolStream {
+	return &BoolStream{&Notifier{}, v, nil, nil}
+}
+
 // Update updates the stream with a new value and returns the
 // latest value.  To notify listeners, an explicit call to Notify
 // is required.

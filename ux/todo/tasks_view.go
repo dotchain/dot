@@ -35,7 +35,7 @@ func NewTasksView(styles ux.Styles, showDone bool, showNotDone bool, tasks Tasks
 		ux.NewElement(ux.Props{Tag: "div", Styles: styles}),
 		styles,
 		TaskEditCache{},
-		&TasksStream{&ux.Notifier{}, nil, nil, nil},
+		NewTasksStream(nil),
 	}
 	view.Update(styles, showDone, showNotDone, tasks)
 	return view

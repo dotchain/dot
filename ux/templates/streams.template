@@ -30,6 +30,11 @@ type {{.Base}}Stream struct {
 	Next *{{.Base}}Stream
 }
 
+// New{{.Base}}Stream creates a new {{.BaseType}} stream
+func New{{.Base}}Stream(v {{.BaseType}}) *{{.Base}}Stream {
+	return &{{.Base}}Stream{&{{$notifier}}{}, v, nil, nil}
+}
+
 // Update updates the stream with a new value and returns the
 // latest value.  To notify listeners, an explicit call to Notify
 // is required.
