@@ -54,3 +54,7 @@ func (c *Checkbox) onChange(e core.Event) {
 	c.Checked = c.Checked.Update(nil, c.Root.Value() == "on")
 	c.Checked.Notify()
 }
+
+// generate CheckboxCache
+
+//go:generate go run ../templates/gen.go ../templates/cache.template Package=simple Base=Checkbox BaseType=Checkbox "Args=styles, checked" "ArgsDef=styles core.Styles, checked bool" Constructor=NewCheckbox out=checkbox_cache.go

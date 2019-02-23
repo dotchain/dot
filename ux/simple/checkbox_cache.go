@@ -5,58 +5,58 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package todo
+package simple
 
 import "github.com/dotchain/dot/ux/core"
 
-// TaskEditCache holds a cache of TaskEdit controls.
+// CheckboxCache holds a cache of Checkbox controls.
 //
-// Controls that have manage a bunch of TaskEdit controls
+// Controls that have manage a bunch of Checkbox controls
 // should maintain a cache created like so:
 //
-//     cache := &TaskEditCache{}
+//     cache := &CheckboxCache{}
 //
 // When updating, the cache can be used to reuse controls:
 //
 //     cache.Begin()
 //     defer cache.End()
 //
-//     ... for each TaskEdit control needed do:
-//     cache.Get(key, styles, task)
+//     ... for each Checkbox control needed do:
+//     cache.Get(key, styles, checked)
 //
 // This allows the cache to reuse the control if the key exists.
-// Otherwise a new control is created via NewTaskEdit(styles, task)
+// Otherwise a new control is created via NewCheckbox(styles, checked)
 //
 // When a control is reused, it is also automatically updated.
-type TaskEditCache struct {
-	old, current map[interface{}]*TaskEdit
+type CheckboxCache struct {
+	old, current map[interface{}]*Checkbox
 }
 
 // Begin should be called before the start of a round
-func (c *TaskEditCache) Begin() {
+func (c *CheckboxCache) Begin() {
 	c.old = c.current
-	c.current = map[interface{}]*TaskEdit{}
+	c.current = map[interface{}]*Checkbox{}
 }
 
 // End should be called at the end of a round
-func (c *TaskEditCache) End() {
+func (c *CheckboxCache) End() {
 	// if components had a Close() method all the old left-over items
 	// can be cleaned up via that call
 	c.old = nil
 }
 
-// TryGet fetches a TaskEdit from the cache (updating it)
-// or creates a new TaskEdit
+// TryGet fetches a Checkbox from the cache (updating it)
+// or creates a new Checkbox
 //
-// It returns the TaskEdit but also whether the control existed.
+// It returns the Checkbox but also whether the control existed.
 // This can be used to conditionally setup listeners.
-func (c *TaskEditCache) TryGet(key interface{}, styles core.Styles, task Task) (*TaskEdit, bool) {
+func (c *CheckboxCache) TryGet(key interface{}, styles core.Styles, checked bool) (*Checkbox, bool) {
 	exists := false
 	if item, ok := c.old[key]; !ok {
-		c.current[key] = NewTaskEdit(styles, task)
+		c.current[key] = NewCheckbox(styles, checked)
 	} else {
 		delete(c.old, key)
-		item.Update(styles, task)
+		item.Update(styles, checked)
 		c.current[key] = item
 		exists = true
 	}
@@ -65,15 +65,15 @@ func (c *TaskEditCache) TryGet(key interface{}, styles core.Styles, task Task) (
 }
 
 // Item fetches the item at the specific key
-func (c *TaskEditCache) Item(key interface{}) *TaskEdit {
+func (c *CheckboxCache) Item(key interface{}) *Checkbox {
 	return c.current[key]
 }
 
-// Get fetches a TaskEdit from the cache (updating it)
-// or creates a new TaskEdit
+// Get fetches a Checkbox from the cache (updating it)
+// or creates a new Checkbox
 //
 // Use TryGet to also fetch whether the control from last round was reused
-func (c *TaskEditCache) Get(key interface{}, styles core.Styles, task Task) *TaskEdit {
-	v, _ := c.TryGet(key, styles, task)
+func (c *CheckboxCache) Get(key interface{}, styles core.Styles, checked bool) *Checkbox {
+	v, _ := c.TryGet(key, styles, checked)
 	return v
 }
