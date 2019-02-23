@@ -5,52 +5,75 @@
 package todo
 
 import (
-	"github.com/dotchain/dot/ux"
+	"github.com/dotchain/dot/ux/core"
 	"github.com/dotchain/dot/ux/simple"
 	"github.com/dotchain/dot/ux/streams"
 )
 
-// App is a thin wrapper on top of TasksView
+// App is a thin wrapper on top of TasksView with checkboxes for ShowDone and ShowUndone
 type App struct {
-	Root ux.Element
+	simple.Element
 
-	styles                ux.Styles
-	showDone, showNotDone *simple.Checkbox
-	tasksView             *TasksView
-
-	Tasks *TasksStream
+	styles     core.Styles
+	toggles    simple.CheckboxCache
+	tasksViews TasksViewCache
 }
 
 // NewApp creates the new app control
-func NewApp(styles ux.Styles, tasks Tasks) *App {
-	// TODO: need labels for these two + a container to wrap them
-	showDone := simple.NewCheckbox(ux.Styles{}, true)
-	showNotDone := simple.NewCheckbox(ux.Styles{}, true)
-
-	tasksView := NewTasksView(ux.Styles{}, true, true, tasks)
-	root := ux.NewElement(
-		ux.Props{Tag: "div", Styles: styles},
-		showDone.Root,
-		showNotDone.Root,
-		tasksView.Root,
-	)
-	app := &App{root, styles, showDone, showNotDone, tasksView, tasksView.Tasks}
-	showDone.Checked.On(&streams.Handler{app.refresh})
-	showNotDone.Checked.On(&streams.Handler{app.refresh})
-	tasksView.Tasks.On(&streams.Handler{app.refresh})
-
+func NewApp(styles core.Styles, tasks Tasks) *App {
+	app := &App{}
+	app.Update(styles, tasks)
 	return app
 }
 
-// Update props
-func (app *App) Update(styles ux.Styles, tasks Tasks) {
-	if app.styles != styles {
-		app.styles = styles
-		app.Root.SetProp("Styles", styles)
+// Update app
+func (app *App) Update(styles core.Styles, tasks Tasks) {
+	app.styles = styles
+
+	// the following ugliness is because the checkboxes are used as
+	// state to drive the rendering
+	showDone, showNotDone := true, true
+	done, notDone := app.toggles.Item("done"), app.toggles.Item("notDone")
+	if done != nil {
+		showDone = done.Checked.Value
 	}
-	app.tasksView.Update(ux.Styles{}, app.showDone.Checked.Value, app.showNotDone.Checked.Value, tasks)
+	if notDone != nil {
+		showNotDone = notDone.Checked.Value
+	}
+
+	app.toggles.Begin()
+	app.tasksViews.Begin()
+	defer app.toggles.End()
+	defer app.tasksViews.End()
+
+	// do the actual rendering
+	app.Declare(
+		core.Props{Tag: "div", Styles: styles},
+		app.listenToggle(app.toggles.TryGet("done", core.Styles{}, showDone)),
+		app.listenToggle(app.toggles.TryGet("notDone", core.Styles{}, showNotDone)),
+		app.listenTasks(app.tasksViews.TryGet("tasks", core.Styles{}, showDone, showNotDone, tasks)),
+	)
 }
 
-func (app *App) refresh() {
-	app.Update(app.styles, app.tasksView.Tasks.Value)
+// Tasks returns the current stream instance of tasks
+func (app *App) Tasks() *TasksStream {
+	return app.tasksViews.Item("tasks").Tasks
+}
+
+func (app *App) listenToggle(cb *simple.Checkbox, exists bool) core.Element {
+	if !exists {
+		cb.Checked.On(&streams.Handler{app.on})
+	}
+	return cb.Root
+}
+
+func (app *App) listenTasks(tasksView *TasksView, exists bool) core.Element {
+	if !exists {
+		tasksView.Tasks.On(&streams.Handler{app.on})
+	}
+	return tasksView.Root
+}
+
+func (app *App) on() {
+	app.Update(app.styles, app.Tasks().Value)
 }
