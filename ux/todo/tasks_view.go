@@ -5,7 +5,8 @@
 package todo
 
 import (
-	"github.com/dotchain/dot/ux"
+	"github.com/dotchain/dot/ux/core"
+	"github.com/dotchain/dot/ux/simple"
 	"github.com/dotchain/dot/ux/streams"
 )
 
@@ -21,69 +22,61 @@ type Tasks []Task
 // tasks is available via Tasks field which supports On/Off to receive
 // notifications.
 type TasksView struct {
-	Root ux.Element
-
-	styles ux.Styles
-	cache  TaskEditCache
-
+	simple.Element
 	Tasks *TasksStream
+
+	edits TaskEditCache
 }
 
 // NewTasksView creates a new TasksView
-func NewTasksView(styles ux.Styles, showDone bool, showNotDone bool, tasks Tasks) *TasksView {
-	view := &TasksView{
-		ux.NewElement(ux.Props{Tag: "div", Styles: styles}),
-		styles,
-		TaskEditCache{},
-		NewTasksStream(nil),
-	}
-	view.Update(styles, showDone, showNotDone, tasks)
-	return view
+func NewTasksView(styles core.Styles, showDone bool, showNotDone bool, tasks Tasks) *TasksView {
+	v := &TasksView{}
+	v.Tasks = NewTasksStream(tasks)
+	v.Update(styles, showDone, showNotDone, tasks)
+	return v
 }
 
 // Update updates the TasksView
-func (view *TasksView) Update(styles ux.Styles, showDone bool, showNotDone bool, tasks Tasks) {
-	if view.styles != styles {
-		view.styles = styles
-		view.Root.SetProp("Styles", styles)
+func (v *TasksView) Update(styles core.Styles, showDone bool, showNotDone bool, tasks Tasks) {
+	if !v.areTasksSame(v.Tasks.Value, tasks) {
+		v.Tasks = v.Tasks.Update(nil, tasks)
 	}
 
-	view.cache.Begin()
-	defer view.cache.End()
+	v.edits.Begin()
+	defer v.edits.End()
 
-	if !view.areTasksSame(view.Tasks.Value, tasks) {
-		view.Tasks = view.Tasks.Update(nil, tasks)
-	}
-
-	children := []ux.Element{}
-	for _, task := range tasks {
-		if task.Done && !showDone || !task.Done && !showNotDone {
-			continue
-		}
-
-		taskEdit, exists := view.cache.TryGet(task.ID, ux.Styles{}, task)
-		if !exists {
-			taskEdit.Task.On(&streams.Handler{view.on})
-		}
-		children = append(children, taskEdit.Root)
-	}
-	ux.UpdateChildren(view.Root, children)
+	v.Declare(
+		core.Props{Tag: "div", Styles: styles},
+		v.renderTasks(tasks, func(t Task) core.Element {
+			if t.Done && !showDone || !t.Done && !showNotDone {
+				return nil
+			}
+			return v.addTaskListener(v.edits.TryGet(t.ID, core.Styles{}, t))
+		})...,
+	)
 }
 
-func (view *TasksView) on() {
+func (v *TasksView) addTaskListener(edit *TaskEdit, exists bool) core.Element {
+	if !exists {
+		edit.Task.On(&streams.Handler{v.on})
+	}
+	return edit.Root
+}
+
+func (v *TasksView) on() {
 	// TODO: propagate change properly instead of simply recalculating
 
-	result := append(Tasks(nil), view.Tasks.Value...)
+	result := append(Tasks(nil), v.Tasks.Value...)
 	for kk, task := range result {
-		if edit, ok := view.cache.current[task.ID]; ok {
+		if edit := v.edits.Item(task.ID); edit != nil {
 			result[kk] = edit.Task.Value
 		}
 	}
-	view.Tasks = view.Tasks.Update(nil, result)
-	view.Tasks.Notify()
+	v.Tasks = v.Tasks.Update(nil, result)
+	v.Tasks.Notify()
 }
 
-func (view *TasksView) areTasksSame(t1, t2 Tasks) bool {
+func (v *TasksView) areTasksSame(t1, t2 Tasks) bool {
 	if len(t1) != len(t2) {
 		return false
 	}
@@ -93,4 +86,12 @@ func (view *TasksView) areTasksSame(t1, t2 Tasks) bool {
 		}
 	}
 	return true
+}
+
+func (v *TasksView) renderTasks(t Tasks, fn func(Task) core.Element) []core.Element {
+	result := make([]core.Element, len(t))
+	for kk, elt := range t {
+		result[kk] = fn(elt)
+	}
+	return result
 }

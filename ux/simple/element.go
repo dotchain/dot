@@ -35,6 +35,8 @@ type Element struct {
 // Declare creates the root element on first use or updates the
 // element on subsequent use
 func (e *Element) Declare(props core.Props, children ...core.Element) {
+	children = e.filterNil(children)
+
 	if e.Root == nil {
 		e.Root = core.NewElement(props, children...)
 		e.props = props
@@ -50,23 +52,25 @@ func (e *Element) Declare(props core.Props, children ...core.Element) {
 			}
 		}
 	}
-	updateChildren(e.Root, children)
+	e.updateChildren(children)
 }
 
-func updateChildren(parent core.Element, children []core.Element) {
-	before := parent.Children()
-	after := children[:0]
+func (e *Element) filterNil(children []core.Element) []core.Element {
+	result := children[:0]
 	for _, elt := range children {
 		if elt != nil {
-			after = append(after, elt)
+			result = append(result, elt)
 		}
 	}
+	return result
+}
 
-	for _, op := range bestDiff(before, after, 0, nil) {
+func (e *Element) updateChildren(after []core.Element) {
+	for _, op := range bestDiff(e.Root.Children(), after, 0, nil) {
 		if op.insert {
-			parent.InsertChild(op.index, op.elt)
+			e.Root.InsertChild(op.index, op.elt)
 		} else {
-			parent.RemoveChild(op.index)
+			e.Root.RemoveChild(op.index)
 		}
 	}
 }

@@ -13,13 +13,13 @@ import (
 type Checkbox struct {
 	Element
 
-	// persist this
-	onChangeHandler core.EventHandler
-
 	// Consumers of Checkbox can get the latest value by
 	// inspecting this field.  Changes can be subscribed by
 	// calling On on this field.
 	Checked *streams.BoolStream
+
+	// persist this
+	onChangeHandler core.EventHandler
 }
 
 // NewCheckbox creates a new checkbox control.
