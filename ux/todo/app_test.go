@@ -6,7 +6,7 @@ package todo_test
 
 import (
 	"fmt"
-	"github.com/dotchain/dot/ux"
+	"github.com/dotchain/dot/ux/core"
 	"github.com/dotchain/dot/ux/todo"
 )
 
@@ -15,7 +15,7 @@ func Example_renderApp() {
 		{"one", false, "first task"},
 		{"two", true, "second task"},
 	}
-	app := todo.NewApp(ux.Styles{}, tasks)
+	app := todo.NewApp(core.Styles{}, tasks)
 	fmt.Println(app.Root)
 
 	// set "ShowDone" to false which should filter out the second task

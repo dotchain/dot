@@ -6,22 +6,22 @@ package todo_test
 
 import (
 	"fmt"
-	"github.com/dotchain/dot/ux"
+	"github.com/dotchain/dot/ux/core"
 )
 
 func init() {
-	ux.RegisterDriver(driver{})
+	core.RegisterDriver(driver{})
 }
 
 type driver struct{}
 
-func (d driver) NewElement(props ux.Props, children ...ux.Element) ux.Element {
+func (d driver) NewElement(props core.Props, children ...core.Element) core.Element {
 	return &element{props, children}
 }
 
 type element struct {
-	props    ux.Props
-	children []ux.Element
+	props    core.Props
+	children []core.Element
 }
 
 func (e *element) String() string {
@@ -34,7 +34,7 @@ func (e *element) String() string {
 	if e.props.Type != "" {
 		props = append(props, fmt.Sprint("type:", e.props.Type))
 	}
-	if e.props.Styles != (ux.Styles{}) {
+	if e.props.Styles != (core.Styles{}) {
 		props = append(props, fmt.Sprint("styles:", e.props.Styles))
 	}
 	if e.props.Checked {
@@ -56,9 +56,9 @@ func (e *element) SetProp(key string, value interface{}) {
 	case "TextContent":
 		e.props.TextContent = value.(string)
 	case "Styles":
-		e.props.Styles = value.(ux.Styles)
+		e.props.Styles = value.(core.Styles)
 	case "OnChange":
-		e.props.OnChange = value.(*ux.EventHandler)
+		e.props.OnChange = value.(*core.EventHandler)
 	default:
 		panic("Unknown key: " + key)
 	}
@@ -81,23 +81,23 @@ func (e *element) setValue(s string) {
 		e.props.TextContent = s
 	}
 	if cx := e.props.OnChange; cx != nil {
-		cx.Handle(ux.Event{})
+		cx.Handle(core.Event{})
 	}
 }
 
-func (e *element) Children() []ux.Element {
+func (e *element) Children() []core.Element {
 	return e.children
 }
 
 func (e *element) RemoveChild(index int) {
-	c := make([]ux.Element, len(e.children)-1)
+	c := make([]core.Element, len(e.children)-1)
 	copy(c, e.children[:index])
 	copy(c[index:], e.children[index+1:])
 	e.children = c
 }
 
-func (e *element) InsertChild(index int, elt ux.Element) {
-	c := make([]ux.Element, len(e.children)+1)
+func (e *element) InsertChild(index int, elt core.Element) {
+	c := make([]core.Element, len(e.children)+1)
 	copy(c, e.children[:index])
 	c[index] = elt
 	copy(c[index+1:], e.children[index:])
