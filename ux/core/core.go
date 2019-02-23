@@ -9,7 +9,7 @@
 // native DOM interface is maintained here. The higher order ux
 // library has wrappers to help make things less imperative.
 //
-// All changes to this have to be backwards compatible. 
+// All changes to this have to be backwards compatible.
 package core
 
 // Driver represents the interface to be implemented by drivers. This

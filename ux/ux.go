@@ -98,20 +98,27 @@ import "github.com/dotchain/dot/ux/core"
 
 // Driver is a type alias
 type Driver = core.Driver
+
 // Element is a type alias
 type Element = core.Element
+
 // Styles is a type alias
 type Styles = core.Styles
+
 // Props is a type alias
 type Props = core.Props
+
 // EventHandler is a type alias
 type EventHandler = core.EventHandler
+
 // Event is a type alias
 type Event = core.Event
+
 // Change is a type alias
 type Change = core.Change
 
 // NewElement is an alias
 var NewElement = core.NewElement
+
 // RegisterDriver is an alias
 var RegisterDriver = core.RegisterDriver
