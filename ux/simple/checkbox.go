@@ -5,8 +5,8 @@
 package simple
 
 import (
-	"github.com/dotchain/dot/ux"
 	"github.com/dotchain/dot/ux/core"
+	"github.com/dotchain/dot/ux/streams"
 )
 
 // Checkbox implements a checkbox control.
@@ -19,14 +19,14 @@ type Checkbox struct {
 	// Consumers of Checkbox can get the latest value by
 	// inspecting this field.  Changes can be subscribed by
 	// calling On on this field.
-	Checked *ux.BoolStream
+	Checked *streams.BoolStream
 }
 
 // NewCheckbox creates a new checkbox control.
 func NewCheckbox(styles core.Styles, checked bool) *Checkbox {
 	c := &Checkbox{}
 	c.onChangeHandler = core.EventHandler{c.onChange}
-	c.Checked = &ux.BoolStream{&ux.Notifier{}, checked, nil, nil}
+	c.Checked = &streams.BoolStream{&streams.Notifier{}, checked, nil, nil}
 
 	c.render(styles)
 	return c

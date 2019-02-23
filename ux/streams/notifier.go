@@ -2,9 +2,18 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package ux
+// Package streams is a collection of frequently used stream types
+// and related utilities
+package streams
 
-// Notifier implements standard methods used to notify mutations
+// generate BoolStream
+//go:generate go run ../templates/gen.go ../templates/streams.template out=bool.go Package=streams Base=Bool BaseType=bool
+
+// generate TextStream
+//go:generate go run ../templates/gen.go ../templates/streams.template out=text.go Package=streams Base=Text BaseType=string
+
+// Notifier implements standard methods used to notify mutations. All
+// streams typically embed this.
 type Notifier struct {
 	handlers []*Handler
 }
