@@ -95,3 +95,7 @@ func (v *TasksView) renderTasks(t Tasks, fn func(Task) core.Element) []core.Elem
 	}
 	return result
 }
+
+// generate the TasksViewCache for any consumers who want it
+
+//go:generate go run ../templates/gen.go ../templates/cache.template Package=todo Base=TasksView BaseType=TasksView "Args=styles, done, notDone, tasks" "ArgsDef=styles core.Styles, done bool, notDone bool, tasks Tasks" Constructor=NewTasksView out=tasks_view_cache.go

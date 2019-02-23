@@ -9,7 +9,6 @@ package streams
 
 import "github.com/dotchain/dot/changes"
 
-
 // BoolStream holds a Bool value and tracks changes to it.
 //
 // Changes can be listened to via the embedded Notifier.  Actual
