@@ -16,10 +16,10 @@ import "github.com/dotchain/dot/ux"
 //
 //     cache := &TaskEditCache{}
 //
-// When updating, they should use the cache to reuse items:
+// When updating, the cache can be used to reuse controls:
 //
-//     cache.Reset()
-//     defer cache.Cleanup()
+//     cache.Begin()
+//     defer cache.End()
 //
 //     ... for each TaskEdit control needed do:
 //     cache.Get(key, styles, task)
@@ -32,25 +32,25 @@ type TaskEditCache struct {
 	old, current map[interface{}]*TaskEdit
 }
 
-// Reset should be called before the start of a round
-func (c *TaskEditCache) Reset() {
+// Begin should be called before the start of a round
+func (c *TaskEditCache) Begin() {
 	c.old = c.current
 	c.current = map[interface{}]*TaskEdit{}
 }
 
-// Cleanup should be called at the end of a round
-func (c *TaskEditCache) Cleanup() {
-	// if TodoTask had a Close() method all the old left-over items
+// End should be called at the end of a round
+func (c *TaskEditCache) End() {
+	// if components had a Close() method all the old left-over items
 	// can be cleaned up via that call
 	c.old = nil
 }
 
-// Get fetches a TaskEdit from the cache (updating it)
+// TryGet fetches a TaskEdit from the cache (updating it)
 // or creates a new TaskEdit
 //
 // It returns the TaskEdit but also whether the control existed.
 // This can be used to conditionally setup listeners.
-func (c *TaskEditCache) Get(key interface{}, styles ux.Styles, task Task) (*TaskEdit, bool) {
+func (c *TaskEditCache) TryGet(key interface{}, styles ux.Styles, task Task) (*TaskEdit, bool) {
 	exists := false
 	if item, ok := c.old[key]; !ok {
 		c.current[key] = NewTaskEdit(styles, task)
@@ -62,4 +62,13 @@ func (c *TaskEditCache) Get(key interface{}, styles ux.Styles, task Task) (*Task
 	}
 
 	return c.current[key], exists
+}
+
+// Get fetches a TaskEdit from the cache (updating it)
+// or creates a new TaskEdit
+//
+// Use TryGet to also fetch whether the control from last round was reused
+func (c *TaskEditCache) Get(key interface{}, styles ux.Styles, task Task) *TaskEdit {
+	v, _ := c.TryGet(key, styles, task)
+	return v
 }

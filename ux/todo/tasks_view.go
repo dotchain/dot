@@ -48,8 +48,8 @@ func (view *TasksView) Update(styles ux.Styles, showDone bool, showNotDone bool,
 		view.Root.SetProp("Styles", styles)
 	}
 
-	view.cache.Reset()
-	defer view.cache.Cleanup()
+	view.cache.Begin()
+	defer view.cache.End()
 
 	if !view.areTasksSame(view.Tasks.Value, tasks) {
 		view.Tasks = view.Tasks.Update(nil, tasks)
@@ -61,7 +61,7 @@ func (view *TasksView) Update(styles ux.Styles, showDone bool, showNotDone bool,
 			continue
 		}
 
-		taskEdit, exists := view.cache.Get(task.ID, ux.Styles{}, task)
+		taskEdit, exists := view.cache.TryGet(task.ID, ux.Styles{}, task)
 		if !exists {
 			taskEdit.Task.On(&streams.Handler{view.on})
 		}
