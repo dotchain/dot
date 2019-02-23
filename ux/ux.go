@@ -7,6 +7,7 @@
 // A UX component is a strongly typed struct with a minimal set of
 // constraints:
 //
+//
 // Root Element Constaint
 //
 //      1. The struct should expose a Root field of core.Element
@@ -35,6 +36,7 @@
 // specified to simple.Element in a declarative fashion using the
 // Declare method.
 //
+//
 // Constructor And Update
 //
 //        2. Components should implement an Update method that matches
@@ -54,6 +56,7 @@
 // for creating a Cache for each sub-component. This can then be used
 // in an almost declarative fashion. See todo/tasks_view.go for an
 // example.
+//
 //
 // Events And Notifications
 //
@@ -82,12 +85,14 @@
 // though this is definitely possible with the same interface
 // more-or-less.
 //
+//
 // Interoperability
 //
 // The contract between components is rather limited and so
 // interoperability is mostly a matter of limiting changes to the core
 // module. Multiple versions of the simple package can exist
 // side-by-side without any issues.
+//
 //
 // Open Issue Around Animation Refresh
 //
@@ -98,6 +103,7 @@
 // framework event and then applies everything in one shot.  The
 // trouble with such approaches is the fact that code that queries the
 // current DOM elements will likely fail.  This is not yet resolved.
+//
 //
 // Containers
 //
