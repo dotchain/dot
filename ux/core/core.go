@@ -60,6 +60,18 @@ type Props struct {
 	OnChange *EventHandler
 }
 
+// ToMap returns the map version of props (useful for diffs)
+func (p Props) ToMap() map[string]interface{} {
+	return map[string]interface{}{
+		"Tag":         p.Tag,
+		"Checked":     p.Checked,
+		"Type":        p.Type,
+		"TextContent": p.TextContent,
+		"Styles":      p.Styles,
+		"OnChange":    p.OnChange,
+	}
+}
+
 // EventHandler is struct to hold a callback function
 //
 // This is needed simply to make Props be comparable (which makes it

@@ -5,6 +5,7 @@
 package todo
 
 import "github.com/dotchain/dot/ux"
+import "github.com/dotchain/dot/ux/simple"
 
 // Task represents an item in the TODO list.
 type Task struct {
@@ -23,7 +24,7 @@ type TaskEdit struct {
 	Root ux.Element
 
 	styles      ux.Styles
-	cb          *ux.Checkbox
+	cb          *simple.Checkbox
 	description *ux.TextEdit
 
 	Task *TaskStream
@@ -35,7 +36,7 @@ type TaskEdit struct {
 
 // NewTaskEdit is the constructor for creating a TaskEdit control
 func NewTaskEdit(styles ux.Styles, task Task) *TaskEdit {
-	cb := ux.NewCheckbox(ux.Styles{}, task.Done)
+	cb := simple.NewCheckbox(ux.Styles{}, task.Done)
 	desc := ux.NewTextEdit(ux.Styles{}, task.Description)
 	t := &TaskEdit{
 		ux.NewElement(ux.Props{Tag: "div", Styles: styles}, cb.Root, desc.Root),

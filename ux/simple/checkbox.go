@@ -2,14 +2,16 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package ux
+package simple
 
-import "github.com/dotchain/dot/ux/core"
+import (
+	"github.com/dotchain/dot/ux"
+	"github.com/dotchain/dot/ux/core"
+)
 
 // Checkbox implements a checkbox control.
 type Checkbox struct {
-	// Component is embedded. Root element is exposed through this.
-	Component
+	Element
 
 	// persist this
 	onChangeHandler core.EventHandler
@@ -17,28 +19,28 @@ type Checkbox struct {
 	// Consumers of Checkbox can get the latest value by
 	// inspecting this field.  Changes can be subscribed by
 	// calling On on this field.
-	Checked *BoolStream
+	Checked *ux.BoolStream
 }
 
 // NewCheckbox creates a new checkbox control.
-func NewCheckbox(styles Styles, checked bool) *Checkbox {
+func NewCheckbox(styles core.Styles, checked bool) *Checkbox {
 	c := &Checkbox{}
 	c.onChangeHandler = core.EventHandler{c.onChange}
-	c.Checked = &BoolStream{&Notifier{}, checked, nil, nil}
+	c.Checked = &ux.BoolStream{&ux.Notifier{}, checked, nil, nil}
 
 	c.render(styles)
 	return c
 }
 
 // Update updates the control to use the provided styles and checked value
-func (c *Checkbox) Update(styles Styles, checked bool) {
+func (c *Checkbox) Update(styles core.Styles, checked bool) {
 	if c.Checked.Value != checked {
 		c.Checked = c.Checked.Update(nil, checked)
 	}
 	c.render(styles)
 }
 
-func (c *Checkbox) render(styles Styles) {
+func (c *Checkbox) render(styles core.Styles) {
 	c.Declare(core.Props{
 		Tag:      "input",
 		Type:     "checkbox",
@@ -48,7 +50,7 @@ func (c *Checkbox) render(styles Styles) {
 	})
 }
 
-func (c *Checkbox) onChange(e Event) {
+func (c *Checkbox) onChange(e core.Event) {
 	c.Checked = c.Checked.Update(nil, c.Root.Value() == "on")
 	c.Checked.Notify()
 }

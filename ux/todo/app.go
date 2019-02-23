@@ -4,14 +4,17 @@
 
 package todo
 
-import "github.com/dotchain/dot/ux"
+import (
+	"github.com/dotchain/dot/ux"
+	"github.com/dotchain/dot/ux/simple"
+)
 
 // App is a thin wrapper on top of TasksView
 type App struct {
 	Root ux.Element
 
 	styles                ux.Styles
-	showDone, showNotDone *ux.Checkbox
+	showDone, showNotDone *simple.Checkbox
 	tasksView             *TasksView
 
 	Tasks *TasksStream
@@ -20,8 +23,8 @@ type App struct {
 // NewApp creates the new app control
 func NewApp(styles ux.Styles, tasks Tasks) *App {
 	// TODO: need labels for these two + a container to wrap them
-	showDone := ux.NewCheckbox(ux.Styles{}, true)
-	showNotDone := ux.NewCheckbox(ux.Styles{}, true)
+	showDone := simple.NewCheckbox(ux.Styles{}, true)
+	showNotDone := simple.NewCheckbox(ux.Styles{}, true)
 
 	tasksView := NewTasksView(ux.Styles{}, true, true, tasks)
 	root := ux.NewElement(
