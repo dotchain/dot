@@ -45,6 +45,7 @@ func (c *TaskEditCache) End() {
 	c.old = nil
 }
 
+
 // TryGet fetches a TaskEdit from the cache (updating it)
 // or creates a new TaskEdit
 //
@@ -69,11 +70,11 @@ func (c *TaskEditCache) Item(key interface{}) *TaskEdit {
 	return c.current[key]
 }
 
-// Get fetches a TaskEdit from the cache (updating it)
+// TaskEdit fetches a TaskEdit from the cache (updating it)
 // or creates a new TaskEdit
 //
 // Use TryGet to also fetch whether the control from last round was reused
-func (c *TaskEditCache) Get(key interface{}, styles core.Styles, task Task) *TaskEdit {
+func (c *TaskEditCache) TaskEdit(key interface{}, styles core.Styles, task Task) *TaskEdit {
 	v, _ := c.TryGet(key, styles, task)
-	return v
+        return v
 }

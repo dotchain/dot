@@ -45,6 +45,7 @@ func (c *TasksViewCache) End() {
 	c.old = nil
 }
 
+
 // TryGet fetches a TasksView from the cache (updating it)
 // or creates a new TasksView
 //
@@ -69,11 +70,11 @@ func (c *TasksViewCache) Item(key interface{}) *TasksView {
 	return c.current[key]
 }
 
-// Get fetches a TasksView from the cache (updating it)
+// TasksView fetches a TasksView from the cache (updating it)
 // or creates a new TasksView
 //
 // Use TryGet to also fetch whether the control from last round was reused
-func (c *TasksViewCache) Get(key interface{}, styles core.Styles, done bool, notDone bool, tasks Tasks) *TasksView {
+func (c *TasksViewCache) TasksView(key interface{}, styles core.Styles, done bool, notDone bool, tasks Tasks) *TasksView {
 	v, _ := c.TryGet(key, styles, done, notDone, tasks)
-	return v
+        return v
 }
