@@ -15,9 +15,11 @@ import (
 type App struct {
 	simple.Element
 
-	styles     core.Styles
-	toggles    simple.CheckboxCache
-	tasksViews TasksViewCache
+	styles core.Styles
+
+	simple.CheckboxCache
+	TasksViewCache
+	streams.Subs
 }
 
 // NewApp creates the new app control
@@ -34,7 +36,7 @@ func (app *App) Update(styles core.Styles, tasks Tasks) {
 	// the following ugliness is because the checkboxes are used as
 	// state to drive the rendering
 	showDone, showNotDone := true, true
-	done, notDone := app.toggles.Item("done"), app.toggles.Item("notDone")
+	done, notDone := app.CheckboxCache.Item("done"), app.CheckboxCache.Item("notDone")
 	if done != nil {
 		showDone = done.Checked.Value
 	}
@@ -42,37 +44,28 @@ func (app *App) Update(styles core.Styles, tasks Tasks) {
 		showNotDone = notDone.Checked.Value
 	}
 
-	app.toggles.Begin()
-	app.tasksViews.Begin()
-	defer app.toggles.End()
-	defer app.tasksViews.End()
+	app.CheckboxCache.Begin()
+	app.TasksViewCache.Begin()
+	app.Subs.Begin()
+	defer app.CheckboxCache.End()
+	defer app.TasksViewCache.End()
+	defer app.Subs.End()
+
+	done = app.Checkbox("done", core.Styles{}, showDone)
+	notDone = app.Checkbox("notDone", core.Styles{}, showNotDone)
+	tasksView := app.TasksView("tasks", core.Styles{}, showDone, showNotDone, tasks)
+
+	app.On(done.Checked.Notifier, app.on)
+	app.On(notDone.Checked.Notifier, app.on)
+	app.On(tasksView.Tasks.Notifier, app.on)
 
 	// do the actual rendering
-	app.Declare(
-		core.Props{Tag: "div", Styles: styles},
-		app.listenToggle(app.toggles.TryGet("done", core.Styles{}, showDone)),
-		app.listenToggle(app.toggles.TryGet("notDone", core.Styles{}, showNotDone)),
-		app.listenTasks(app.tasksViews.TryGet("tasks", core.Styles{}, showDone, showNotDone, tasks)),
-	)
+	app.Declare(core.Props{Tag: "div", Styles: styles}, done.Root, notDone.Root, tasksView.Root)
 }
 
 // Tasks returns the current stream instance of tasks
 func (app *App) Tasks() *TasksStream {
-	return app.tasksViews.Item("tasks").Tasks
-}
-
-func (app *App) listenToggle(cb *simple.Checkbox, exists bool) core.Element {
-	if !exists {
-		cb.Checked.On(&streams.Handler{app.on})
-	}
-	return cb.Root
-}
-
-func (app *App) listenTasks(tasksView *TasksView, exists bool) core.Element {
-	if !exists {
-		tasksView.Tasks.On(&streams.Handler{app.on})
-	}
-	return tasksView.Root
+	return app.TasksViewCache.Item("tasks").Tasks
 }
 
 func (app *App) on() {

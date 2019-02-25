@@ -45,35 +45,21 @@ func (c *TextEditCache) End() {
 	c.old = nil
 }
 
-// TryGet fetches a TextEdit from the cache (updating it)
+// Item fetches the item at the specific key
+func (c *TextEditCache) Item(key interface{}) *TextEdit {
+	return c.current[key]
+}
+
+// TextEdit fetches a TextEdit from the cache (updating it)
 // or creates a new TextEdit
-//
-// It returns the TextEdit but also whether the control existed.
-// This can be used to conditionally setup listeners.
-func (c *TextEditCache) TryGet(key interface{}, styles core.Styles, text string) (*TextEdit, bool) {
-	exists := false
+func (c *TextEditCache) TextEdit(key interface{}, styles core.Styles, text string) *TextEdit {
 	if item, ok := c.old[key]; !ok {
 		c.current[key] = NewTextEdit(styles, text)
 	} else {
 		delete(c.old, key)
 		item.Update(styles, text)
 		c.current[key] = item
-		exists = true
 	}
 
-	return c.current[key], exists
-}
-
-// Item fetches the item at the specific key
-func (c *TextEditCache) Item(key interface{}) *TextEdit {
 	return c.current[key]
-}
-
-// Get fetches a TextEdit from the cache (updating it)
-// or creates a new TextEdit
-//
-// Use TryGet to also fetch whether the control from last round was reused
-func (c *TextEditCache) Get(key interface{}, styles core.Styles, text string) *TextEdit {
-	v, _ := c.TryGet(key, styles, text)
-	return v
 }

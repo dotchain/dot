@@ -45,26 +45,6 @@ func (c *TasksViewCache) End() {
 	c.old = nil
 }
 
-
-// TryGet fetches a TasksView from the cache (updating it)
-// or creates a new TasksView
-//
-// It returns the TasksView but also whether the control existed.
-// This can be used to conditionally setup listeners.
-func (c *TasksViewCache) TryGet(key interface{}, styles core.Styles, done bool, notDone bool, tasks Tasks) (*TasksView, bool) {
-	exists := false
-	if item, ok := c.old[key]; !ok {
-		c.current[key] = NewTasksView(styles, done, notDone, tasks)
-	} else {
-		delete(c.old, key)
-		item.Update(styles, done, notDone, tasks)
-		c.current[key] = item
-		exists = true
-	}
-
-	return c.current[key], exists
-}
-
 // Item fetches the item at the specific key
 func (c *TasksViewCache) Item(key interface{}) *TasksView {
 	return c.current[key]
@@ -72,9 +52,14 @@ func (c *TasksViewCache) Item(key interface{}) *TasksView {
 
 // TasksView fetches a TasksView from the cache (updating it)
 // or creates a new TasksView
-//
-// Use TryGet to also fetch whether the control from last round was reused
 func (c *TasksViewCache) TasksView(key interface{}, styles core.Styles, done bool, notDone bool, tasks Tasks) *TasksView {
-	v, _ := c.TryGet(key, styles, done, notDone, tasks)
-        return v
+	if item, ok := c.old[key]; !ok {
+		c.current[key] = NewTasksView(styles, done, notDone, tasks)
+	} else {
+		delete(c.old, key)
+		item.Update(styles, done, notDone, tasks)
+		c.current[key] = item
+	}
+
+	return c.current[key]
 }
