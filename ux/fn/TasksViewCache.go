@@ -15,7 +15,10 @@ import (
 // tasksViewCtx is the context struct needed for TasksView
 type tasksViewCtx struct {
 	ElementCache
-	TaskEditCache
+
+	todo struct {
+		todo.TaskEditCache
+	}
 }
 
 // TasksViewCache implements a cache of TasksView controls
@@ -47,8 +50,8 @@ func (c *TasksViewCache) TasksView(key interface{}, styles core.Styles, showDone
 
 	ctx.ElementCache.Begin()
 	defer ctx.ElementCache.End()
-	ctx.TaskEditCache.Begin()
-	defer ctx.TaskEditCache.End()
+	ctx.todo.TaskEditCache.Begin()
+	defer ctx.todo.TaskEditCache.End()
 
 	return TasksView(ctx, styles, showDone, showNotDone, tasks)
 

@@ -55,9 +55,9 @@ func TasksView(c *tasksViewCtx, styles core.Styles, showDone bool, showNotDone b
 
 			key := t.ID
 
-			// the c.TaskEdit call ends up calling
-			// c.TaskEditCache.TaskEdit(key,...)
-			return c.TaskEdit(key, core.Styles{}, t).Root
+			// the c.todo.TaskEdit call ends up calling
+			// todo.TaskEditCache.TaskEdit(key,...)
+			return c.todo.TaskEdit(key, core.Styles{}, t).Root
 		})...,
 	).Root
 }
@@ -88,21 +88,6 @@ func (e *ElementCache) Element(key interface{}, props core.Props, children ...co
 	}
 	e.current[key].Declare(props, children...)
 	return e.current[key]
-}
-
-// TaskEditCache is an adaptor to call into the simple-style struct.
-// This adaptor is not needed for any caller of TasksView as that
-// corresponding cache is generated.  Note how this Cache is only
-// different in the name  of the function -- so potentially the simple
-// scheme can be changed to generate matching signatures..
-type TaskEditCache struct {
-	todo.TaskEditCache
-}
-
-// TaskEdit maps to todo.TaskCache.Get.  Might be worth simply changing
-// all the cache fetch names in all those caches too.
-func (t *TaskEditCache) TaskEdit(key interface{}, styles core.Styles, task todo.Task) *todo.TaskEdit {
-	return t.Get(key, styles, task)
 }
 
 func mapTasks(tasks todo.Tasks, fn func(todo.Task) core.Element) []core.Element {

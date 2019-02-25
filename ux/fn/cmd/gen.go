@@ -258,7 +258,7 @@ type {{.contextStructName}} struct {
 	{{range $sub := .rawSubComponents}}{{$sub}}Cache
 	{{end}}{{range $pkg := .packages}}
 	{{$pkg.name}} struct { {{range $sub := $pkg.subComponents}}
-		{{$sub}}Cache{{end}}	
+		{{$pkg.name}}.{{$sub}}Cache{{end}}
         }{{end}}
 }
 

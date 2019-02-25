@@ -8,7 +8,7 @@
 package todo
 
 import "github.com/dotchain/dot/changes"
-import "github.com/dotchain/dot/ux/streams"
+import	"github.com/dotchain/dot/ux/streams"
 
 // TaskStream holds a Task value and tracks changes to it.
 //
