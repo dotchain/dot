@@ -7,7 +7,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"go/ast"
 	"go/format"
 	"go/parser"
@@ -29,9 +28,14 @@ func main() {
 		args = args[1:]
 	}
 
-	output := process(readCode(structName, args[0], args[1]))
+	fbytes, err := ioutil.ReadFile(args[1])
+	if err != nil {
+		panic(err)
+	}
+
+	output := process(readCode(structName, args[0], args[1], fbytes))
 	dir := path.Dir(args[1])
-	err := ioutil.WriteFile(
+	err = ioutil.WriteFile(
 		path.Join(dir, structName+args[0]+"Cache.go"),
 		[]byte(output),
 		os.ModePerm,
@@ -41,12 +45,7 @@ func main() {
 	}
 }
 
-func readCode(structName, typeName, fileName string) map[string]interface{} {
-	fbytes, err := ioutil.ReadFile(fileName)
-	if err != nil {
-		panic(err)
-	}
-
+func readCode(structName, typeName, fileName string, fbytes []byte) map[string]interface{} {
 	fset := token.NewFileSet() // positions are relative to fset
 	f, err := parser.ParseFile(fset, fileName, nil, 0)
 	if err != nil {
@@ -133,7 +132,6 @@ func getComponentDecl(f *ast.File, structName string, typeName string) *ast.Func
 			continue
 		}
 
-		fmt.Println("Processing", fn.Name, fn.Recv == nil, structName)
 		if structName == "" && fn.Recv == nil {
 			return fn
 		}
