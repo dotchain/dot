@@ -7,6 +7,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"go/ast"
 	"go/format"
 	"go/parser"
@@ -57,6 +58,7 @@ func readCode(structName, typeName, fileName string, fbytes []byte) map[string]i
 	args, argTypes := namesAndTypes(decl.Type.Params, fbytes)
 	_, resultTypes := namesAndTypes(decl.Type.Results, fbytes)
 
+	inNameTypePairs := []interface{}{}	
 	argsAndTypes := ""
 	for kk, arg := range args {
 		if kk == 0 {
@@ -66,12 +68,27 @@ func readCode(structName, typeName, fileName string, fbytes []byte) map[string]i
 			argsAndTypes += ", "
 		}
 		argsAndTypes += arg + " " + argTypes[kk]
+		inNameTypePairs = append(inNameTypePairs, map[string]string{
+			"name": arg,
+			"type": argTypes[kk],
+		})
 	}
 
+	outNameTypePairs := []interface{}{}	
+	for kk, rr := range resultTypes {
+		outNameTypePairs = append(outNameTypePairs, map[string]string{
+			"name": fmt.Sprintf("result%d", kk+1),
+			"type": rr,
+		})
+	}
+	
 	ellipsis := ""
+	ellipsisIndex := -1
 	if strings.HasPrefix(argTypes[len(argTypes)-1], "...") {
 		ellipsis = "..."
+		ellipsisIndex = len(args)-2
 	}
+
 
 	raw, sub := getSubPackages(decl, ctxtName, fbytes)
 	return map[string]interface{}{
@@ -86,6 +103,10 @@ func readCode(structName, typeName, fileName string, fbytes []byte) map[string]i
 		"resultTypes":       strings.Join(resultTypes, ","),
 		"rawSubComponents":  raw,
 		"packages":          sub,
+		"ellipsisIndex":     ellipsisIndex,
+		"inNameTypePairs":   inNameTypePairs,
+		"outNameTypePairs":  outNameTypePairs,
+		"lastOutIndex":      len(resultTypes)-1,
 	}
 }
 
@@ -264,9 +285,48 @@ type {{.contextStructName}} struct {
 	{{$pkg.name}} struct { {{range $sub := $pkg.subComponents}}
 		{{$pkg.name}}.{{$sub}}Cache{{end}}
         }{{end}}
+	lastCall struct {
+		{{- range $a := .inNameTypePairs }}
+		  {{$a.name}} {{$a.type}}
+		{{- end -}}
+		{{- range $a := .outNameTypePairs }}
+                  {{$a.name}} {{$a.type}}
+                {{- end }}
+	}
+}
+
+func (ctx *{{.contextStructName}}) areArgsSame({{.argsAndTypes}}) bool {
+	{{- range $idx, $a := .inNameTypePairs -}}
+		{{- if eq $.ellipsisIndex $idx }}
+                        if len({{$a.name}}) != len(ctx.lastCall.{{$a.name}})  {
+                              return false
+                        }
+                        for {{$a.name}}Index, {{$a.name}}Item := range {{$a.name}} {
+                             if {{$a.name}}Item != ctx.lastCall.{{$a.name}}[{{$a.name}}Index] {
+                                   return false
+                             }
+                        }
+		{{ else }}
+                        if {{$a.name}} != ctx.lastCall.{{$a.name}} {
+                             return false
+                        }
+	        {{ end -}}
+	{{- end -}}
+
+        return true
 }
 
 func (ctx *{{.contextStructName}}) refresh({{.argsAndTypes}}) ({{.resultTypes}}) {
+        if !ctx.areArgsSame({{.args}}) {
+		return ctx.forceRefresh({{.args}})
+        }
+	return {{range $i, $a := .outNameTypePairs}}ctx.lastCall.{{$a.name}}{{if not (eq $i $.lastOutIndex)}},{{end}}{{end}}	
+}
+
+func (ctx *{{.contextStructName}}) forceRefresh({{.argsAndTypes}}) ({{.resultTypes}}) {
+   {{- range $idx, $a := .inNameTypePairs }}
+      ctx.lastCall.{{$a.name}} = {{$a.name}}
+   {{- end}}
 	ctx.Subs.Begin()
 	defer ctx.Subs.End()
 	{{range $sub := .rawSubComponents}}ctx.{{$sub}}Cache.Begin()
@@ -274,8 +334,11 @@ func (ctx *{{.contextStructName}}) refresh({{.argsAndTypes}}) ({{.resultTypes}})
 	{{end}}{{range $pkg := .packages}}{{range $sub := $pkg.subComponents}}ctx.{{$pkg.name}}.{{$sub}}Cache.Begin()
 	defer ctx.{{$pkg.name}}.{{$sub}}Cache.End(){{end}}{{end}}
 
-	{{if eq .stateStructName ""}}return {{.component}}(ctx, {{.args}})
-	{{else}}return ctx.{{.stateStructName}}.{{.component}}(ctx, {{.args}}){{end}}
+	{{range $i, $a := .outNameTypePairs}}ctx.lastCall.{{$a.name}}{{if not (eq $i $.lastOutIndex)}},{{end}}{{end}} = 
+	{{if eq .stateStructName ""}}{{.component}}(ctx, {{.args}})
+	{{else}}ctx.{{.stateStructName}}.{{.component}}(ctx, {{.args}}){{end}}
+
+	return {{range $i, $a := .outNameTypePairs}}ctx.lastCall.{{$a.name}}{{if not (eq $i $.lastOutIndex)}},{{end}}{{end}}
 }
 
 // {{.cache}} implements a cache of {{.component}} controls
