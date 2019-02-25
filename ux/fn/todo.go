@@ -41,14 +41,15 @@ import (
 // Note also that this function returns a core element directly. It
 // can return any time and any number of elements though that is not
 // encouraged.
-func TasksView(c *tasksViewCtx, styles core.Styles, showDone bool, showNotDone bool, tasks todo.Tasks) core.Element {
+func TasksView(c *tasksViewCtx, styles core.Styles, showDone bool, showNotDone bool, tasks *todo.TasksStream) core.Element {
+	tasks = tasks.Latest()
 
 	// the c.Element call here ends  up calling
 	// c.ElementCache.Element(key, ...)
 	return c.Element(
 		"root_key",
 		core.Props{Tag: "div", Styles: styles},
-		mapTasks(tasks, func(t todo.Task) core.Element {
+		mapTasks(tasks.Latest().Value, func(idx int, t todo.Task) core.Element {
 			if t.Done && !showDone || t.Done && !showNotDone {
 				return nil
 			}
@@ -57,7 +58,16 @@ func TasksView(c *tasksViewCtx, styles core.Styles, showDone bool, showNotDone b
 
 			// the c.todo.TaskEdit call ends up calling
 			// todo.TaskEditCache.TaskEdit(key,...)
-			return c.todo.TaskEdit(key, core.Styles{}, t).Root
+			edit := c.todo.TaskEdit(key, core.Styles{}, t)
+
+			// pass notifications upwards appropriately
+			c.On(edit.Task.Notifier, func() {
+				updated := append(todo.Tasks(nil), tasks.Value...)
+				updated[idx] = edit.Task.Latest().Value
+				tasks.Update(nil, updated)
+			})
+
+			return edit.Root
 		})...,
 	).Root
 }
@@ -90,10 +100,10 @@ func (e *ElementCache) Element(key interface{}, props core.Props, children ...co
 	return e.current[key]
 }
 
-func mapTasks(tasks todo.Tasks, fn func(todo.Task) core.Element) []core.Element {
+func mapTasks(tasks todo.Tasks, fn func(int, todo.Task) core.Element) []core.Element {
 	result := []core.Element{}
-	for _, t := range tasks {
-		result = append(result, fn(t))
+	for kk, t := range tasks {
+		result = append(result, fn(kk, t))
 	}
 	return result
 }

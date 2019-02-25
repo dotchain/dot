@@ -215,13 +215,15 @@ func (s *subVisitor) Visit(n ast.Node) ast.Visitor {
 	if call, ok := n.(*ast.CallExpr); ok {
 		if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
 			inner := sel.Sel.Name
-			if s.isContext(sel.X) {
-				s.subs[[2]string{"", inner}] = true
-			}
-			if sel, ok := sel.X.(*ast.SelectorExpr); ok {
-				outer := sel.Sel.Name
+			if inner != "On" && inner != "refresh" {
 				if s.isContext(sel.X) {
-					s.subs[[2]string{outer, inner}] = true
+					s.subs[[2]string{"", inner}] = true
+				}
+				if sel, ok := sel.X.(*ast.SelectorExpr); ok {
+					outer := sel.Sel.Name
+					if s.isContext(sel.X) {
+						s.subs[[2]string{outer, inner}] = true
+					}
 				}
 			}
 		}
@@ -247,6 +249,7 @@ const code = `
 package {{.package}}
 
 import (
+	"github.com/dotchain/dot/ux/streams"
 {{- range $m := .imports}}
 	{{index $m 0}} {{index $m 1}}
 {{- end}}
@@ -254,12 +257,25 @@ import (
 
 // {{.contextStructName}} is the context struct needed for {{.component}}
 type {{.contextStructName}} struct {
-	{{.stateStructName}}
+	streams.Subs
+	{{.stateStructName}} {{.stateStructName}}
 	{{range $sub := .rawSubComponents}}{{$sub}}Cache
 	{{end}}{{range $pkg := .packages}}
 	{{$pkg.name}} struct { {{range $sub := $pkg.subComponents}}
 		{{$pkg.name}}.{{$sub}}Cache{{end}}
         }{{end}}
+}
+
+func (ctx *{{.contextStructName}}) refresh({{.argsAndTypes}}) ({{.resultTypes}}) {
+	ctx.Subs.Begin()
+	defer ctx.Subs.End()
+	{{range $sub := .rawSubComponents}}ctx.{{$sub}}Cache.Begin()
+	defer ctx.{{$sub}}Cache.End()
+	{{end}}{{range $pkg := .packages}}{{range $sub := $pkg.subComponents}}ctx.{{$pkg.name}}.{{$sub}}Cache.Begin()
+	defer ctx.{{$pkg.name}}.{{$sub}}Cache.End(){{end}}{{end}}
+
+	{{if eq .stateStructName ""}}return {{.component}}(ctx, {{.args}})
+	{{else}}return ctx.{{.stateStructName}}.{{.component}}(ctx, {{.args}}){{end}}
 }
 
 // {{.cache}} implements a cache of {{.component}} controls
@@ -288,13 +304,6 @@ func (c *{{.cache}}) {{.component}}(key interface{}, {{.argsAndTypes}}) ({{.resu
 		ctx = &{{.contextStructName}}{}
 	}
 	c.current[key] = ctx
-
-	{{range $sub := .rawSubComponents}}ctx.{{$sub}}Cache.Begin()
-	defer ctx.{{$sub}}Cache.End()
-	{{end}}{{range $pkg := .packages}}{{range $sub := $pkg.subComponents}}ctx.{{$pkg.name}}.{{$sub}}Cache.Begin()
-	defer ctx.{{$pkg.name}}.{{$sub}}Cache.End(){{end}}{{end}}
-
-	{{if eq .stateStructName ""}}return {{.component}}(ctx, {{.args}})
-	{{else}}return ctx.{{.stateStructName}}.{{.component}}(ctx, {{.args}}){{end}}
+	return ctx.refresh({{.args}})
 }
 `

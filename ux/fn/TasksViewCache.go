@@ -9,16 +9,31 @@ package fn
 
 import (
 	"github.com/dotchain/dot/ux/core"
+	"github.com/dotchain/dot/ux/streams"
 	"github.com/dotchain/dot/ux/todo"
 )
 
 // tasksViewCtx is the context struct needed for TasksView
 type tasksViewCtx struct {
+	streams.Subs
+
 	ElementCache
 
 	todo struct {
 		todo.TaskEditCache
 	}
+}
+
+func (ctx *tasksViewCtx) refresh(styles core.Styles, showDone bool, showNotDone bool, tasks *todo.TasksStream) core.Element {
+	ctx.Subs.Begin()
+	defer ctx.Subs.End()
+	ctx.ElementCache.Begin()
+	defer ctx.ElementCache.End()
+	ctx.todo.TaskEditCache.Begin()
+	defer ctx.todo.TaskEditCache.End()
+
+	return TasksView(ctx, styles, showDone, showNotDone, tasks)
+
 }
 
 // TasksViewCache implements a cache of TasksView controls
@@ -38,7 +53,7 @@ func (c *TasksViewCache) End() {
 }
 
 // TasksView implements the cache create or fetch method
-func (c *TasksViewCache) TasksView(key interface{}, styles core.Styles, showDone bool, showNotDone bool, tasks todo.Tasks) core.Element {
+func (c *TasksViewCache) TasksView(key interface{}, styles core.Styles, showDone bool, showNotDone bool, tasks *todo.TasksStream) core.Element {
 	ctx, ok := c.old[key]
 
 	if ok {
@@ -47,12 +62,5 @@ func (c *TasksViewCache) TasksView(key interface{}, styles core.Styles, showDone
 		ctx = &tasksViewCtx{}
 	}
 	c.current[key] = ctx
-
-	ctx.ElementCache.Begin()
-	defer ctx.ElementCache.End()
-	ctx.todo.TaskEditCache.Begin()
-	defer ctx.todo.TaskEditCache.End()
-
-	return TasksView(ctx, styles, showDone, showNotDone, tasks)
-
+	return ctx.refresh(styles, showDone, showNotDone, tasks)
 }
