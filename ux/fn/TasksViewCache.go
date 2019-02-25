@@ -22,9 +22,46 @@ type tasksViewCtx struct {
 	todo struct {
 		todo.TaskEditCache
 	}
+	lastCall struct {
+		styles      core.Styles
+		showDone    bool
+		showNotDone bool
+		tasks       *todo.TasksStream
+		result1     core.Element
+	}
+}
+
+func (ctx *tasksViewCtx) areArgsSame(styles core.Styles, showDone bool, showNotDone bool, tasks *todo.TasksStream) bool {
+	if styles != ctx.lastCall.styles {
+		return false
+	}
+
+	if showDone != ctx.lastCall.showDone {
+		return false
+	}
+
+	if showNotDone != ctx.lastCall.showNotDone {
+		return false
+	}
+
+	if tasks != ctx.lastCall.tasks {
+		return false
+	}
+	return true
 }
 
 func (ctx *tasksViewCtx) refresh(styles core.Styles, showDone bool, showNotDone bool, tasks *todo.TasksStream) core.Element {
+	if !ctx.areArgsSame(styles, showDone, showNotDone, tasks) {
+		return ctx.forceRefresh(styles, showDone, showNotDone, tasks)
+	}
+	return ctx.lastCall.result1
+}
+
+func (ctx *tasksViewCtx) forceRefresh(styles core.Styles, showDone bool, showNotDone bool, tasks *todo.TasksStream) core.Element {
+	ctx.lastCall.styles = styles
+	ctx.lastCall.showDone = showDone
+	ctx.lastCall.showNotDone = showNotDone
+	ctx.lastCall.tasks = tasks
 	ctx.Subs.Begin()
 	defer ctx.Subs.End()
 	ctx.ElementCache.Begin()
@@ -32,8 +69,10 @@ func (ctx *tasksViewCtx) refresh(styles core.Styles, showDone bool, showNotDone 
 	ctx.todo.TaskEditCache.Begin()
 	defer ctx.todo.TaskEditCache.End()
 
-	return TasksView(ctx, styles, showDone, showNotDone, tasks)
+	ctx.lastCall.result1 =
+		TasksView(ctx, styles, showDone, showNotDone, tasks)
 
+	return ctx.lastCall.result1
 }
 
 // TasksViewCache implements a cache of TasksView controls
