@@ -25,7 +25,8 @@ type TasksView struct {
 	simple.Element
 	Tasks *TasksStream
 
-	edits TaskEditCache
+	TaskEditCache
+	streams.Subs
 }
 
 // NewTasksView creates a new TasksView
@@ -42,8 +43,10 @@ func (v *TasksView) Update(styles core.Styles, showDone bool, showNotDone bool, 
 		v.Tasks = v.Tasks.Update(nil, tasks)
 	}
 
-	v.edits.Begin()
-	defer v.edits.End()
+	v.TaskEditCache.Begin()
+	v.Subs.Begin()
+	defer v.TaskEditCache.End()
+	v.Subs.End()
 
 	v.Declare(
 		core.Props{Tag: "div", Styles: styles},
@@ -51,16 +54,12 @@ func (v *TasksView) Update(styles core.Styles, showDone bool, showNotDone bool, 
 			if t.Done && !showDone || !t.Done && !showNotDone {
 				return nil
 			}
-			return v.addTaskListener(v.edits.TryGet(t.ID, core.Styles{}, t))
+
+			edit := v.TaskEdit(t.ID, core.Styles{}, t)
+			v.On(edit.Task.Notifier, v.on)
+			return edit.Root
 		})...,
 	)
-}
-
-func (v *TasksView) addTaskListener(edit *TaskEdit, exists bool) core.Element {
-	if !exists {
-		edit.Task.On(&streams.Handler{v.on})
-	}
-	return edit.Root
 }
 
 func (v *TasksView) on() {
@@ -68,7 +67,7 @@ func (v *TasksView) on() {
 
 	result := append(Tasks(nil), v.Tasks.Value...)
 	for kk, task := range result {
-		if edit := v.edits.Item(task.ID); edit != nil {
+		if edit := v.TaskEditCache.Item(task.ID); edit != nil {
 			result[kk] = edit.Task.Value
 		}
 	}

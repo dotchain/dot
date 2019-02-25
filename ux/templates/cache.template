@@ -45,36 +45,21 @@ func (c *{{.Base}}Cache) End() {
 	c.old = nil
 }
 
-
-// TryGet fetches a {{.BaseType}} from the cache (updating it)
-// or creates a new {{.BaseType}}
-//
-// It returns the {{.BaseType}} but also whether the control existed.
-// This can be used to conditionally setup listeners.
-func (c *{{.Base}}Cache) TryGet(key interface{}, {{.ArgsDef}}) (*{{.BaseType}}, bool) {
-	exists := false
-	if item, ok := c.old[key]; !ok {
-		c.current[key] = {{.Constructor}}({{.Args}})
-	} else {
-		delete(c.old, key)
-		item.Update({{.Args}})
-		c.current[key] = item
-		exists = true
-	}
-
-	return c.current[key], exists
-}
-
 // Item fetches the item at the specific key
 func (c *{{.Base}}Cache) Item(key interface{}) *{{.BaseType}} {
-	return c.current[key]
+       return c.current[key]
 }
 
 // {{.Base}} fetches a {{.BaseType}} from the cache (updating it)
 // or creates a new {{.BaseType}}
-//
-// Use TryGet to also fetch whether the control from last round was reused
 func (c *{{.Base}}Cache) {{.Base}}(key interface{}, {{.ArgsDef}}) *{{.BaseType}} {
-	v, _ := c.TryGet(key, {{.Args}})
-        return v
+       if item, ok := c.old[key]; !ok {
+               c.current[key] = {{.Constructor}}({{.Args}})
+       } else {
+               delete(c.old, key)
+               item.Update({{.Args}})
+               c.current[key] = item
+       }
+
+       return c.current[key]
 }

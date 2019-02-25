@@ -6,10 +6,13 @@
 package main
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"strings"
 	"text/template"
+	"golang.org/x/tools/imports"
+	"go/format"
 )
 
 func main() {
@@ -33,12 +36,21 @@ func main() {
 		panic(err)
 	}
 
-	out, err := os.Create(data["out"])
-	if err != nil {
+	var buf bytes.Buffer
+	if err := t.Execute(&buf, data); err != nil {
 		panic(err)
 	}
 
-	if err := t.Execute(out, data); err != nil {
+	p, err := format.Source(buf.Bytes())
+	if  err != nil {
+		panic(err)
+	}
+	p, err = imports.Process("test.go", p, nil)
+	if err != nil {
+		panic(err)
+	}
+	err = ioutil.WriteFile(data["out"], p, os.ModePerm)
+	if err  != nil {
 		panic(err)
 	}
 }

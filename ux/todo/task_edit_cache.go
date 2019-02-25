@@ -45,26 +45,6 @@ func (c *TaskEditCache) End() {
 	c.old = nil
 }
 
-
-// TryGet fetches a TaskEdit from the cache (updating it)
-// or creates a new TaskEdit
-//
-// It returns the TaskEdit but also whether the control existed.
-// This can be used to conditionally setup listeners.
-func (c *TaskEditCache) TryGet(key interface{}, styles core.Styles, task Task) (*TaskEdit, bool) {
-	exists := false
-	if item, ok := c.old[key]; !ok {
-		c.current[key] = NewTaskEdit(styles, task)
-	} else {
-		delete(c.old, key)
-		item.Update(styles, task)
-		c.current[key] = item
-		exists = true
-	}
-
-	return c.current[key], exists
-}
-
 // Item fetches the item at the specific key
 func (c *TaskEditCache) Item(key interface{}) *TaskEdit {
 	return c.current[key]
@@ -72,9 +52,14 @@ func (c *TaskEditCache) Item(key interface{}) *TaskEdit {
 
 // TaskEdit fetches a TaskEdit from the cache (updating it)
 // or creates a new TaskEdit
-//
-// Use TryGet to also fetch whether the control from last round was reused
 func (c *TaskEditCache) TaskEdit(key interface{}, styles core.Styles, task Task) *TaskEdit {
-	v, _ := c.TryGet(key, styles, task)
-        return v
+	if item, ok := c.old[key]; !ok {
+		c.current[key] = NewTaskEdit(styles, task)
+	} else {
+		delete(c.old, key)
+		item.Update(styles, task)
+		c.current[key] = item
+	}
+
+	return c.current[key]
 }

@@ -45,35 +45,21 @@ func (c *CheckboxCache) End() {
 	c.old = nil
 }
 
-// TryGet fetches a Checkbox from the cache (updating it)
+// Item fetches the item at the specific key
+func (c *CheckboxCache) Item(key interface{}) *Checkbox {
+	return c.current[key]
+}
+
+// Checkbox fetches a Checkbox from the cache (updating it)
 // or creates a new Checkbox
-//
-// It returns the Checkbox but also whether the control existed.
-// This can be used to conditionally setup listeners.
-func (c *CheckboxCache) TryGet(key interface{}, styles core.Styles, checked bool) (*Checkbox, bool) {
-	exists := false
+func (c *CheckboxCache) Checkbox(key interface{}, styles core.Styles, checked bool) *Checkbox {
 	if item, ok := c.old[key]; !ok {
 		c.current[key] = NewCheckbox(styles, checked)
 	} else {
 		delete(c.old, key)
 		item.Update(styles, checked)
 		c.current[key] = item
-		exists = true
 	}
 
-	return c.current[key], exists
-}
-
-// Item fetches the item at the specific key
-func (c *CheckboxCache) Item(key interface{}) *Checkbox {
 	return c.current[key]
-}
-
-// Get fetches a Checkbox from the cache (updating it)
-// or creates a new Checkbox
-//
-// Use TryGet to also fetch whether the control from last round was reused
-func (c *CheckboxCache) Get(key interface{}, styles core.Styles, checked bool) *Checkbox {
-	v, _ := c.TryGet(key, styles, checked)
-	return v
 }

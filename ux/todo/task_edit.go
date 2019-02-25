@@ -25,8 +25,9 @@ type TaskEdit struct {
 
 	Task *TaskStream
 
-	cb   simple.CheckboxCache
-	desc simple.TextEditCache
+	simple.CheckboxCache
+	simple.TextEditCache
+	streams.Subs
 }
 
 // NewTaskEdit is the constructor for creating a TaskEdit control.
@@ -43,36 +44,26 @@ func (e *TaskEdit) Update(styles core.Styles, task Task) {
 		e.Task = e.Task.Update(nil, task)
 	}
 
-	e.cb.Begin()
-	e.desc.Begin()
-	defer e.cb.End()
-	defer e.desc.End()
+	e.Subs.Begin()
+	e.CheckboxCache.Begin()
+	e.TextEditCache.Begin()
+	e.Subs.End()
+	defer e.CheckboxCache.End()
+	defer e.TextEditCache.End()
 
-	e.Declare(
-		core.Props{Tag: "div", Styles: styles},
-		e.checkbox(e.cb.TryGet("cb", core.Styles{}, task.Done)),
-		e.description(e.desc.TryGet("desc", core.Styles{}, task.Description)),
-	)
-}
+	cb := e.Checkbox("cb", core.Styles{}, task.Done)
+	e.On(cb.Checked.Notifier, e.on)
 
-func (e *TaskEdit) checkbox(cb *simple.Checkbox, exists bool) core.Element {
-	if !exists {
-		cb.Checked.On(&streams.Handler{e.on})
-	}
-	return cb.Root
-}
+	desc := e.TextEdit("desc", core.Styles{}, task.Description)
+	e.On(desc.Text.Notifier, e.on)
 
-func (e *TaskEdit) description(edit *simple.TextEdit, exists bool) core.Element {
-	if !exists {
-		edit.Text.On(&streams.Handler{e.on})
-	}
-	return edit.Root
+	e.Declare(core.Props{Tag: "div", Styles: styles}, cb.Root, desc.Root)
 }
 
 // on is called whenever either Done or Description is modified by
 // child controls
 func (e *TaskEdit) on() {
-	cb, desc := e.cb.Item("cb"), e.desc.Item("desc")
+	cb, desc := e.CheckboxCache.Item("cb"), e.TextEditCache.Item("desc")
 	data := Task{e.Task.Value.ID, cb.Checked.Value, desc.Text.Value}
 	e.Task = e.Task.Update(nil, data)
 	e.Task.Notify()
