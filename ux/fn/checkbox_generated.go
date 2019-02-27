@@ -26,10 +26,7 @@ func (c *checkboxCtx) areArgsSame(styles core.Styles, checked *streams.BoolStrea
 	if styles != c.memoizedParams.styles {
 		return false
 	}
-	if checked != c.memoizedParams.checked {
-		return false
-	}
-	return true
+	return checked == c.memoizedParams.checked
 }
 
 func (c *checkboxCtx) refreshIfNeeded(styles core.Styles, checked *streams.BoolStream) (result1 core.Element) {
