@@ -74,7 +74,7 @@ func formatImports(f *ast.File) string {
 	imports := [][]string{}
 	for _, spec := range f.Imports {
 		im := []string{"", ""}
-		if spec.Name != nil {
+		if spec.Name != nil && spec.Name.Name != "_" {
 			im[0] = spec.Name.Name
 		}
 		im[1] = spec.Path.Value
@@ -210,10 +210,9 @@ func formatContext(name string, inParams [][2]string, outParams [][2]string, sub
 	for _, pkgComps := range subComps {
 		if pkgComps.pkg != "" {
 			result += fmt.Sprintf("  %s struct {\n", pkgComps.pkg)
-			result += pkgComps.pkg + "."
 		}
 		for _, comp := range pkgComps.comps {
-			result += comp + "Cache\n"
+			result += pkgComps.pkg + "." + comp + "Cache\n"
 		}
 		if pkgComps.pkg != "" {
 			result += "}\n\n"
