@@ -10,22 +10,23 @@ import (
 	"github.com/dotchain/dot/ux/todo"
 )
 
-// The following generate header generates  TasksViewCache which
-// allows TasksView to be used nicely within other functional
-// components.
-//
-// The code also generates the tasksViewCtx context struct which is
-// only used from within this file and consumers are not expected to
-// refer to it at all.  Instead consumers are expected to use whatever
-// key they prefer to use.
+//go:generate go run codegen.go - $GOFILE
 
-//go:generate go run cmd/gen.go TasksView $GOFILE
+// The above line generates a couple of types for each function
+// marked with a doc-block header "codegen: options"
+//
+// Such functions should have the first parameter be a "context" of a
+// unique type (which is one of the generated types). The context can
+// be used to access other components.  The context itself is private
+// and meant only to be used within this particular component. For
+// each such function, a more public Cache type is also generated. See
+// the TasksView example below for actual usage.
 
 // TasksView is a function representation of a task view component.
 //
 // An example consumer of TasksView  can look like this:
 //
-//      func TasksViewConsumer(c *tasksViewConsumerCtx, args...) core.Element {
+//      func TasksViewConsumer(c *tvcCtx, args...) core.Element {
 //              return c.Element(
 //                     <key>,
 //                     core.Props{...},
@@ -41,7 +42,9 @@ import (
 // Note also that this function returns a core element directly. It
 // can return any time and any number of elements though that is not
 // encouraged.
-func TasksView(c *tasksViewCtx, styles core.Styles, showDone bool, showNotDone bool, tasks *todo.TasksStream) core.Element {
+//
+// codegen: pure
+func TasksView(c *tvCtx, styles core.Styles, showDone bool, showNotDone bool, tasks *todo.TasksStream) core.Element {
 	tasks = tasks.Latest()
 
 	// the c.Element call here ends  up calling
