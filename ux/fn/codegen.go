@@ -22,6 +22,8 @@ import (
 	"text/template"
 )
 
+const ellipsis = "..."
+
 func main() {
 	args := os.Args[1:]
 	for _, arg := range args {
@@ -162,11 +164,12 @@ func formatFunc(fn *ast.FuncDecl, fbytes []byte) string {
 		}
 	}
 
+	usesOn := false
 	subComps := []pkgComps{}
 	if len(inParams) > 0 {
 		context := inParams[0][0]
 
-		visitor := &subVisitor{context, map[[2]string]bool{}}
+		visitor := &subVisitor{context, map[[2]string]bool{}, false}
 		ast.Walk(visitor, fn.Body)
 		packages := []string{}
 		pmap := map[string][]string{}
@@ -179,9 +182,10 @@ func formatFunc(fn *ast.FuncDecl, fbytes []byte) string {
 			sort.Strings(pmap[pkg])
 			subComps = append(subComps, pkgComps{pkg, pmap[pkg]})
 		}
+		usesOn = visitor.usesOn
 	}
 
-	ctxtStruct := formatContext(fn.Name.Name, inParams, outParams, subComps)
+	ctxtStruct := formatContext(fn.Name.Name, inParams, outParams, subComps, usesOn)
 	cacheStruct := formatCache(fn.Name.Name, inParams, outParams, subComps)
 	return ctxtStruct + cacheStruct
 }
@@ -191,13 +195,16 @@ type pkgComps struct {
 	comps []string
 }
 
-func formatContext(name string, inParams [][2]string, outParams [][2]string, subComps []pkgComps) string {
+func formatContext(name string, inParams [][2]string, outParams [][2]string, subComps []pkgComps, usesOn bool) string {
 	if inParams[0][1][:1] != "*" {
 		panic("first arg of " + name + " is not a pointer context type")
 	}
 
 	result := fmt.Sprintf("type %s struct {\n", inParams[0][1][1:])
-	result += "  streams.Subs\n"
+	if usesOn {
+		result += "  streams.Subs\n"
+	}
+
 	for _, pkgComps := range subComps {
 		if pkgComps.pkg != "" {
 			result += fmt.Sprintf("  %s struct {\n", pkgComps.pkg)
@@ -207,15 +214,15 @@ func formatContext(name string, inParams [][2]string, outParams [][2]string, sub
 			result += comp + "Cache\n"
 		}
 		if pkgComps.pkg != "" {
-			result += `}\n`
+			result += "}\n\n"
 		}
 	}
 
 	if len(inParams) > 1 || len(outParams) > 0 {
-		result += "memoizedParams struct {\n"
+		result += "memoInitialized bool\nmemoizedParams struct {\n "
 		for _, pair := range inParams[1:] {
 			typeName := pair[1]
-			if strings.HasPrefix(typeName, "...") {
+			if strings.HasPrefix(typeName, ellipsis) {
 				typeName = "[]" + typeName[3:]
 			}
 			result += pair[0] + " " + typeName + "\n"
@@ -230,14 +237,14 @@ func formatContext(name string, inParams [][2]string, outParams [][2]string, sub
 
 	result += formatArgsSame(name, inParams, outParams, subComps)
 	result += formatRefreshIfNeeded(name, inParams, outParams, subComps)
-	result += formatRefresh(name, inParams, outParams, subComps)
+	result += formatRefresh(name, inParams, outParams, subComps, usesOn)
 	return result
 }
 
 func formatArgsSame(name string, inParams [][2]string, outParams [][2]string, subComps []pkgComps) string {
 	result := fmt.Sprintf("func (%s %s) areArgsSame(%s) bool{\n", inParams[0][0], inParams[0][1], namesAndTypes(inParams[1:]))
 	for _, pair := range inParams[1:] {
-		if strings.HasPrefix(pair[1], "...") {
+		if strings.HasPrefix(pair[1], ellipsis) {
 			// array check
 			result += fmt.Sprintf("if len(%s) != len(%s.memoizedParams.%s) {\n return  false\n}\n", pair[0], inParams[0][0], pair[0])
 			result += fmt.Sprintf("for %sIndex, %sItem := range %s {\n", pair[0], pair[0], pair[0])
@@ -255,23 +262,32 @@ func formatRefreshIfNeeded(name string, inParams [][2]string, outParams [][2]str
 
 	args := prefixedNames(inParams[1:], "")
 	memoizedResults := prefixedNames(outParams, fmt.Sprintf("%s.memoizedParams.", inParams[0][0]))
+	if strings.HasPrefix(inParams[len(inParams)-1][1], ellipsis) {
+		args += ellipsis
+	}
 
-	result += fmt.Sprintf("if !%s.areArgsSame(%s) {\n return %s.refresh(%s)\n }\n",
-		inParams[0][0], args, inParams[0][0], args)
+	result += fmt.Sprintf("if !%s.memoInitialized || !%s.areArgsSame(%s) {\n return %s.refresh(%s)\n }\n",
+		inParams[0][0], inParams[0][0], args, inParams[0][0], args)
 	result += fmt.Sprintf("return " + memoizedResults + "\n}\n\n")
 
 	return result
 }
 
-func formatRefresh(name string, inParams [][2]string, outParams [][2]string, subComps []pkgComps) string {
+func formatRefresh(name string, inParams [][2]string, outParams [][2]string, subComps []pkgComps, usesOn bool) string {
 	result := fmt.Sprintf("func (%s %s) refresh(%s) (%s) {\n", inParams[0][0], inParams[0][1], namesAndTypes(inParams[1:]), namesAndTypes(outParams))
 
 	args := prefixedNames(inParams[1:], "")
 	memoizedArgs := prefixedNames(inParams[1:], fmt.Sprintf("%s.memoizedParams.", inParams[0][0]))
 	memoizedResults := prefixedNames(outParams, fmt.Sprintf("%s.memoizedParams.", inParams[0][0]))
 
-	result += fmt.Sprintf("%s = %s\n", memoizedArgs, args)
-	result += fmt.Sprintf("%s.Subs.Begin()\ndefer %s.Subs.End()\n", inParams[0][0], inParams[0][0])
+	result += fmt.Sprintf("%s.memoInitialized = true\n", inParams[0][0])
+	if len(inParams) > 1 {
+		result += fmt.Sprintf("%s = %s\n", memoizedArgs, args)
+	}
+
+	if usesOn {
+		result += fmt.Sprintf("%s.Subs.Begin()\ndefer %s.Subs.End()\n", inParams[0][0], inParams[0][0])
+	}
 
 	for _, pkgComps := range subComps {
 		for _, comp := range pkgComps.comps {
@@ -283,7 +299,12 @@ func formatRefresh(name string, inParams [][2]string, outParams [][2]string, sub
 		}
 	}
 
-	result += fmt.Sprintf("%s = %s(%s, %s)\n", memoizedResults, name, inParams[0][0], args)
+	ell := ""
+	if strings.HasPrefix(inParams[len(inParams)-1][1], ellipsis) {
+		ell = ellipsis
+	}
+
+	result += fmt.Sprintf("%s = %s(%s, %s)\n", memoizedResults, name, inParams[0][0], args+ell)
 	result += fmt.Sprintf("return %s\n}\n\n", memoizedResults)
 
 	return result
@@ -298,13 +319,18 @@ func formatCache(name string, inParams [][2]string, outParams [][2]string, subCo
 		resultTypes += pair[1]
 	}
 
+	ell := ""
+	if strings.HasPrefix(inParams[len(inParams)-1][1], ellipsis) {
+		ell = ellipsis
+	}
+
 	data := map[string]string{
 		"component":    name,
 		"cache":        name + "Cache",
 		"context":      inParams[0][1][1:],
 		"ctx":          inParams[0][0],
 		"argsAndTypes": namesAndTypes(inParams[1:]),
-		"args":         prefixedNames(inParams[1:], ""),
+		"args":         prefixedNames(inParams[1:], "") + ell,
 		"resultTypes":  resultTypes,
 	}
 
@@ -378,12 +404,14 @@ func prefixedNames(p [][2]string, prefix string) string {
 type subVisitor struct {
 	ctxtName string
 	subs     map[[2]string]bool
+	usesOn   bool
 }
 
 func (s *subVisitor) Visit(n ast.Node) ast.Visitor {
 	if call, ok := n.(*ast.CallExpr); ok {
 		if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
 			inner := sel.Sel.Name
+			s.usesOn = s.usesOn || (inner == "On" && s.isContext(sel.X))
 			if inner != "On" && inner != "refresh" {
 				if s.isContext(sel.X) {
 					s.subs[[2]string{"", inner}] = true

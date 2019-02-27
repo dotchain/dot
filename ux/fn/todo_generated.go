@@ -19,7 +19,9 @@ type tvCtx struct {
 	todo struct {
 		todo.TaskEditCache
 	}
-	memoizedParams struct {
+
+	memoInitialized bool
+	memoizedParams  struct {
 		styles      core.Styles
 		showDone    bool
 		showNotDone bool
@@ -45,13 +47,14 @@ func (c *tvCtx) areArgsSame(styles core.Styles, showDone bool, showNotDone bool,
 }
 
 func (c *tvCtx) refreshIfNeeded(styles core.Styles, showDone bool, showNotDone bool, tasks *todo.TasksStream) (result1 core.Element) {
-	if !c.areArgsSame(styles, showDone, showNotDone, tasks) {
+	if !c.memoInitialized || !c.areArgsSame(styles, showDone, showNotDone, tasks) {
 		return c.refresh(styles, showDone, showNotDone, tasks)
 	}
 	return c.memoizedParams.result1
 }
 
 func (c *tvCtx) refresh(styles core.Styles, showDone bool, showNotDone bool, tasks *todo.TasksStream) (result1 core.Element) {
+	c.memoInitialized = true
 	c.memoizedParams.styles, c.memoizedParams.showDone, c.memoizedParams.showNotDone, c.memoizedParams.tasks = styles, showDone, showNotDone, tasks
 	c.Subs.Begin()
 	defer c.Subs.End()
