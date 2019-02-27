@@ -255,7 +255,7 @@ func formatArgsSame(name string, inParams [][2]string, outParams [][2]string, su
 			result += fmt.Sprintf("for %sIndex, %sItem := range %s {\n", pair[0], pair[0], pair[0])
 			result += fmt.Sprintf("if %sItem != %s.memoizedParams.%s[%sIndex] {\n return false\n }\n", pair[0], inParams[0][0], pair[0], pair[0])
 			result += "}\n"
-		} else if idx != len(inParams) - 2 {
+		} else if idx != len(inParams)-2 {
 			result += fmt.Sprintf("if %s != %s.memoizedParams.%s {\n  return false\n }\n", pair[0], inParams[0][0], pair[0])
 		} else {
 			return result + fmt.Sprintf("return %s == %s.memoizedParams.%s\n}\n\n", pair[0], inParams[0][0], pair[0])
