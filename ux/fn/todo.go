@@ -6,7 +6,6 @@ package fn
 
 import (
 	"github.com/dotchain/dot/ux/core"
-	"github.com/dotchain/dot/ux/simple"
 	"github.com/dotchain/dot/ux/todo"
 )
 
@@ -72,35 +71,7 @@ func TasksView(c *tvCtx, styles core.Styles, showDone bool, showNotDone bool, ta
 
 			return edit.Root
 		})...,
-	).Root
-}
-
-// ElementCache is an adapter to call into the simple-style
-// struct. This adaptor is not needed for any caller of TasksView as
-// the corresponding cache is generated
-type ElementCache struct {
-	old, current map[interface{}]*simple.Element
-}
-
-// Begin starts a round
-func (e *ElementCache) Begin() {
-	e.old, e.current = e.current, map[interface{}]*simple.Element{}
-}
-
-// End ends a round
-func (e *ElementCache) End() {
-	e.old = nil
-}
-
-// Element returns a core element
-func (e *ElementCache) Element(key interface{}, props core.Props, children ...core.Element) *simple.Element {
-	if old, ok := e.old[key]; ok {
-		e.current[key] = old
-	} else {
-		e.current[key] = &simple.Element{}
-	}
-	e.current[key].Declare(props, children...)
-	return e.current[key]
+	)
 }
 
 func mapTasks(tasks todo.Tasks, fn func(int, todo.Task) core.Element) []core.Element {
