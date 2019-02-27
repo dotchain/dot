@@ -26,10 +26,7 @@ func (c *textEditCtx) areArgsSame(styles core.Styles, text *streams.TextStream) 
 	if styles != c.memoizedParams.styles {
 		return false
 	}
-	if text != c.memoizedParams.text {
-		return false
-	}
-	return true
+	return text == c.memoizedParams.text
 }
 
 func (c *textEditCtx) refreshIfNeeded(styles core.Styles, text *streams.TextStream) (result1 core.Element) {

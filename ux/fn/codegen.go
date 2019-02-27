@@ -212,7 +212,11 @@ func formatContext(name string, inParams [][2]string, outParams [][2]string, sub
 			result += fmt.Sprintf("  %s struct {\n", pkgComps.pkg)
 		}
 		for _, comp := range pkgComps.comps {
-			result += pkgComps.pkg + "." + comp + "Cache\n"
+			if pkgComps.pkg != "" {
+				result += pkgComps.pkg + "." + comp + "Cache\n"
+			} else {
+				result += comp + "Cache\n"
+			}
 		}
 		if pkgComps.pkg != "" {
 			result += "}\n\n"
@@ -244,15 +248,17 @@ func formatContext(name string, inParams [][2]string, outParams [][2]string, sub
 
 func formatArgsSame(name string, inParams [][2]string, outParams [][2]string, subComps []pkgComps) string {
 	result := fmt.Sprintf("func (%s %s) areArgsSame(%s) bool{\n", inParams[0][0], inParams[0][1], namesAndTypes(inParams[1:]))
-	for _, pair := range inParams[1:] {
+	for idx, pair := range inParams[1:] {
 		if strings.HasPrefix(pair[1], ellipsis) {
 			// array check
 			result += fmt.Sprintf("if len(%s) != len(%s.memoizedParams.%s) {\n return  false\n}\n", pair[0], inParams[0][0], pair[0])
 			result += fmt.Sprintf("for %sIndex, %sItem := range %s {\n", pair[0], pair[0], pair[0])
 			result += fmt.Sprintf("if %sItem != %s.memoizedParams.%s[%sIndex] {\n return false\n }\n", pair[0], inParams[0][0], pair[0], pair[0])
 			result += "}\n"
-		} else {
+		} else if idx != len(inParams) - 2 {
 			result += fmt.Sprintf("if %s != %s.memoizedParams.%s {\n  return false\n }\n", pair[0], inParams[0][0], pair[0])
+		} else {
+			return result + fmt.Sprintf("return %s == %s.memoizedParams.%s\n}\n\n", pair[0], inParams[0][0], pair[0])
 		}
 	}
 	return result + "return true\n}\n\n"

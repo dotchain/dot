@@ -40,10 +40,7 @@ func (c *tvCtx) areArgsSame(styles core.Styles, showDone bool, showNotDone bool,
 	if showNotDone != c.memoizedParams.showNotDone {
 		return false
 	}
-	if tasks != c.memoizedParams.tasks {
-		return false
-	}
-	return true
+	return tasks == c.memoizedParams.tasks
 }
 
 func (c *tvCtx) refreshIfNeeded(styles core.Styles, showDone bool, showNotDone bool, tasks *todo.TasksStream) (result1 core.Element) {

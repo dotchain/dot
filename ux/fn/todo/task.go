@@ -23,8 +23,17 @@ type Task struct {
 //
 // codegen: pure
 func TaskEdit(c *taskEditCtx, styles core.Styles, task *TaskStream) core.Element {
-	done := streams.NewBoolStream(task.Value.Done)
-	text := streams.NewTextStream(task.Value.Description)
+	// the following sub-stream logic can probably be auto-generated
+	done := c.newBoolStream(task.Notifier, false).Latest()
+	if done.Value != task.Value.Done {
+		done = done.Update(nil, task.Value.Done)
+	}
+
+	// the following sub-stream logic can probably be auto-generated
+	text := c.newTextStream(task.Notifier, "").Latest()
+	if text.Value != task.Value.Description {
+		text = text.Update(nil, task.Value.Description)
+	}
 
 	onChange := func() {
 		task = task.Update(nil, Task{task.Value.ID, done.Value, text.Value})
@@ -39,6 +48,16 @@ func TaskEdit(c *taskEditCtx, styles core.Styles, task *TaskStream) core.Element
 		c.fn.Checkbox("cb", core.Styles{}, done),
 		c.fn.TextEdit("textedit", core.Styles{}, text),
 	)
+}
+
+// codegen: pure
+func newBoolStream(c *boolStreamCtx, v bool) *streams.BoolStream {
+	return streams.NewBoolStream(v)
+}
+
+// codegen: pure
+func newTextStream(c *textStreamCtx, v string) *streams.TextStream {
+	return streams.NewTextStream(v)
 }
 
 // generate TaskStream
