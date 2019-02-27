@@ -74,7 +74,6 @@ func (e *element) Value() string {
 	return "off"
 }
 
-/**
 func (e *element) setValue(s string) {
 	if e.props.Type == "checkbox" {
 		e.props.Checked = s == "on"
@@ -85,7 +84,6 @@ func (e *element) setValue(s string) {
 		cx.Handle(core.Event{})
 	}
 }
-**/
 
 func (e *element) Children() []core.Element {
 	return e.children
