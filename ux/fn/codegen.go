@@ -174,8 +174,10 @@ func formatFunc(fn *ast.FuncDecl, fbytes []byte) string {
 		packages := []string{}
 		pmap := map[string][]string{}
 		for pair := range visitor.subs {
-			packages = append(packages, pair[0])
 			pmap[pair[0]] = append(pmap[pair[0]], pair[1])
+			if len(pmap[pair[0]]) == 1 {
+				packages = append(packages, pair[0])
+			}
 		}
 		sort.Strings(packages)
 		for _, pkg := range packages {
