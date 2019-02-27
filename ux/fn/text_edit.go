@@ -11,24 +11,22 @@ import (
 
 //go:generate go run codegen.go - $GOFILE
 
-// Checkbox implements a checkbox control.
+// TextEdit implements a text edit control.
 //
 // codegen: pure
-func Checkbox(c *checkboxCtx, styles core.Styles, checked *streams.BoolStream) core.Element {
-
+func TextEdit(c *textEditCtx, styles core.Styles, text *streams.TextStream) core.Element {
 	var result core.Element
 
 	result = c.Element(
 		"root",
 		core.Props{
-			Tag:     "input",
-			Type:    "checkbox",
-			Checked: checked.Value,
-			Styles:  styles,
+			Tag:         "input",
+			Type:        "text",
+			TextContent: text.Value,
+			Styles:      styles,
 			OnChange: &core.EventHandler{func(_ core.Event) {
-				v := result.Value() == "on"
-				checked = checked.Update(nil, v)
-				checked.Notify()
+				text = text.Update(nil, result.Value())
+				text.Notify()
 			}},
 		},
 	)
