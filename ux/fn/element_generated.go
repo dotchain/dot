@@ -9,7 +9,6 @@ package fn
 
 import (
 	"github.com/dotchain/dot/ux/core"
-	"github.com/dotchain/dot/ux/simple"
 )
 
 type elementCtx struct {
@@ -86,7 +85,7 @@ func (c *ElementCache) Element(key interface{}, props core.Props, children ...co
 type rootElementCtx struct {
 	memoInitialized bool
 	memoizedParams  struct {
-		result1 *simple.Element
+		result1 *element
 	}
 }
 
@@ -94,14 +93,14 @@ func (c *rootElementCtx) areArgsSame() bool {
 	return true
 }
 
-func (c *rootElementCtx) refreshIfNeeded() (result1 *simple.Element) {
+func (c *rootElementCtx) refreshIfNeeded() (result1 *element) {
 	if !c.memoInitialized || !c.areArgsSame() {
 		return c.refresh()
 	}
 	return c.memoizedParams.result1
 }
 
-func (c *rootElementCtx) refresh() (result1 *simple.Element) {
+func (c *rootElementCtx) refresh() (result1 *element) {
 	c.memoInitialized = true
 	c.memoizedParams.result1 = rootElement(c)
 	return c.memoizedParams.result1
@@ -125,7 +124,7 @@ func (c *rootElementCache) End() {
 }
 
 // rootElement implements the cache create or fetch method
-func (c *rootElementCache) rootElement(key interface{}) *simple.Element {
+func (c *rootElementCache) rootElement(key interface{}) *element {
 	cOld, ok := c.old[key]
 
 	if ok {
