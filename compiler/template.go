@@ -52,6 +52,14 @@ func NewStreamType(value ValueType) *StreamType {
 	return &StreamType{&streams.Notifier{}, value, nil, nil}
 }
 
+// Latest returns the latest value in the stream
+func (s *StreamType) Latest() *StreamType {
+	for s.Next != nil {
+		s = s.Next
+	}
+	return s
+}
+
 // Append appends a local change. isLocal identifies if the caller is
 // local or remote. It returns the updated stream whose value matches
 // the provided value and whose Latest() converges to the latest of
@@ -67,11 +75,12 @@ func (s *StreamType) Append(c changes.Change, value ValueType, isLocal bool) *St
 	// before tracks s, after tracks result, v tracks latest value
 	// of after chain
 	before := s
-	v := changes.Atomic{value}
+	var v changes.Value = changes.Atomic{value}
 
 	// walk the chain of Next and find corresponding values to
 	// add to after so that both s annd after converge
-	for after := result; before.Next != nil; before = before.Next {
+	after := result
+	for ; before.Next != nil; before = before.Next {
 		var afterChange changes.Change
 
 		if isLocal {
@@ -91,7 +100,7 @@ func (s *StreamType) Append(c changes.Change, value ValueType, isLocal bool) *St
 		}
 		
 		// append this to after and continue with that
-		v = v.Apply(afterChange)
+		v = v.Apply(nil, afterChange)
 		after.Change  = afterChange
 		after.Next = &StreamType{Notifier: s.Notifier, Value: s.unwrapValue(v)}
 		after = after.Next
@@ -104,19 +113,18 @@ func (s *StreamType) Append(c changes.Change, value ValueType, isLocal bool) *St
 	return result
 }
 
-func (s *StreamType) wrapValue(value ValueType) changes.Value {
-	if x, ok := value.(changes.Value); ok {
+func (s *StreamType) wrapValue(i interface{}) changes.Value {
+	if x, ok := i.(changes.Value); ok {
 		return x
 	}
-
-	return changes.Atomic{value}
+	return changes.Atomic{i}
 }
 
 func (s *StreamType) unwrapValue(v changes.Value) ValueType {
-	if x, ok := v.(ValueType); ok {
+	if x, ok := v.(interface{}).(ValueType); ok {
 		return x
 	}
-	return v.(changes.Atomic).Value
+	return v.(changes.Atomic).Value.(ValueType)
 }
 `)
 
@@ -128,26 +136,26 @@ func (s *StreamType) SetField(v FieldType) *StreamType {
 	value := s.Value
 	value.Field = v
 	key := []interface{}{"Field"}
-	return s.Append(changes.PathChange{key, c}, value)
+	return s.Append(changes.PathChange{key, c}, value, true)
 }
 
 // FieldSubstream returns a stream for Field that is automatically
 // connected to the current StreamType instance.  Updates to one
 // automatically update the other.
-func (s *StreamType) FieldSubstream(cache SubstreamCache) (field *FieldStreamType) {
+func (s *StreamType) FieldSubstream(cache streams.Cache) (field *FieldStrType) {
 	n := s.Notifier
 	handler := &streams.Handler{nil}
 	if f, h, ok := cache.GetSubstream(n, "Field"); ok {
-		field, handler  = f.(*FieldStreamType), h.(*streams.Handler)
+		field, handler  = f.(*FieldStrType), h
 	} else {
-		field = NewFieldStreamType(s.Value.Field)
+		field = NewFieldStrType(s.Value.Field)
 		parent, merging, path := s, false, []interface{}{"Field"}
 		handler.Handle = func() {
 			if merging {
 				return
 			}
 
-			merging := true
+			merging = true
 			for ;field.Next != nil; field = field.Next {
 				v := parent.Value
 				v.Field = field.Value
@@ -186,7 +194,7 @@ var entryTpl = newTemplate(`
 func (s *StreamType) Substream(cache SubstreamCache, index int) (entry *EntryStreamType) {
 	n := s.Notifier
 	handler := &streams.Handler{nil}
-	if f, h, ok := cache.GetSubstream(n, "[]"); ok {
+	if f, h, ok := cache.GetSubstream(n, index); ok {
 		entry, handler  = f.(*EntryStreamType), h.(*streams.Handler)
 	} else {
 		entry = NewEntryStreamType(s.Value[index])
@@ -209,6 +217,8 @@ func (s *StreamType) Substream(cache SubstreamCache, index int) (entry *EntryStr
 				var c changes.Change
 				if result !=  nil {
 					index = result.P[0].(int)
+                                        // TODO: if the index changed fix up
+                                        // the key in the cache
 					c = result.Affected
 				}
 				entry = entry.Append(c, parent.Value[index], true)
@@ -223,7 +233,7 @@ func (s *StreamType) Substream(cache SubstreamCache, index int) (entry *EntryStr
 	entry = entry.Latest()
 	n2 := entry.Notifier
 	close := func() { n.Off(handler); n2.Off(handler); }
-	cache.SetSubstream(n, "[]", entry, handler, close)
+	cache.SetSubstream(n, index, entry, handler, close)
 	return entry
 }
 `)
@@ -233,7 +243,8 @@ func newTemplate(s string) *template.Template {
 		{"Package", "{{$.Package}}"},
 		{"StreamType", "{{$.StreamType}}"},
 		{"ValueType", "{{$.ValueType}}"},
-		{"FieldStreamType", "{{$.FieldStreamType}}"},
+		{"FieldStrType", "{{$.FieldStreamType}}"},
+		{"FieldSubstream", "{{$.FieldSubstream}}"},
 		{"FieldType", "{{$.FieldType}}"},
 	}
 
