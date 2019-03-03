@@ -26,8 +26,8 @@ type StreamInfo struct {
 	EntryStreamType string
 }
 
-// Compile generates the code needed to deal with a stream
-func (s *StreamInfo) Compile() string {
+// Generate generates the code needed to deal with a stream
+func (s *StreamInfo) Generate() string {
 	var result bytes.Buffer
 	must(streamTpl.Execute(&result, s))
 	for _, f := range s.Fields {
@@ -54,13 +54,13 @@ type FieldInfo struct {
 	FieldStreamType string
 }
 
-// Compile returns the source code generated from the provided info
-func Compile(info Info) string {
+// Generate returns the source code generated from the provided info
+func Generate(info Info) string {
 	var result bytes.Buffer
 	must(headerTpl.Execute(&result, info))
 	r := result.String()
 	for _, s := range info.Streams {
-		r += "\n" + s.Compile()
+		r += "\n" + s.Generate()
 	}
 
 	p, err := format.Source([]byte(r))

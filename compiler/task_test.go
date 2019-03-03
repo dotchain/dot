@@ -31,7 +31,7 @@ func TestTask(t *testing.T) {
 			},
 		},
 	}
-	got := strings.TrimSpace(compiler.Compile(info))
+	got := strings.TrimSpace(compiler.Generate(info))
 	want := strings.TrimSpace(taskExpected)
 	if got != want {
 		t.Errorf("Diff:\n%v", diff.LineDiff(want, got))
