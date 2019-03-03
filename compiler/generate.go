@@ -52,6 +52,7 @@ type FieldInfo struct {
 	Field           string
 	FieldType       string
 	FieldStreamType string
+	FieldSubstream  string
 }
 
 // Generate returns the source code generated from the provided info
