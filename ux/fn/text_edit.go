@@ -25,8 +25,7 @@ func TextEdit(c *textEditCtx, styles core.Styles, text *streams.TextStream) core
 			TextContent: text.Value,
 			Styles:      styles,
 			OnChange: &core.EventHandler{func(_ core.Event) {
-				text = text.Update(nil, result.Value())
-				text.Notify()
+				text = text.Append(nil, result.Value(), true)
 			}},
 		},
 	)

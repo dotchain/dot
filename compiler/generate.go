@@ -20,10 +20,11 @@ type Info struct {
 
 // StreamInfo holds the information to generate a single stream type
 type StreamInfo struct {
-	StreamType      string
-	ValueType       string
-	Fields          []FieldInfo
-	EntryStreamType string
+	StreamType       string
+	ValueType        string
+	Fields           []FieldInfo
+	EntryStreamType  string
+	EntryConstructor string
 }
 
 // Generate generates the code needed to deal with a stream
@@ -49,10 +50,11 @@ func (s *StreamInfo) Generate() string {
 
 // FieldInfo holds info on individual substream fields of the base stream
 type FieldInfo struct {
-	Field           string
-	FieldType       string
-	FieldStreamType string
-	FieldSubstream  string
+	Field            string
+	FieldType        string
+	FieldStreamType  string
+	FieldConstructor string
+	FieldSubstream   string
 }
 
 // Generate returns the source code generated from the provided info

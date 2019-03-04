@@ -23,22 +23,6 @@ type Tasks []Task
 //
 // codegen: pure
 func TasksView(c *tasksViewCtx, styles core.Styles, showDone *streams.BoolStream, showNotDone *streams.BoolStream, tasks *TasksStream) core.Element {
-
-	subStream := func(index int) *TaskStream {
-		key := [2]interface{}{tasks.Notifier, tasks.Value[index].ID}
-		s := c.newTaskStream(key, Task{}).Latest()
-		if s.Value != tasks.Value[index] {
-			s = s.Update(nil, tasks.Value[index])
-		}
-		c.On(s.Notifier, func() {
-			result := append(Tasks(nil), tasks.Value...)
-			result[index] = s.Latest().Value
-			tasks = tasks.Update(nil, result)
-			tasks.Notify()
-		})
-		return s
-	}
-
 	return c.fn.Element(
 		"root",
 		core.Props{Tag: "div", Styles: styles},
@@ -47,7 +31,7 @@ func TasksView(c *tasksViewCtx, styles core.Styles, showDone *streams.BoolStream
 				return nil
 			}
 
-			return c.TaskEdit(t.ID, core.Styles{}, subStream(index))
+			return c.TaskEdit(t.ID, core.Styles{}, tasks.Substream(c.Cache, index))
 		})...,
 	)
 }
@@ -58,11 +42,6 @@ func renderTasks(t Tasks, fn func(int, Task) core.Element) []core.Element {
 		result[kk] = fn(kk, elt)
 	}
 	return result
-}
-
-// codegen: pure
-func newTaskStream(c *newTaskStreamCtx, t Task) *TaskStream {
-	return NewTaskStream(t)
 }
 
 // generate the TasksViewCache for any consumers who want it

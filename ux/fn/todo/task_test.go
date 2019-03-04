@@ -25,7 +25,7 @@ func Example_renderTask() {
 
 	next := task.Value
 	next.Done = true
-	task = task.Update(nil, next)
+	task = task.Append(nil, next, true)
 	cache.Begin()
 	root = cache.TaskEdit("root", core.Styles{Color: "red"}, task)
 	cache.End()

@@ -1,62 +1,12 @@
 // Copyright (C) 2019 rameshvk. All rights reserved.
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
-
-package compiler_test
-
-import (
-	"github.com/andreyvit/diff"
-	"github.com/dotchain/dot/compiler"
-	"strings"
-	"testing"
-)
-
-func TestTask(t *testing.T) {
-	info := compiler.Info{
-		Package: "task",
-		Imports: [][2]string{
-			{"hello", "github.com/boo/hello"},
-			{"hello2", "github.com/boo/hello2"},
-		},
-		Streams: []compiler.StreamInfo{
-			{
-				StreamType: "BoolStream",
-				ValueType:  "bool",
-			},
-			{
-				StreamType: "TaskStream",
-				ValueType:  "Task",
-				Fields: []compiler.FieldInfo{{
-					Field:            "Done",
-					FieldType:        "bool",
-					FieldStreamType:  "BoolStream",
-					FieldConstructor: "NewBoolStream",
-					FieldSubstream:   "DoneSubstream",
-				}},
-				EntryStreamType: "",
-			},
-		},
-	}
-	got := strings.TrimSpace(compiler.Generate(info))
-	want := strings.TrimSpace(taskExpected)
-	if got != want {
-		t.Errorf("Diff:\n%v", diff.LineDiff(want, got))
-	}
-
-	// Output:
-}
-
-var taskExpected = `
-// Copyright (C) 2019 rameshvk. All rights reserved.
-// Use of this source code is governed by a MIT-style license
-// that can be found in the LICENSE file.
 //
 
-package task
+package streams
 
 import (
 	"github.com/dotchain/dot/changes"
-	"github.com/dotchain/dot/refs"
 	"github.com/dotchain/dot/streams"
 )
 
@@ -158,31 +108,31 @@ func (s *BoolStream) unwrapValue(v changes.Value) bool {
 	return v.(changes.Atomic).Value.(bool)
 }
 
-// TaskStream is a stream of Task values.
-type TaskStream struct {
+// TextStream is a stream of string values.
+type TextStream struct {
 	// Notifier provides On/Off/Notify support. New instances of
-	// TaskStream created via the AppendLocal or AppendRemote
+	// TextStream created via the AppendLocal or AppendRemote
 	// share the same Notifier value.
 	*streams.Notifier
 
 	// Value holds the current value. The latest value may be
 	// fetched via the Latest() method.
-	Value Task
+	Value string
 
 	// Change tracks the change that leads to the next value.
 	Change changes.Change
 
 	// Next tracks the next value in the stream.
-	Next *TaskStream
+	Next *TextStream
 }
 
-// NewTaskStream creates a new Task stream
-func NewTaskStream(value Task) *TaskStream {
-	return &TaskStream{&streams.Notifier{}, value, nil, nil}
+// NewTextStream creates a new string stream
+func NewTextStream(value string) *TextStream {
+	return &TextStream{&streams.Notifier{}, value, nil, nil}
 }
 
 // Latest returns the latest value in the stream
-func (s *TaskStream) Latest() *TaskStream {
+func (s *TextStream) Latest() *TextStream {
 	for s.Next != nil {
 		s = s.Next
 	}
@@ -193,13 +143,13 @@ func (s *TaskStream) Latest() *TaskStream {
 // local or remote. It returns the updated stream whose value matches
 // the provided value and whose Latest() converges to the latest of
 // the stream.
-func (s *TaskStream) Append(c changes.Change, value Task, isLocal bool) *TaskStream {
+func (s *TextStream) Append(c changes.Change, value string, isLocal bool) *TextStream {
 	if c == nil {
 		c = changes.Replace{Before: s.wrapValue(s.Value), After: s.wrapValue(value)}
 	}
 
 	// return value: after is correctly set to provided value
-	result := &TaskStream{Notifier: s.Notifier, Value: value}
+	result := &TextStream{Notifier: s.Notifier, Value: value}
 
 	// before tracks s, after tracks result, v tracks latest value
 	// of after chain
@@ -231,7 +181,7 @@ func (s *TaskStream) Append(c changes.Change, value Task, isLocal bool) *TaskStr
 		// append this to after and continue with that
 		v = v.Apply(nil, afterChange)
 		after.Change = afterChange
-		after.Next = &TaskStream{Notifier: s.Notifier, Value: s.unwrapValue(v)}
+		after.Next = &TextStream{Notifier: s.Notifier, Value: s.unwrapValue(v)}
 		after = after.Next
 	}
 
@@ -242,72 +192,16 @@ func (s *TaskStream) Append(c changes.Change, value Task, isLocal bool) *TaskStr
 	return result
 }
 
-func (s *TaskStream) wrapValue(i interface{}) changes.Value {
+func (s *TextStream) wrapValue(i interface{}) changes.Value {
 	if x, ok := i.(changes.Value); ok {
 		return x
 	}
 	return changes.Atomic{i}
 }
 
-func (s *TaskStream) unwrapValue(v changes.Value) Task {
-	if x, ok := v.(interface{}).(Task); ok {
+func (s *TextStream) unwrapValue(v changes.Value) string {
+	if x, ok := v.(interface{}).(string); ok {
 		return x
 	}
-	return v.(changes.Atomic).Value.(Task)
+	return v.(changes.Atomic).Value.(string)
 }
-
-// SetDone updates the field with a new value
-func (s *TaskStream) SetDone(v bool) *TaskStream {
-	c := changes.Replace{s.wrapValue(s.Value.Done), s.wrapValue(v)}
-	value := s.Value
-	value.Done = v
-	key := []interface{}{"Done"}
-	return s.Append(changes.PathChange{key, c}, value, true)
-}
-
-// DoneSubstream returns a stream for Done that is automatically
-// connected to the current TaskStream instance.  Updates to one
-// automatically update the other.
-func (s *TaskStream) DoneSubstream(cache streams.Cache) (field *BoolStream) {
-	n := s.Notifier
-	handler := &streams.Handler{nil}
-	if f, h, ok := cache.GetSubstream(n, "Done"); ok {
-		field, handler = f.(*BoolStream), h
-	} else {
-		field = NewBoolStream(s.Value.Done)
-		parent, merging, path := s, false, []interface{}{"Done"}
-		handler.Handle = func() {
-			if merging {
-				return
-			}
-
-			merging = true
-			for ; field.Next != nil; field = field.Next {
-				v := parent.Value
-				v.Done = field.Next.Value
-				c := changes.PathChange{path, field.Change}
-				parent = parent.Append(c, v, true)
-			}
-
-			for ; parent.Next != nil; parent = parent.Next {
-				result := refs.Merge(path, parent.Change)
-				if result == nil {
-					field = field.Append(nil, parent.Next.Value.Done, true)
-				} else {
-					field = field.Append(result.Affected, parent.Next.Value.Done, true)
-				}
-			}
-			merging = false
-		}
-		field.On(handler)
-		parent.On(handler)
-	}
-
-	handler.Handle()
-	field = field.Latest()
-	n2 := field.Notifier
-	close := func() { n.Off(handler); n2.Off(handler) }
-	cache.SetSubstream(n, "Done", field, handler, close)
-	return field
-}
-`
