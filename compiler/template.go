@@ -61,7 +61,21 @@ func ({{$c.Name}} {{$c.Type}}) refreshIfNeeded({{.NonContextArgsDecl}}) ({{.Resu
 }
 
 func ({{$c.Name}} {{$c.Type}}) refresh({{.NonContextArgsDecl}}) ({{.ResultsDecl}}) {
+	if !{{$c.Name}}.initialized {
+		nn := &streams.Notifier{}
+		nn.On(&{{$c.Name}}.stateHandler)
+		{{range $sa := .StateArgs}}
+		{{$c.Name}}.memoized.{{$sa.Name}} = {{$sa.Ctor}}
+		{{$c.Name}}.memoized.{{$sa.Name}}.Notifier = nn
+		{{- end}}
+	}
+
 	{{$c.Name}}.initialized = true
+	{{$c.Name}}.stateHandler.Handle = func() {
+		{{$c.Name}}.refresh({{.NonContextArgs}})
+	}
+	{{range $sa := .StateArgs}}
+	{{$c.Name}}.memoized.{{$sa.Name}} = {{$c.Name}}.memoized.{{$sa.Name}}.Latest(){{end}}
 	{{.MemoizedNonContextArgs}} = {{.NonContextArgs}}
 
 	{{$c.Name}}.Cache.Begin()
@@ -84,6 +98,9 @@ func ({{$c.Name}} {{$c.Type}}) close() {
 	{{$c.Name}}.{{$i}}.Begin()
 	defer {{$c.Name}}.{{$i}}.End()
 	{{end -}}
+
+	{{range $sa := .StateArgs}}
+	{{$c.Name}}.memoized.{{$sa.Name}}.Off(&{{$c.Name}}.stateHandler){{end}}
 }
 
 {{.ComponentComments}}

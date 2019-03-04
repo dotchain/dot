@@ -334,7 +334,8 @@ func (s *TaskStream) DoneSubstream(cache streams.Cache) (field *BoolStream) {
 type taskCtx struct {
 	streams.Cache
 
-	initialized bool
+	initialized  bool
+	stateHandler streams.Handler
 	subTasker
 
 	fn struct {
@@ -374,7 +375,17 @@ func (ctx *taskCtx) refreshIfNeeded(boo bool, children ...int) (result1 int) {
 }
 
 func (ctx *taskCtx) refresh(boo bool, children ...int) (result1 int) {
+	if !ctx.initialized {
+		nn := &streams.Notifier{}
+		nn.On(&ctx.stateHandler)
+
+	}
+
 	ctx.initialized = true
+	ctx.stateHandler.Handle = func() {
+		ctx.refresh(boo, children)
+	}
+
 	ctx.memoized.boo, ctx.memoized.children = boo, children
 
 	ctx.Cache.Begin()
@@ -402,6 +413,7 @@ func (ctx *taskCtx) close() {
 
 	ctx.fn.TextEdit.Begin()
 	defer ctx.fn.TextEdit.End()
+
 }
 
 // TaskViewCache is something

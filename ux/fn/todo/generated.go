@@ -372,7 +372,8 @@ func (s *TasksStream) Substream(cache streams.Cache, index int) (entry *TaskStre
 type taskEditCtx struct {
 	streams.Cache
 
-	initialized bool
+	initialized  bool
+	stateHandler streams.Handler
 
 	fn struct {
 		fn.CheckboxCache
@@ -404,7 +405,17 @@ func (ctx *taskEditCtx) refreshIfNeeded(styles core.Styles, task *TaskStream) (r
 }
 
 func (ctx *taskEditCtx) refresh(styles core.Styles, task *TaskStream) (result1 core.Element) {
+	if !ctx.initialized {
+		nn := &streams.Notifier{}
+		nn.On(&ctx.stateHandler)
+
+	}
+
 	ctx.initialized = true
+	ctx.stateHandler.Handle = func() {
+		ctx.refresh(styles, task)
+	}
+
 	ctx.memoized.styles, ctx.memoized.task = styles, task
 
 	ctx.Cache.Begin()
@@ -432,6 +443,7 @@ func (ctx *taskEditCtx) close() {
 
 	ctx.fn.TextEditCache.Begin()
 	defer ctx.fn.TextEditCache.End()
+
 }
 
 // TaskEditCache is good
@@ -468,7 +480,8 @@ type tasksViewCtx struct {
 	streams.Cache
 
 	TaskEditCache
-	initialized bool
+	initialized  bool
+	stateHandler streams.Handler
 
 	fn struct {
 		fn.ElementCache
@@ -508,7 +521,17 @@ func (ctx *tasksViewCtx) refreshIfNeeded(styles core.Styles, showDone *uxstreams
 }
 
 func (ctx *tasksViewCtx) refresh(styles core.Styles, showDone *uxstreams.BoolStream, showNotDone *uxstreams.BoolStream, tasks *TasksStream) (result1 core.Element) {
+	if !ctx.initialized {
+		nn := &streams.Notifier{}
+		nn.On(&ctx.stateHandler)
+
+	}
+
 	ctx.initialized = true
+	ctx.stateHandler.Handle = func() {
+		ctx.refresh(styles, showDone, showNotDone, tasks)
+	}
+
 	ctx.memoized.styles, ctx.memoized.showDone, ctx.memoized.showNotDone, ctx.memoized.tasks = styles, showDone, showNotDone, tasks
 
 	ctx.Cache.Begin()
@@ -530,6 +553,7 @@ func (ctx *tasksViewCtx) close() {
 
 	ctx.fn.ElementCache.Begin()
 	defer ctx.fn.ElementCache.End()
+
 }
 
 // TasksViewCache is good
@@ -566,16 +590,19 @@ type appCtx struct {
 	streams.Cache
 
 	TasksViewCache
-	initialized bool
+	initialized  bool
+	stateHandler streams.Handler
 
 	fn struct {
 		fn.CheckboxCache
 		fn.ElementCache
 	}
 	memoized struct {
-		result1 core.Element
-		styles  core.Styles
-		tasks   *TasksStream
+		result1     core.Element
+		showDone    *uxstreams.BoolStream
+		showNotDone *uxstreams.BoolStream
+		styles      core.Styles
+		tasks       *TasksStream
 	}
 }
 
@@ -597,7 +624,23 @@ func (ctx *appCtx) refreshIfNeeded(styles core.Styles, tasks *TasksStream) (resu
 }
 
 func (ctx *appCtx) refresh(styles core.Styles, tasks *TasksStream) (result1 core.Element) {
+	if !ctx.initialized {
+		nn := &streams.Notifier{}
+		nn.On(&ctx.stateHandler)
+
+		ctx.memoized.showDone = uxstreams.NewBoolStream(true)
+		ctx.memoized.showDone.Notifier = nn
+		ctx.memoized.showNotDone = uxstreams.NewBoolStream(true)
+		ctx.memoized.showNotDone.Notifier = nn
+	}
+
 	ctx.initialized = true
+	ctx.stateHandler.Handle = func() {
+		ctx.refresh(styles, tasks)
+	}
+
+	ctx.memoized.showDone = ctx.memoized.showDone.Latest()
+	ctx.memoized.showNotDone = ctx.memoized.showNotDone.Latest()
 	ctx.memoized.styles, ctx.memoized.tasks = styles, tasks
 
 	ctx.Cache.Begin()
@@ -610,7 +653,7 @@ func (ctx *appCtx) refresh(styles core.Styles, tasks *TasksStream) (result1 core
 
 	ctx.fn.CheckboxCache.Begin()
 	defer ctx.fn.CheckboxCache.End()
-	ctx.memoized.result1 = App(ctx, styles, tasks)
+	ctx.memoized.result1 = AppWithState(ctx, styles, tasks, ctx.memoized.showDone, ctx.memoized.showNotDone)
 	return ctx.memoized.result1
 }
 
@@ -625,6 +668,9 @@ func (ctx *appCtx) close() {
 
 	ctx.fn.CheckboxCache.Begin()
 	defer ctx.fn.CheckboxCache.End()
+
+	ctx.memoized.showDone.Off(&ctx.stateHandler)
+	ctx.memoized.showNotDone.Off(&ctx.stateHandler)
 }
 
 // AppCache is good
