@@ -9,6 +9,8 @@ import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/refs"
 	"github.com/dotchain/dot/streams"
+	"github.com/dotchain/dot/ux/core"
+	"github.com/dotchain/dot/ux/fn"
 	uxstreams "github.com/dotchain/dot/ux/streams"
 )
 
@@ -365,4 +367,292 @@ func (s *TasksStream) Substream(cache streams.Cache, index int) (entry *TaskStre
 	close := func() { n.Off(handler); n2.Off(handler) }
 	cache.SetSubstream(n, index, entry, handler, close)
 	return entry
+}
+
+type taskEditCtx struct {
+	streams.Cache
+
+	initialized bool
+
+	fn struct {
+		fn.CheckboxCache
+		fn.ElementCache
+		fn.TextEditCache
+	}
+	memoized struct {
+		result1 core.Element
+		styles  core.Styles
+		task    *TaskStream
+	}
+}
+
+func (ctx *taskEditCtx) areArgsSame(styles core.Styles, task *TaskStream) bool {
+
+	if styles != ctx.memoized.styles {
+		return false
+	}
+
+	return task == ctx.memoized.task
+
+}
+
+func (ctx *taskEditCtx) refreshIfNeeded(styles core.Styles, task *TaskStream) (result1 core.Element) {
+	if !ctx.initialized || !ctx.areArgsSame(styles, task) {
+		return ctx.refresh(styles, task)
+	}
+	return ctx.memoized.result1
+}
+
+func (ctx *taskEditCtx) refresh(styles core.Styles, task *TaskStream) (result1 core.Element) {
+	ctx.initialized = true
+	ctx.memoized.styles, ctx.memoized.task = styles, task
+
+	ctx.Cache.Begin()
+	defer ctx.Cache.End()
+	ctx.fn.CheckboxCache.Begin()
+	defer ctx.fn.CheckboxCache.End()
+
+	ctx.fn.ElementCache.Begin()
+	defer ctx.fn.ElementCache.End()
+
+	ctx.fn.TextEditCache.Begin()
+	defer ctx.fn.TextEditCache.End()
+	ctx.memoized.result1 = TaskEdit(ctx, styles, task)
+	return ctx.memoized.result1
+}
+
+func (ctx *taskEditCtx) close() {
+	ctx.Cache.Begin()
+	defer ctx.Cache.End()
+	ctx.fn.CheckboxCache.Begin()
+	defer ctx.fn.CheckboxCache.End()
+
+	ctx.fn.ElementCache.Begin()
+	defer ctx.fn.ElementCache.End()
+
+	ctx.fn.TextEditCache.Begin()
+	defer ctx.fn.TextEditCache.End()
+}
+
+// TaskEditCache is good
+type TaskEditCache struct {
+	old, current map[interface{}]*taskEditCtx
+}
+
+// Begin starts a round
+func (c *TaskEditCache) Begin() {
+	c.old, c.current = c.current, map[interface{}]*taskEditCtx{}
+}
+
+// End finishes the round cleaning up any unused components
+func (c *TaskEditCache) End() {
+	for _, ctx := range c.old {
+		ctx.close()
+	}
+	c.old = nil
+}
+
+// TaskEdit is good
+func (c *TaskEditCache) TaskEdit(ctxKey interface{}, styles core.Styles, task *TaskStream) (result1 core.Element) {
+	ctxOld, ok := c.old[ctxKey]
+	if ok {
+		delete(c.old, ctxKey)
+	} else {
+		ctxOld = &taskEditCtx{}
+	}
+	c.current[ctxKey] = ctxOld
+	return ctxOld.refreshIfNeeded(styles, task)
+}
+
+type tasksViewCtx struct {
+	streams.Cache
+
+	TaskEditCache
+	initialized bool
+
+	fn struct {
+		fn.ElementCache
+	}
+	memoized struct {
+		result1     core.Element
+		showDone    *uxstreams.BoolStream
+		showNotDone *uxstreams.BoolStream
+		styles      core.Styles
+		tasks       *TasksStream
+	}
+}
+
+func (ctx *tasksViewCtx) areArgsSame(styles core.Styles, showDone *uxstreams.BoolStream, showNotDone *uxstreams.BoolStream, tasks *TasksStream) bool {
+
+	if styles != ctx.memoized.styles {
+		return false
+	}
+
+	if showDone != ctx.memoized.showDone {
+		return false
+	}
+
+	if showNotDone != ctx.memoized.showNotDone {
+		return false
+	}
+
+	return tasks == ctx.memoized.tasks
+
+}
+
+func (ctx *tasksViewCtx) refreshIfNeeded(styles core.Styles, showDone *uxstreams.BoolStream, showNotDone *uxstreams.BoolStream, tasks *TasksStream) (result1 core.Element) {
+	if !ctx.initialized || !ctx.areArgsSame(styles, showDone, showNotDone, tasks) {
+		return ctx.refresh(styles, showDone, showNotDone, tasks)
+	}
+	return ctx.memoized.result1
+}
+
+func (ctx *tasksViewCtx) refresh(styles core.Styles, showDone *uxstreams.BoolStream, showNotDone *uxstreams.BoolStream, tasks *TasksStream) (result1 core.Element) {
+	ctx.initialized = true
+	ctx.memoized.styles, ctx.memoized.showDone, ctx.memoized.showNotDone, ctx.memoized.tasks = styles, showDone, showNotDone, tasks
+
+	ctx.Cache.Begin()
+	defer ctx.Cache.End()
+	ctx.TaskEditCache.Begin()
+	defer ctx.TaskEditCache.End()
+
+	ctx.fn.ElementCache.Begin()
+	defer ctx.fn.ElementCache.End()
+	ctx.memoized.result1 = TasksView(ctx, styles, showDone, showNotDone, tasks)
+	return ctx.memoized.result1
+}
+
+func (ctx *tasksViewCtx) close() {
+	ctx.Cache.Begin()
+	defer ctx.Cache.End()
+	ctx.TaskEditCache.Begin()
+	defer ctx.TaskEditCache.End()
+
+	ctx.fn.ElementCache.Begin()
+	defer ctx.fn.ElementCache.End()
+}
+
+// TasksViewCache is good
+type TasksViewCache struct {
+	old, current map[interface{}]*tasksViewCtx
+}
+
+// Begin starts a round
+func (c *TasksViewCache) Begin() {
+	c.old, c.current = c.current, map[interface{}]*tasksViewCtx{}
+}
+
+// End finishes the round cleaning up any unused components
+func (c *TasksViewCache) End() {
+	for _, ctx := range c.old {
+		ctx.close()
+	}
+	c.old = nil
+}
+
+// TasksView is good
+func (c *TasksViewCache) TasksView(ctxKey interface{}, styles core.Styles, showDone *uxstreams.BoolStream, showNotDone *uxstreams.BoolStream, tasks *TasksStream) (result1 core.Element) {
+	ctxOld, ok := c.old[ctxKey]
+	if ok {
+		delete(c.old, ctxKey)
+	} else {
+		ctxOld = &tasksViewCtx{}
+	}
+	c.current[ctxKey] = ctxOld
+	return ctxOld.refreshIfNeeded(styles, showDone, showNotDone, tasks)
+}
+
+type appCtx struct {
+	streams.Cache
+
+	TasksViewCache
+	initialized bool
+
+	fn struct {
+		fn.CheckboxCache
+		fn.ElementCache
+	}
+	memoized struct {
+		result1 core.Element
+		styles  core.Styles
+		tasks   *TasksStream
+	}
+}
+
+func (ctx *appCtx) areArgsSame(styles core.Styles, tasks *TasksStream) bool {
+
+	if styles != ctx.memoized.styles {
+		return false
+	}
+
+	return tasks == ctx.memoized.tasks
+
+}
+
+func (ctx *appCtx) refreshIfNeeded(styles core.Styles, tasks *TasksStream) (result1 core.Element) {
+	if !ctx.initialized || !ctx.areArgsSame(styles, tasks) {
+		return ctx.refresh(styles, tasks)
+	}
+	return ctx.memoized.result1
+}
+
+func (ctx *appCtx) refresh(styles core.Styles, tasks *TasksStream) (result1 core.Element) {
+	ctx.initialized = true
+	ctx.memoized.styles, ctx.memoized.tasks = styles, tasks
+
+	ctx.Cache.Begin()
+	defer ctx.Cache.End()
+	ctx.TasksViewCache.Begin()
+	defer ctx.TasksViewCache.End()
+
+	ctx.fn.ElementCache.Begin()
+	defer ctx.fn.ElementCache.End()
+
+	ctx.fn.CheckboxCache.Begin()
+	defer ctx.fn.CheckboxCache.End()
+	ctx.memoized.result1 = App(ctx, styles, tasks)
+	return ctx.memoized.result1
+}
+
+func (ctx *appCtx) close() {
+	ctx.Cache.Begin()
+	defer ctx.Cache.End()
+	ctx.TasksViewCache.Begin()
+	defer ctx.TasksViewCache.End()
+
+	ctx.fn.ElementCache.Begin()
+	defer ctx.fn.ElementCache.End()
+
+	ctx.fn.CheckboxCache.Begin()
+	defer ctx.fn.CheckboxCache.End()
+}
+
+// AppCache is good
+type AppCache struct {
+	old, current map[interface{}]*appCtx
+}
+
+// Begin starts a round
+func (c *AppCache) Begin() {
+	c.old, c.current = c.current, map[interface{}]*appCtx{}
+}
+
+// End finishes the round cleaning up any unused components
+func (c *AppCache) End() {
+	for _, ctx := range c.old {
+		ctx.close()
+	}
+	c.old = nil
+}
+
+// App is good
+func (c *AppCache) App(ctxKey interface{}, styles core.Styles, tasks *TasksStream) (result1 core.Element) {
+	ctxOld, ok := c.old[ctxKey]
+	if ok {
+		delete(c.old, ctxKey)
+	} else {
+		ctxOld = &appCtx{}
+	}
+	c.current[ctxKey] = ctxOld
+	return ctxOld.refreshIfNeeded(styles, tasks)
 }

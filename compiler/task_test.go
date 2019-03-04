@@ -36,6 +36,25 @@ func TestTask(t *testing.T) {
 				EntryStreamType: "",
 			},
 		},
+		Contexts: []compiler.ContextInfo{
+			{
+				ContextType:   "taskCtx",
+				Function:      "TaskView",
+				Subcomponents: []string{"subTasker", "fn.Checkbox", "fn.TextEdit"},
+				Args: []compiler.ArgInfo{
+					{Name: "ctx", Type: "*taskCtx"},
+					{Name: "boo", Type: "bool"},
+					{Name: "children", Type: "[]int", IsArray: true, IsLast: true},
+				},
+				Results:     []compiler.ResultInfo{{Name: "", Type: "int"}},
+				HasEllipsis: true,
+
+				Component:         "TaskViewCache",
+				ComponentComments: "// TaskViewCache is something",
+				Method:            "TaskView",
+				MethodComments:    "// TaskView is something",
+			},
+		},
 	}
 	got := strings.TrimSpace(compiler.Generate(info))
 	want := strings.TrimSpace(taskExpected)
@@ -58,6 +77,7 @@ import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/refs"
 	"github.com/dotchain/dot/streams"
+	"github.com/dotchain/dot/ux/fn"
 )
 
 // BoolStream is a stream of bool values.
@@ -309,5 +329,108 @@ func (s *TaskStream) DoneSubstream(cache streams.Cache) (field *BoolStream) {
 	close := func() { n.Off(handler); n2.Off(handler) }
 	cache.SetSubstream(n, "Done", field, handler, close)
 	return field
+}
+
+type taskCtx struct {
+	streams.Cache
+
+	initialized bool
+	subTasker
+
+	fn struct {
+		fn.Checkbox
+		fn.TextEdit
+	}
+	memoized struct {
+		boo      bool
+		children []int
+		result1  int
+	}
+}
+
+func (ctx *taskCtx) areArgsSame(boo bool, children ...int) bool {
+
+	if boo != ctx.memoized.boo {
+		return false
+	}
+
+	if len(children) != len(ctx.memoized.children) {
+		return false
+	}
+	for childrenIdx := range children {
+		if children[childrenIdx] != ctx.memoized.children[children.Idx] {
+			return false
+		}
+	}
+	return true
+
+}
+
+func (ctx *taskCtx) refreshIfNeeded(boo bool, children ...int) (result1 int) {
+	if !ctx.initialized || !ctx.areArgsSame(boo, children) {
+		return ctx.refresh(boo, children)
+	}
+	return ctx.memoized.result1
+}
+
+func (ctx *taskCtx) refresh(boo bool, children ...int) (result1 int) {
+	ctx.initialized = true
+	ctx.memoized.boo, ctx.memoized.children = boo, children
+
+	ctx.Cache.Begin()
+	defer ctx.Cache.End()
+	ctx.subTasker.Begin()
+	defer ctx.subTasker.End()
+
+	ctx.fn.Checkbox.Begin()
+	defer ctx.fn.Checkbox.End()
+
+	ctx.fn.TextEdit.Begin()
+	defer ctx.fn.TextEdit.End()
+	ctx.memoized.result1 = TaskView(ctx, boo, children)
+	return ctx.memoized.result1
+}
+
+func (ctx *taskCtx) close() {
+	ctx.Cache.Begin()
+	defer ctx.Cache.End()
+	ctx.subTasker.Begin()
+	defer ctx.subTasker.End()
+
+	ctx.fn.Checkbox.Begin()
+	defer ctx.fn.Checkbox.End()
+
+	ctx.fn.TextEdit.Begin()
+	defer ctx.fn.TextEdit.End()
+}
+
+// TaskViewCache is something
+type TaskViewCache struct {
+	old, current map[interface{}]*taskCtx
+}
+
+// Begin starts a round
+func (c *TaskViewCache) Begin() {
+	c.old, c.current = c.current, map[interface{}]*taskCtx{}
+}
+
+// End finishes the round cleaning up any unused components
+func (c *TaskViewCache) End() {
+	for _, ctx := range c.old {
+		ctx.close()
+	}
+	c.old = nil
+}
+
+// TaskView is something
+func (c *TaskViewCache) TaskView(ctxKey interface{}, boo bool, children ...int) (result1 int) {
+	ctxOld, ok := c.old[ctxKey]
+	if ok {
+		delete(c.old, ctxKey)
+	} else {
+		ctxOld = &taskCtx{}
+	}
+	c.current[ctxKey] = ctxOld
+	return ctxOld.refreshIfNeeded(boo, children)
 }
 `

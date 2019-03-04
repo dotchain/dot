@@ -26,6 +26,98 @@ import (
 )
 `)
 
+var contextTpl = newTemplate(`
+type {{.ContextType}} struct {
+	streams.Cache
+	{{range $ps := .PkgSubcomps}}{{if not (eq $ps.Pkg "")}}{{$ps.Pkg}} struct { {{end}}
+		{{range $ps.Subcomps}}{{.}}
+	{{end}} {{if not (eq $ps.Pkg "")}} } {{end}}
+	{{end}}
+}
+{{ $c := index .Args 0 }}
+func ({{$c.Name}} {{$c.Type}}) areArgsSame({{.NonContextArgsDecl}}) bool {
+	{{range $i, $a := .Args}}{{if not (eq $i 0)}}
+	{{if $a.IsArray}}
+        if len({{$a.Name}}) != len({{$c.Name}}.memoized.{{$a.Name}}) {
+		return false
+	}
+	for {{$a.Name}}Idx := range {{$a.Name}} {
+		if {{$a.Name}}[{{$a.Name}}Idx] != {{$c.Name}}.memoized.{{$a.Name}}[{{$a.Name}}.Idx] {
+			return false
+		}
+	}
+	{{if $a.IsLast}}return true{{end}}
+	{{else}}
+		{{if $a.IsLast}}return {{$a.Name}} == {{$c.Name}}.memoized.{{$a.Name}}
+		{{else}}if {{$a.Name}} != {{$c.Name}}.memoized.{{$a.Name}} { return false }
+	{{end}}{{end}}{{end}}{{end}}
+}
+
+func ({{$c.Name}} {{$c.Type}}) refreshIfNeeded({{.NonContextArgsDecl}}) ({{.ResultsDecl}}) {
+	if !{{$c.Name}}.initialized || !{{$c.Name}}.areArgsSame({{.NonContextArgs}}) {
+		return {{$c.Name}}.refresh({{.NonContextArgs}})
+	}
+	return {{.MemoizedResults}}
+}
+
+func ({{$c.Name}} {{$c.Type}}) refresh({{.NonContextArgsDecl}}) ({{.ResultsDecl}}) {
+	{{$c.Name}}.initialized = true
+	{{.MemoizedNonContextArgs}} = {{.NonContextArgs}}
+
+	{{$c.Name}}.Cache.Begin()
+	defer {{$c.Name}}.Cache.End()
+
+	{{- range $i := .Subcomponents}}
+	{{$c.Name}}.{{$i}}.Begin()
+	defer {{$c.Name}}.{{$i}}.End()
+	{{end -}}
+
+	{{.MemoizedResults}} = {{.Function}}({{.AllArgs}})
+	return {{.MemoizedResults}}
+}
+
+func ({{$c.Name}} {{$c.Type}}) close() {
+	{{$c.Name}}.Cache.Begin()
+	defer {{$c.Name}}.Cache.End()
+
+	{{- range $i := .Subcomponents}}
+	{{$c.Name}}.{{$i}}.Begin()
+	defer {{$c.Name}}.{{$i}}.End()
+	{{end -}}
+}
+
+{{.ComponentComments}}
+type {{.Component}} struct {
+	old, current map[interface{}]{{$c.Type}}
+}
+
+// Begin starts a round
+func (c *{{.Component}}) Begin() {
+	c.old, c.current  = c.current, map[interface{}]{{$c.Type}}{}
+}
+
+// End finishes the round cleaning up any unused components
+func (c *{{.Component}}) End() {
+	for _, ctx := range c.old {
+		ctx.close()
+	}
+	c.old = nil
+}
+
+{{.MethodComments}}
+func (c *{{.Component}}) {{.Method}}({{.MethodDecl}}) ({{.ResultsDecl}}) {
+	{{$c.Name}}Old, ok := c.old[{{$c.Name}}Key]
+	if ok {
+		delete(c.old, {{$c.Name}}Key)
+	} else {
+		{{$c.Name}}Old = &{{.ContextType}}{}
+	}
+	c.current[{{$c.Name}}Key] =  {{$c.Name}}Old
+	return {{$c.Name}}Old.refreshIfNeeded({{.NonContextArgs}})
+}
+
+`)
+
 var streamTpl = newTemplate(`
 // StreamType is a stream of ValueType values.
 type StreamType struct {
