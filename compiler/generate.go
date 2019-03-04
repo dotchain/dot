@@ -90,6 +90,11 @@ type ArgInfo struct {
 	IsLast     bool
 }
 
+// StateArgInfo has info about stateful args
+type StateArgInfo struct {
+	Name, Type, Ctor string
+}
+
 // ResultInfo has info about return values
 type ResultInfo struct {
 	Name, Type string
@@ -101,6 +106,7 @@ type ContextInfo struct {
 	Function      string
 	Subcomponents []string
 	Args          []ArgInfo
+	StateArgs     []StateArgInfo
 	Results       []ResultInfo
 	HasEllipsis   bool
 
@@ -130,11 +136,16 @@ func (c *ContextInfo) PkgSubcomps() interface{} {
 		}
 	}
 	add("", "initialized bool")
+	add("", "stateHandler streams.Handler")
 	for kk, arg := range c.Args {
 		if kk > 0 {
 			add("memoized", arg.Name+" "+arg.Type)
 		}
 	}
+	for _, arg := range c.StateArgs {
+		add("memoized", arg.Name+" "+arg.Type)
+	}
+
 	for kk, r := range c.Results {
 		n := r.Name
 		if n == "" {
@@ -195,6 +206,9 @@ func (c *ContextInfo) AllArgs() string {
 	result := []string{}
 	for _, a := range c.Args {
 		result = append(result, a.Name)
+	}
+	for _, a := range c.StateArgs {
+		result = append(result, c.Args[0].Name+".memoized."+a.Name)
 	}
 	return strings.Join(result, ", ")
 }

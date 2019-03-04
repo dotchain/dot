@@ -85,12 +85,16 @@ func main() {
 			{
 				ContextType: "appCtx",
 
-				Function:      "App",
+				Function:      "AppWithState",
 				Subcomponents: []string{"TasksViewCache", "fn.ElementCache", "fn.CheckboxCache"},
 				Args: []compiler.ArgInfo{
 					{Name: "ctx", Type: "*appCtx"},
 					{Name: "styles", Type: "core.Styles"},
 					{Name: "tasks", Type: "*TasksStream", IsLast: true},
+				},
+				StateArgs: []compiler.StateArgInfo{
+					{Name: "showDone", Type: "*uxstreams.BoolStream", Ctor: "uxstreams.NewBoolStream(true)"},
+					{Name: "showNotDone", Type: "*uxstreams.BoolStream", Ctor: "uxstreams.NewBoolStream(true)"},
 				},
 				Results:     []compiler.ResultInfo{{Name: "", Type: "core.Element"}},
 				HasEllipsis: false,
@@ -99,7 +103,7 @@ func main() {
 				ComponentComments: "// AppCache is good",
 				Method:            "App",
 				MethodComments:    "// App is good",
-			},			
+			},
 		},
 	}
 	ioutil.WriteFile("generated.go", []byte(compiler.Generate(info)), 0644)

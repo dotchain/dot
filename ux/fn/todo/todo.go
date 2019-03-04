@@ -59,13 +59,9 @@ func renderTasks(t Tasks, fn func(int, Task) core.Element) []core.Element {
 	return result
 }
 
-// App is a thin wrapper on top of TasksView with checkboxes for ShowDone and ShowUndone
+// AppWithState is a thin wrapper on top of TasksView with checkboxes for ShowDone and ShowUndone
 //
-// codegen: pure
-func App(c *appCtx, styles core.Styles, tasks *TasksStream) core.Element {
-	done := getAppStateStream(c, "done", styles, tasks)
-	notDone := getAppStateStream(c, "notDone", styles, tasks)
-
+func AppWithState(c *appCtx, styles core.Styles, tasks *TasksStream, done *streams.BoolStream, notDone *streams.BoolStream) core.Element {
 	return c.fn.Element(
 		"root",
 		core.Props{Tag: "div", Styles: styles},
@@ -73,20 +69,4 @@ func App(c *appCtx, styles core.Styles, tasks *TasksStream) core.Element {
 		c.fn.Checkbox("notDone", core.Styles{}, notDone),
 		c.TasksView("tasks", core.Styles{}, done, notDone, tasks),
 	)
-}
-
-func getAppStateStream(c *appCtx, name string, styles core.Styles, tasks *TasksStream) *streams.BoolStream {
-	var result *streams.BoolStream
-	var handler *streams.Handler
-	if f, h, ok := c.Cache.GetSubstream(nil, "done"); ok {
-		result, handler = f.(*streams.BoolStream), h
-	} else {
-		result = streams.NewBoolStream(true)
-		handler = &streams.Handler{nil}
-		result.On(handler)
-	}
-	handler.Handle = func() { c.refresh(styles, tasks) }
-	result = result.Latest()
-	c.Cache.SetSubstream(nil, name, result, handler, func() { result.Off(handler) })
-	return result
 }
