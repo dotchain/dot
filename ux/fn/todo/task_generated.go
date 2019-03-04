@@ -14,9 +14,7 @@ import (
 )
 
 type taskEditCtx struct {
-	streams.Subs
-	newBoolStreamCache
-	newTextStreamCache
+	streams.Cache
 	fn struct {
 		fn.CheckboxCache
 		fn.ElementCache
@@ -48,12 +46,8 @@ func (c *taskEditCtx) refreshIfNeeded(styles core.Styles, task *TaskStream) (res
 func (c *taskEditCtx) refresh(styles core.Styles, task *TaskStream) (result1 core.Element) {
 	c.memoInitialized = true
 	c.memoizedParams.styles, c.memoizedParams.task = styles, task
-	c.Subs.Begin()
-	defer c.Subs.End()
-	c.newBoolStreamCache.Begin()
-	defer c.newBoolStreamCache.End()
-	c.newTextStreamCache.Begin()
-	defer c.newTextStreamCache.End()
+	c.Cache.Begin()
+	defer c.Cache.End()
 	c.fn.CheckboxCache.Begin()
 	defer c.fn.CheckboxCache.End()
 	c.fn.ElementCache.Begin()
@@ -92,116 +86,4 @@ func (c *TaskEditCache) TaskEdit(key interface{}, styles core.Styles, task *Task
 	}
 	c.current[key] = cOld
 	return cOld.refreshIfNeeded(styles, task)
-}
-
-type boolStreamCtx struct {
-	memoInitialized bool
-	memoizedParams  struct {
-		v       bool
-		result1 *streams.BoolStream
-	}
-}
-
-func (c *boolStreamCtx) areArgsSame(v bool) bool {
-	return v == c.memoizedParams.v
-}
-
-func (c *boolStreamCtx) refreshIfNeeded(v bool) (result1 *streams.BoolStream) {
-	if !c.memoInitialized || !c.areArgsSame(v) {
-		return c.refresh(v)
-	}
-	return c.memoizedParams.result1
-}
-
-func (c *boolStreamCtx) refresh(v bool) (result1 *streams.BoolStream) {
-	c.memoInitialized = true
-	c.memoizedParams.v = v
-	c.memoizedParams.result1 = newBoolStream(c, v)
-	return c.memoizedParams.result1
-}
-
-// newBoolStreamCache is generated from newBoolStream.  Please see that for
-// documentation
-type newBoolStreamCache struct {
-	old, current map[interface{}]*boolStreamCtx
-}
-
-// Begin starts the round
-func (c *newBoolStreamCache) Begin() {
-	c.old, c.current = c.current, map[interface{}]*boolStreamCtx{}
-}
-
-// End ends the round
-func (c *newBoolStreamCache) End() {
-	// TODO: deliver Close() handlers if they exist
-	c.old = nil
-}
-
-// newBoolStream implements the cache create or fetch method
-func (c *newBoolStreamCache) newBoolStream(key interface{}, v bool) *streams.BoolStream {
-	cOld, ok := c.old[key]
-
-	if ok {
-		delete(c.old, key)
-	} else {
-		cOld = &boolStreamCtx{}
-	}
-	c.current[key] = cOld
-	return cOld.refreshIfNeeded(v)
-}
-
-type textStreamCtx struct {
-	memoInitialized bool
-	memoizedParams  struct {
-		v       string
-		result1 *streams.TextStream
-	}
-}
-
-func (c *textStreamCtx) areArgsSame(v string) bool {
-	return v == c.memoizedParams.v
-}
-
-func (c *textStreamCtx) refreshIfNeeded(v string) (result1 *streams.TextStream) {
-	if !c.memoInitialized || !c.areArgsSame(v) {
-		return c.refresh(v)
-	}
-	return c.memoizedParams.result1
-}
-
-func (c *textStreamCtx) refresh(v string) (result1 *streams.TextStream) {
-	c.memoInitialized = true
-	c.memoizedParams.v = v
-	c.memoizedParams.result1 = newTextStream(c, v)
-	return c.memoizedParams.result1
-}
-
-// newTextStreamCache is generated from newTextStream.  Please see that for
-// documentation
-type newTextStreamCache struct {
-	old, current map[interface{}]*textStreamCtx
-}
-
-// Begin starts the round
-func (c *newTextStreamCache) Begin() {
-	c.old, c.current = c.current, map[interface{}]*textStreamCtx{}
-}
-
-// End ends the round
-func (c *newTextStreamCache) End() {
-	// TODO: deliver Close() handlers if they exist
-	c.old = nil
-}
-
-// newTextStream implements the cache create or fetch method
-func (c *newTextStreamCache) newTextStream(key interface{}, v string) *streams.TextStream {
-	cOld, ok := c.old[key]
-
-	if ok {
-		delete(c.old, key)
-	} else {
-		cOld = &textStreamCtx{}
-	}
-	c.current[key] = cOld
-	return cOld.refreshIfNeeded(v)
 }

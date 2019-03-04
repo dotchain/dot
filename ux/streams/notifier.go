@@ -6,45 +6,18 @@
 // and related utilities
 package streams
 
-// generate BoolStream
-//go:generate go run ../templates/gen.go ../templates/streams.template out=bool.go Package=streams Base=Bool BaseType=bool
+import (
+	dots "github.com/dotchain/dot/streams"
+)
 
-// generate TextStream
-//go:generate go run ../templates/gen.go ../templates/streams.template out=text.go Package=streams Base=Text BaseType=string
+// generate BoolStream and TextStream
+//go:generate go run codegen.go
 
-// Notifier implements standard methods used to notify mutations. All
-// streams typically embed this.
-type Notifier struct {
-	handlers []*Handler
-}
+// Notifier is an alias
+type Notifier = dots.Notifier
 
-// On registers a handler to be notified on change.
-func (n *Notifier) On(h *Handler) {
-	n.handlers = append(n.handlers, h)
-}
+// Handler is an alias
+type Handler = dots.Handler
 
-// Off deregisters the handler. Any pending notifications may still be delivered.
-func (n *Notifier) Off(h *Handler) {
-	for kk, hh := range n.handlers {
-		if hh != h {
-			continue
-		}
-		handlers := make([]*Handler, len(n.handlers)-1)
-		copy(handlers, n.handlers[:kk])
-		copy(handlers[kk:], n.handlers[kk+1:])
-		n.handlers = handlers
-	}
-}
-
-// Notify notifies all registered handlers of a change
-func (n *Notifier) Notify() {
-	for _, h := range n.handlers {
-		h.Handle()
-	}
-}
-
-// Handler is a generic structure to hold a function that allows
-// function pointers to be properly compared.
-type Handler struct {
-	Handle func()
-}
+// Cache is an alias
+type Cache = dots.Cache

@@ -15,7 +15,6 @@ var headerTpl = newTemplate(`
 // that can be found in the LICENSE file.
 //
 
-// Package is generated streams
 package Package
 
 import (
@@ -158,7 +157,7 @@ func (s *StreamType) FieldSubstream(cache streams.Cache) (field *FieldStrType) {
 			merging = true
 			for ;field.Next != nil; field = field.Next {
 				v := parent.Value
-				v.Field = field.Value
+				v.Field = field.Next.Value
 				c := changes.PathChange{path, field.Change}
 				parent = parent.Append(c, v, true)
 			}
@@ -166,9 +165,9 @@ func (s *StreamType) FieldSubstream(cache streams.Cache) (field *FieldStrType) {
 			for ;parent.Next != nil; parent = parent.Next {
 				result := refs.Merge(path, parent.Change)
 				if result ==  nil {
-					field = field.Append(nil, parent.Value.Field, true)
+					field = field.Append(nil, parent.Next.Value.Field, true)
 				}  else {
-					field = field.Append(result.Affected, parent.Value.Field, true)
+					field = field.Append(result.Affected, parent.Next.Value.Field, true)
 				}
 			}
 			merging = false
@@ -191,23 +190,23 @@ var entryTpl = newTemplate(`
 // Substream returns a stream for the specified index that is
 // automatically connected to the current StreamType instance.  Updates to
 // one automatically update the other.
-func (s *StreamType) Substream(cache SubstreamCache, index int) (entry *EntryStreamType) {
+func (s *StreamType) Substream(cache streams.Cache, index int) (entry *EntryStrType) {
 	n := s.Notifier
 	handler := &streams.Handler{nil}
 	if f, h, ok := cache.GetSubstream(n, index); ok {
-		entry, handler  = f.(*EntryStreamType), h.(*streams.Handler)
+		entry, handler  = f.(*EntryStrType), h
 	} else {
-		entry = NewEntryStreamType(s.Value[index])
+		entry = NewEntryStrType(s.Value[index])
 		parent, merging, path := s, false, []interface{}{index}
 		handler.Handle = func() {
 			if merging {
 				return
 			}
 
-			merging := true
+			merging = true
 			for ;entry.Next != nil; entry = entry.Next {
 				v := append(ValueType(nil), parent.Value...)
-				v[index] = entry
+				v[index] = entry.Next.Value
 				c := changes.PathChange{path, entry.Change}
 				parent = parent.Append(c, v, true)
 			}
@@ -221,7 +220,7 @@ func (s *StreamType) Substream(cache SubstreamCache, index int) (entry *EntryStr
                                         // the key in the cache
 					c = result.Affected
 				}
-				entry = entry.Append(c, parent.Value[index], true)
+				entry = entry.Append(c, parent.Next.Value[index], true)
 			}
 			merging = false
 		}
@@ -243,6 +242,9 @@ func newTemplate(s string) *template.Template {
 		{"Package", "{{$.Package}}"},
 		{"StreamType", "{{$.StreamType}}"},
 		{"ValueType", "{{$.ValueType}}"},
+		{"EntryStrType", "{{$.EntryStreamType}}"},
+		{"NewEntryStrType", "{{$.EntryConstructor}}"},
+		{"NewFieldStrType", "{{$.FieldConstructor}}"},
 		{"FieldStrType", "{{$.FieldStreamType}}"},
 		{"FieldSubstream", "{{$.FieldSubstream}}"},
 		{"FieldType", "{{$.FieldType}}"},
@@ -254,7 +256,7 @@ func newTemplate(s string) *template.Template {
 	repl := func(s string) string {
 		return "{{$.Field}}" + s[len(s)-1:]
 	}
-	s = regexp.MustCompile("Field[^ST]").ReplaceAllStringFunc(s, repl)
+	s = regexp.MustCompile("Field[^CST]").ReplaceAllStringFunc(s, repl)
 
 	return template.Must(template.New("code").Parse(s))
 }

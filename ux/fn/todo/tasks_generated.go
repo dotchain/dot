@@ -14,9 +14,8 @@ import (
 )
 
 type tasksViewCtx struct {
-	streams.Subs
+	streams.Cache
 	TaskEditCache
-	newTaskStreamCache
 	fn struct {
 		fn.ElementCache
 	}
@@ -54,12 +53,10 @@ func (c *tasksViewCtx) refreshIfNeeded(styles core.Styles, showDone *streams.Boo
 func (c *tasksViewCtx) refresh(styles core.Styles, showDone *streams.BoolStream, showNotDone *streams.BoolStream, tasks *TasksStream) (result1 core.Element) {
 	c.memoInitialized = true
 	c.memoizedParams.styles, c.memoizedParams.showDone, c.memoizedParams.showNotDone, c.memoizedParams.tasks = styles, showDone, showNotDone, tasks
-	c.Subs.Begin()
-	defer c.Subs.End()
+	c.Cache.Begin()
+	defer c.Cache.End()
 	c.TaskEditCache.Begin()
 	defer c.TaskEditCache.End()
-	c.newTaskStreamCache.Begin()
-	defer c.newTaskStreamCache.End()
 	c.fn.ElementCache.Begin()
 	defer c.fn.ElementCache.End()
 	c.memoizedParams.result1 = TasksView(c, styles, showDone, showNotDone, tasks)
@@ -94,60 +91,4 @@ func (c *TasksViewCache) TasksView(key interface{}, styles core.Styles, showDone
 	}
 	c.current[key] = cOld
 	return cOld.refreshIfNeeded(styles, showDone, showNotDone, tasks)
-}
-
-type newTaskStreamCtx struct {
-	memoInitialized bool
-	memoizedParams  struct {
-		t       Task
-		result1 *TaskStream
-	}
-}
-
-func (c *newTaskStreamCtx) areArgsSame(t Task) bool {
-	return t == c.memoizedParams.t
-}
-
-func (c *newTaskStreamCtx) refreshIfNeeded(t Task) (result1 *TaskStream) {
-	if !c.memoInitialized || !c.areArgsSame(t) {
-		return c.refresh(t)
-	}
-	return c.memoizedParams.result1
-}
-
-func (c *newTaskStreamCtx) refresh(t Task) (result1 *TaskStream) {
-	c.memoInitialized = true
-	c.memoizedParams.t = t
-	c.memoizedParams.result1 = newTaskStream(c, t)
-	return c.memoizedParams.result1
-}
-
-// newTaskStreamCache is generated from newTaskStream.  Please see that for
-// documentation
-type newTaskStreamCache struct {
-	old, current map[interface{}]*newTaskStreamCtx
-}
-
-// Begin starts the round
-func (c *newTaskStreamCache) Begin() {
-	c.old, c.current = c.current, map[interface{}]*newTaskStreamCtx{}
-}
-
-// End ends the round
-func (c *newTaskStreamCache) End() {
-	// TODO: deliver Close() handlers if they exist
-	c.old = nil
-}
-
-// newTaskStream implements the cache create or fetch method
-func (c *newTaskStreamCache) newTaskStream(key interface{}, t Task) *TaskStream {
-	cOld, ok := c.old[key]
-
-	if ok {
-		delete(c.old, key)
-	} else {
-		cOld = &newTaskStreamCtx{}
-	}
-	c.current[key] = cOld
-	return cOld.refreshIfNeeded(t)
 }

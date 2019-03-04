@@ -27,8 +27,7 @@ func Checkbox(c *checkboxCtx, styles core.Styles, checked *streams.BoolStream) c
 			Styles:  styles,
 			OnChange: &core.EventHandler{func(_ core.Event) {
 				v := result.Value() == "on"
-				checked = checked.Update(nil, v)
-				checked.Notify()
+				checked = checked.Append(nil, v, true)
 			}},
 		},
 	)

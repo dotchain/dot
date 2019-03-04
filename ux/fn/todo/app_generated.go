@@ -14,9 +14,8 @@ import (
 )
 
 type appCtx struct {
-	streams.Subs
+	streams.Cache
 	TasksViewCache
-	newBoolStreamCache
 	fn struct {
 		fn.CheckboxCache
 		fn.ElementCache
@@ -47,12 +46,10 @@ func (c *appCtx) refreshIfNeeded(styles core.Styles, tasks *TasksStream) (result
 func (c *appCtx) refresh(styles core.Styles, tasks *TasksStream) (result1 core.Element) {
 	c.memoInitialized = true
 	c.memoizedParams.styles, c.memoizedParams.tasks = styles, tasks
-	c.Subs.Begin()
-	defer c.Subs.End()
+	c.Cache.Begin()
+	defer c.Cache.End()
 	c.TasksViewCache.Begin()
 	defer c.TasksViewCache.End()
-	c.newBoolStreamCache.Begin()
-	defer c.newBoolStreamCache.End()
 	c.fn.CheckboxCache.Begin()
 	defer c.fn.CheckboxCache.End()
 	c.fn.ElementCache.Begin()
