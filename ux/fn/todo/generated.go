@@ -405,12 +405,6 @@ func (ctx *taskEditCtx) refreshIfNeeded(styles core.Styles, task *TaskStream) (r
 }
 
 func (ctx *taskEditCtx) refresh(styles core.Styles, task *TaskStream) (result1 core.Element) {
-	if !ctx.initialized {
-		nn := &streams.Notifier{}
-		nn.On(&ctx.stateHandler)
-
-	}
-
 	ctx.initialized = true
 	ctx.stateHandler.Handle = func() {
 		ctx.refresh(styles, task)
@@ -429,6 +423,7 @@ func (ctx *taskEditCtx) refresh(styles core.Styles, task *TaskStream) (result1 c
 	ctx.fn.TextEditCache.Begin()
 	defer ctx.fn.TextEditCache.End()
 	ctx.memoized.result1 = TaskEdit(ctx, styles, task)
+
 	return ctx.memoized.result1
 }
 
@@ -443,7 +438,6 @@ func (ctx *taskEditCtx) close() {
 
 	ctx.fn.TextEditCache.Begin()
 	defer ctx.fn.TextEditCache.End()
-
 }
 
 // TaskEditCache is good
@@ -521,12 +515,6 @@ func (ctx *tasksViewCtx) refreshIfNeeded(styles core.Styles, showDone *uxstreams
 }
 
 func (ctx *tasksViewCtx) refresh(styles core.Styles, showDone *uxstreams.BoolStream, showNotDone *uxstreams.BoolStream, tasks *TasksStream) (result1 core.Element) {
-	if !ctx.initialized {
-		nn := &streams.Notifier{}
-		nn.On(&ctx.stateHandler)
-
-	}
-
 	ctx.initialized = true
 	ctx.stateHandler.Handle = func() {
 		ctx.refresh(styles, showDone, showNotDone, tasks)
@@ -542,6 +530,7 @@ func (ctx *tasksViewCtx) refresh(styles core.Styles, showDone *uxstreams.BoolStr
 	ctx.fn.ElementCache.Begin()
 	defer ctx.fn.ElementCache.End()
 	ctx.memoized.result1 = TasksView(ctx, styles, showDone, showNotDone, tasks)
+
 	return ctx.memoized.result1
 }
 
@@ -553,7 +542,6 @@ func (ctx *tasksViewCtx) close() {
 
 	ctx.fn.ElementCache.Begin()
 	defer ctx.fn.ElementCache.End()
-
 }
 
 // TasksViewCache is good
@@ -598,11 +586,13 @@ type appCtx struct {
 		fn.ElementCache
 	}
 	memoized struct {
-		result1     core.Element
-		showDone    *uxstreams.BoolStream
-		showNotDone *uxstreams.BoolStream
-		styles      core.Styles
-		tasks       *TasksStream
+		doneState    *uxstreams.BoolStream
+		notDoneState *uxstreams.BoolStream
+		result1      core.Element
+		result2      *uxstreams.BoolStream
+		result3      *uxstreams.BoolStream
+		styles       core.Styles
+		tasks        *TasksStream
 	}
 }
 
@@ -624,23 +614,17 @@ func (ctx *appCtx) refreshIfNeeded(styles core.Styles, tasks *TasksStream) (resu
 }
 
 func (ctx *appCtx) refresh(styles core.Styles, tasks *TasksStream) (result1 core.Element) {
-	if !ctx.initialized {
-		nn := &streams.Notifier{}
-		nn.On(&ctx.stateHandler)
-
-		ctx.memoized.showDone = uxstreams.NewBoolStream(true)
-		ctx.memoized.showDone.Notifier = nn
-		ctx.memoized.showNotDone = uxstreams.NewBoolStream(true)
-		ctx.memoized.showNotDone.Notifier = nn
-	}
-
 	ctx.initialized = true
 	ctx.stateHandler.Handle = func() {
 		ctx.refresh(styles, tasks)
 	}
 
-	ctx.memoized.showDone = ctx.memoized.showDone.Latest()
-	ctx.memoized.showNotDone = ctx.memoized.showNotDone.Latest()
+	if ctx.memoized.doneState != nil {
+		ctx.memoized.doneState = ctx.memoized.doneState.Latest()
+	}
+	if ctx.memoized.notDoneState != nil {
+		ctx.memoized.notDoneState = ctx.memoized.notDoneState.Latest()
+	}
 	ctx.memoized.styles, ctx.memoized.tasks = styles, tasks
 
 	ctx.Cache.Begin()
@@ -653,7 +637,26 @@ func (ctx *appCtx) refresh(styles core.Styles, tasks *TasksStream) (result1 core
 
 	ctx.fn.CheckboxCache.Begin()
 	defer ctx.fn.CheckboxCache.End()
-	ctx.memoized.result1 = AppWithState(ctx, styles, tasks, ctx.memoized.showDone, ctx.memoized.showNotDone)
+	ctx.memoized.result1, ctx.memoized.result2, ctx.memoized.result3 = App(ctx, styles, tasks, ctx.memoized.doneState, ctx.memoized.notDoneState)
+
+	if ctx.memoized.doneState != ctx.memoized.result2 {
+		if ctx.memoized.doneState != nil {
+			ctx.memoized.doneState.Off(&ctx.stateHandler)
+		}
+		if ctx.memoized.result2 != nil {
+			ctx.memoized.result2.On(&ctx.stateHandler)
+		}
+		ctx.memoized.doneState = ctx.memoized.result2
+	}
+	if ctx.memoized.notDoneState != ctx.memoized.result3 {
+		if ctx.memoized.notDoneState != nil {
+			ctx.memoized.notDoneState.Off(&ctx.stateHandler)
+		}
+		if ctx.memoized.result3 != nil {
+			ctx.memoized.result3.On(&ctx.stateHandler)
+		}
+		ctx.memoized.notDoneState = ctx.memoized.result3
+	}
 	return ctx.memoized.result1
 }
 
@@ -668,9 +671,12 @@ func (ctx *appCtx) close() {
 
 	ctx.fn.CheckboxCache.Begin()
 	defer ctx.fn.CheckboxCache.End()
-
-	ctx.memoized.showDone.Off(&ctx.stateHandler)
-	ctx.memoized.showNotDone.Off(&ctx.stateHandler)
+	if ctx.memoized.doneState != nil {
+		ctx.memoized.doneState.Off(&ctx.stateHandler)
+	}
+	if ctx.memoized.notDoneState != nil {
+		ctx.memoized.notDoneState.Off(&ctx.stateHandler)
+	}
 }
 
 // AppCache is good

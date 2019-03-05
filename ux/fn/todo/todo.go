@@ -59,14 +59,21 @@ func renderTasks(t Tasks, fn func(int, Task) core.Element) []core.Element {
 	return result
 }
 
-// AppWithState is a thin wrapper on top of TasksView with checkboxes for ShowDone and ShowUndone
+// App is a thin wrapper on top of TasksView with checkboxes for ShowDone and ShowUndone
 //
-func AppWithState(c *appCtx, styles core.Styles, tasks *TasksStream, done *streams.BoolStream, notDone *streams.BoolStream) core.Element {
+func App(c *appCtx, styles core.Styles, tasks *TasksStream, doneState *streams.BoolStream, notDoneState *streams.BoolStream) (core.Element, *streams.BoolStream, *streams.BoolStream) {
+	if doneState == nil {
+		doneState = streams.NewBoolStream(true)
+	}
+	if notDoneState == nil {
+		notDoneState = streams.NewBoolStream(true)
+	}
+
 	return c.fn.Element(
 		"root",
 		core.Props{Tag: "div", Styles: styles},
-		c.fn.Checkbox("done", core.Styles{}, done),
-		c.fn.Checkbox("notDone", core.Styles{}, notDone),
-		c.TasksView("tasks", core.Styles{}, done, notDone, tasks),
-	)
+		c.fn.Checkbox("done", core.Styles{}, doneState),
+		c.fn.Checkbox("notDone", core.Styles{}, notDoneState),
+		c.TasksView("tasks", core.Styles{}, doneState, notDoneState, tasks),
+	), doneState, notDoneState
 }

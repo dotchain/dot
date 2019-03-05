@@ -49,13 +49,12 @@ func main() {
 
 				Function:      "TaskEdit",
 				Subcomponents: []string{"fn.CheckboxCache", "fn.ElementCache", "fn.TextEditCache"},
-				Args: []compiler.ArgInfo{
+				Params: []compiler.ParamInfo{
 					{Name: "ctx", Type: "*taskEditCtx"},
 					{Name: "styles", Type: "core.Styles"},
-					{Name: "task", Type: "*TaskStream", IsLast: true},
+					{Name: "task", Type: "*TaskStream"},
 				},
-				Results:     []compiler.ResultInfo{{Name: "", Type: "core.Element"}},
-				HasEllipsis: false,
+				Results: []compiler.ResultInfo{{Name: "", Type: "core.Element"}},
 
 				Component:         "TaskEditCache",
 				ComponentComments: "// TaskEditCache is good",
@@ -67,15 +66,14 @@ func main() {
 
 				Function:      "TasksView",
 				Subcomponents: []string{"TaskEditCache", "fn.ElementCache"},
-				Args: []compiler.ArgInfo{
+				Params: []compiler.ParamInfo{
 					{Name: "ctx", Type: "*tasksViewCtx"},
 					{Name: "styles", Type: "core.Styles"},
 					{Name: "showDone", Type: "*uxstreams.BoolStream"},
 					{Name: "showNotDone", Type: "*uxstreams.BoolStream"},
-					{Name: "tasks", Type: "*TasksStream", IsLast: true},
+					{Name: "tasks", Type: "*TasksStream"},
 				},
-				Results:     []compiler.ResultInfo{{Name: "", Type: "core.Element"}},
-				HasEllipsis: false,
+				Results: []compiler.ResultInfo{{Name: "", Type: "core.Element"}},
 
 				Component:         "TasksViewCache",
 				ComponentComments: "// TasksViewCache is good",
@@ -85,19 +83,20 @@ func main() {
 			{
 				ContextType: "appCtx",
 
-				Function:      "AppWithState",
+				Function:      "App",
 				Subcomponents: []string{"TasksViewCache", "fn.ElementCache", "fn.CheckboxCache"},
-				Args: []compiler.ArgInfo{
-					{Name: "ctx", Type: "*appCtx"},
-					{Name: "styles", Type: "core.Styles"},
-					{Name: "tasks", Type: "*TasksStream", IsLast: true},
+				Params: []compiler.ParamInfo{
+					{"ctx", "*appCtx"},
+					{"styles", "core.Styles"},
+					{"tasks", "*TasksStream"},
+					{"doneState", "*uxstreams.BoolStream"},
+					{"notDoneState", "*uxstreams.BoolStream"},
 				},
-				StateArgs: []compiler.StateArgInfo{
-					{Name: "showDone", Type: "*uxstreams.BoolStream", Ctor: "uxstreams.NewBoolStream(true)"},
-					{Name: "showNotDone", Type: "*uxstreams.BoolStream", Ctor: "uxstreams.NewBoolStream(true)"},
+				Results: []compiler.ResultInfo{
+					{"", "core.Element"},
+					{"", "*uxstreams.BoolStream"},
+					{"", "*uxstreams.BoolStream"},
 				},
-				Results:     []compiler.ResultInfo{{Name: "", Type: "core.Element"}},
-				HasEllipsis: false,
 
 				Component:         "AppCache",
 				ComponentComments: "// AppCache is good",

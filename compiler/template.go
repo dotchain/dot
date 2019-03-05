@@ -57,25 +57,18 @@ func ({{$c.Name}} {{$c.Type}}) refreshIfNeeded({{.NonContextArgsDecl}}) ({{.Resu
 	if !{{$c.Name}}.initialized || !{{$c.Name}}.areArgsSame({{.NonContextArgs}}) {
 		return {{$c.Name}}.refresh({{.NonContextArgs}})
 	}
-	return {{.MemoizedResults}}
+	return {{.MemoizedNonStateResults}}
 }
 
 func ({{$c.Name}} {{$c.Type}}) refresh({{.NonContextArgsDecl}}) ({{.ResultsDecl}}) {
-	if !{{$c.Name}}.initialized {
-		nn := &streams.Notifier{}
-		nn.On(&{{$c.Name}}.stateHandler)
-		{{range $sa := .StateArgs}}
-		{{$c.Name}}.memoized.{{$sa.Name}} = {{$sa.Ctor}}
-		{{$c.Name}}.memoized.{{$sa.Name}}.Notifier = nn
-		{{- end}}
-	}
-
 	{{$c.Name}}.initialized = true
 	{{$c.Name}}.stateHandler.Handle = func() {
 		{{$c.Name}}.refresh({{.NonContextArgs}})
 	}
 	{{range $sa := .StateArgs}}
-	{{$c.Name}}.memoized.{{$sa.Name}} = {{$c.Name}}.memoized.{{$sa.Name}}.Latest(){{end}}
+	if {{$c.Name}}.memoized.{{$sa.Name}} != nil {
+		{{$c.Name}}.memoized.{{$sa.Name}} = {{$c.Name}}.memoized.{{$sa.Name}}.Latest()
+	}{{end}}
 	{{.MemoizedNonContextArgs}} = {{.NonContextArgs}}
 
 	{{$c.Name}}.Cache.Begin()
@@ -87,7 +80,19 @@ func ({{$c.Name}} {{$c.Type}}) refresh({{.NonContextArgsDecl}}) ({{.ResultsDecl}
 	{{end -}}
 
 	{{.MemoizedResults}} = {{.Function}}({{.AllArgs}})
-	return {{.MemoizedResults}}
+
+	{{range $sa := .StateArgs -}}
+	if {{$c.Name}}.memoized.{{$sa.Name}} != {{$c.Name}}.memoized.{{$sa.ResultName}} {
+		if {{$c.Name}}.memoized.{{$sa.Name}} != nil {
+			{{$c.Name}}.memoized.{{$sa.Name}}.Off(&{{$c.Name}}.stateHandler)
+		}
+		if {{$c.Name}}.memoized.{{$sa.ResultName}} != nil {
+			{{$c.Name}}.memoized.{{$sa.ResultName}}.On(&{{$c.Name}}.stateHandler)
+		}
+		{{$c.Name}}.memoized.{{$sa.Name}} = {{$c.Name}}.memoized.{{$sa.ResultName}}
+	}
+	{{end -}}
+	return {{.MemoizedNonStateResults}}
 }
 
 func ({{$c.Name}} {{$c.Type}}) close() {
@@ -99,8 +104,11 @@ func ({{$c.Name}} {{$c.Type}}) close() {
 	defer {{$c.Name}}.{{$i}}.End()
 	{{end -}}
 
-	{{range $sa := .StateArgs}}
-	{{$c.Name}}.memoized.{{$sa.Name}}.Off(&{{$c.Name}}.stateHandler){{end}}
+	{{range $sa := .StateArgs -}}
+	if {{$c.Name}}.memoized.{{$sa.Name}} != nil {
+		{{$c.Name}}.memoized.{{$sa.Name}}.Off(&{{$c.Name}}.stateHandler)
+	}
+	{{end -}}
 }
 
 {{.ComponentComments}}
