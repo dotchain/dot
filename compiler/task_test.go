@@ -41,13 +41,12 @@ func TestTask(t *testing.T) {
 				ContextType:   "taskCtx",
 				Function:      "TaskView",
 				Subcomponents: []string{"subTasker", "fn.Checkbox", "fn.TextEdit"},
-				Args: []compiler.ArgInfo{
+				Params: []compiler.ParamInfo{
 					{Name: "ctx", Type: "*taskCtx"},
 					{Name: "boo", Type: "bool"},
-					{Name: "children", Type: "[]int", IsArray: true, IsLast: true},
+					{Name: "children", Type: "...int"},
 				},
-				Results:     []compiler.ResultInfo{{Name: "", Type: "int"}},
-				HasEllipsis: true,
+				Results: []compiler.ResultInfo{{Name: "", Type: "int"}},
 
 				Component:         "TaskViewCache",
 				ComponentComments: "// TaskViewCache is something",
@@ -349,7 +348,7 @@ type taskCtx struct {
 	}
 }
 
-func (ctx *taskCtx) areArgsSame(boo bool, children ...int) bool {
+func (ctx *taskCtx) areArgsSame(boo bool, children []int) bool {
 
 	if boo != ctx.memoized.boo {
 		return false
@@ -367,20 +366,14 @@ func (ctx *taskCtx) areArgsSame(boo bool, children ...int) bool {
 
 }
 
-func (ctx *taskCtx) refreshIfNeeded(boo bool, children ...int) (result1 int) {
+func (ctx *taskCtx) refreshIfNeeded(boo bool, children []int) (result1 int) {
 	if !ctx.initialized || !ctx.areArgsSame(boo, children) {
 		return ctx.refresh(boo, children)
 	}
 	return ctx.memoized.result1
 }
 
-func (ctx *taskCtx) refresh(boo bool, children ...int) (result1 int) {
-	if !ctx.initialized {
-		nn := &streams.Notifier{}
-		nn.On(&ctx.stateHandler)
-
-	}
-
+func (ctx *taskCtx) refresh(boo bool, children []int) (result1 int) {
 	ctx.initialized = true
 	ctx.stateHandler.Handle = func() {
 		ctx.refresh(boo, children)
@@ -398,7 +391,8 @@ func (ctx *taskCtx) refresh(boo bool, children ...int) (result1 int) {
 
 	ctx.fn.TextEdit.Begin()
 	defer ctx.fn.TextEdit.End()
-	ctx.memoized.result1 = TaskView(ctx, boo, children)
+	ctx.memoized.result1 = TaskView(ctx, boo, children...)
+
 	return ctx.memoized.result1
 }
 
@@ -413,7 +407,6 @@ func (ctx *taskCtx) close() {
 
 	ctx.fn.TextEdit.Begin()
 	defer ctx.fn.TextEdit.End()
-
 }
 
 // TaskViewCache is something

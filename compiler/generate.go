@@ -83,16 +83,9 @@ func Generate(info Info) string {
 	return string(p)
 }
 
-// ArgInfo has info about arguments
-type ArgInfo struct {
+// ParamInfo has info about arguments
+type ParamInfo struct {
 	Name, Type string
-	IsArray    bool
-	IsLast     bool
-}
-
-// StateArgInfo has info about stateful args
-type StateArgInfo struct {
-	Name, Type, Ctor string
 }
 
 // ResultInfo has info about return values
@@ -105,15 +98,77 @@ type ContextInfo struct {
 	ContextType   string
 	Function      string
 	Subcomponents []string
-	Args          []ArgInfo
-	StateArgs     []StateArgInfo
+	Params        []ParamInfo
 	Results       []ResultInfo
-	HasEllipsis   bool
 
 	Component         string
 	ComponentComments string
 	Method            string
 	MethodComments    string
+}
+
+// Args helper
+func (c *ContextInfo) Args() interface{} {
+	result := []map[string]interface{}{}
+	for _, p := range c.Params {
+		if strings.HasSuffix(p.Name, "State") {
+			continue
+		}
+
+		pType := p.Type
+		if strings.HasPrefix(pType, "...") {
+			pType = "[]" + pType[3:]
+		}
+
+		result = append(result, map[string]interface{}{
+			"Name":    p.Name,
+			"Type":    pType,
+			"IsArray": strings.HasPrefix(pType, "[]"),
+			"IsLast":  false,
+		})
+	}
+	result[len(result)-1]["IsLast"] = true
+	return result
+}
+
+// StateArgs helper
+func (c *ContextInfo) StateArgs() interface{} {
+	result := []interface{}{}
+	seen := map[string]bool{}
+	for _, p := range c.Params {
+		if !strings.HasSuffix(p.Name, "State") {
+			continue
+		}
+
+		resultName := ""
+		for kk, r := range c.Results {
+			rName := r.Name
+			if rName == "" {
+				rName = fmt.Sprintf("result%d", kk+1)
+			}
+
+			if !seen[rName] && r.Type == p.Type {
+				resultName = rName
+				break
+			}
+		}
+		if resultName == "" {
+			panic("Could not match result with state")
+		}
+		seen[resultName] = true
+
+		result = append(result, map[string]interface{}{
+			"Name":       p.Name,
+			"Type":       p.Type,
+			"ResultName": resultName,
+		})
+	}
+	return result
+}
+
+// HasEllipsis helper
+func (c *ContextInfo) HasEllipsis() bool {
+	return strings.HasPrefix(c.Params[len(c.Params)-1].Type, "...")
 }
 
 // PkgSubcomps helper
@@ -137,13 +192,14 @@ func (c *ContextInfo) PkgSubcomps() interface{} {
 	}
 	add("", "initialized bool")
 	add("", "stateHandler streams.Handler")
-	for kk, arg := range c.Args {
+	for kk, arg := range c.Params {
 		if kk > 0 {
-			add("memoized", arg.Name+" "+arg.Type)
+			aType := arg.Type
+			if strings.HasPrefix(aType, "...") {
+				aType = "[]" + aType[3:]
+			}
+			add("memoized", arg.Name+" "+aType)
 		}
-	}
-	for _, arg := range c.StateArgs {
-		add("memoized", arg.Name+" "+arg.Type)
 	}
 
 	for kk, r := range c.Results {
@@ -174,17 +230,11 @@ func (c *ContextInfo) PkgSubcomps() interface{} {
 // MethodDecl helper
 func (c *ContextInfo) MethodDecl() string {
 	result := []string{}
-	for kk, a := range c.Args {
+	for kk, a := range c.Params {
 		if kk == 0 {
 			result = append(result, a.Name+"Key interface{}")
-		} else {
-			decl := a.Name + " "
-			if a.IsLast && c.HasEllipsis {
-				decl += "..." + a.Type[2:]
-			} else {
-				decl += a.Type
-			}
-			result = append(result, decl)
+		} else if !strings.HasSuffix(a.Name, "State") {
+			result = append(result, a.Name+" "+a.Type)
 		}
 	}
 	return strings.Join(result, ", ")
@@ -193,8 +243,8 @@ func (c *ContextInfo) MethodDecl() string {
 // NonContextArgs helper
 func (c *ContextInfo) NonContextArgs() string {
 	result := []string{}
-	for kk, a := range c.Args {
-		if kk > 0 {
+	for kk, a := range c.Params {
+		if kk > 0 && !strings.HasSuffix(a.Name, "State") {
 			result = append(result, a.Name)
 		}
 	}
@@ -204,11 +254,14 @@ func (c *ContextInfo) NonContextArgs() string {
 // AllArgs helper
 func (c *ContextInfo) AllArgs() string {
 	result := []string{}
-	for _, a := range c.Args {
-		result = append(result, a.Name)
-	}
-	for _, a := range c.StateArgs {
-		result = append(result, c.Args[0].Name+".memoized."+a.Name)
+	for _, a := range c.Params {
+		if strings.HasSuffix(a.Name, "State") {
+			result = append(result, c.Params[0].Name+".memoized."+a.Name)
+		} else if strings.HasPrefix(a.Type, "...") {
+			result = append(result, a.Name+"...")
+		} else {
+			result = append(result, a.Name)
+		}
 	}
 	return strings.Join(result, ", ")
 }
@@ -216,9 +269,9 @@ func (c *ContextInfo) AllArgs() string {
 // MemoizedNonContextArgs helper
 func (c *ContextInfo) MemoizedNonContextArgs() string {
 	result := []string{}
-	ctx := c.Args[0].Name
-	for kk, a := range c.Args {
-		if kk > 0 {
+	ctx := c.Params[0].Name
+	for kk, a := range c.Params {
+		if kk > 0 && !strings.HasSuffix(a.Name, "State") {
 			result = append(result, ctx+".memoized."+a.Name)
 		}
 	}
@@ -228,15 +281,13 @@ func (c *ContextInfo) MemoizedNonContextArgs() string {
 // NonContextArgsDecl helper
 func (c *ContextInfo) NonContextArgsDecl() string {
 	result := []string{}
-	for kk, a := range c.Args {
-		if kk > 0 {
-			decl := a.Name + " "
-			if a.IsLast && c.HasEllipsis {
-				decl += "..." + a.Type[2:]
-			} else {
-				decl += a.Type
+	for kk, a := range c.Params {
+		if kk > 0 && !strings.HasSuffix(a.Name, "State") {
+			aType := a.Type
+			if strings.HasPrefix(aType, "...") {
+				aType = "[]" + aType[3:]
 			}
-			result = append(result, decl)
+			result = append(result, a.Name+" "+aType)
 		}
 	}
 	return strings.Join(result, ", ")
@@ -244,11 +295,19 @@ func (c *ContextInfo) NonContextArgsDecl() string {
 
 // ResultsDecl helper
 func (c *ContextInfo) ResultsDecl() string {
+	seen := map[string]bool{}
+	for _, a := range c.StateArgs().([]interface{}) {
+		seen[a.(map[string]interface{})["ResultName"].(string)] = true
+	}
+
 	result := []string{}
 	for kk, r := range c.Results {
 		n := r.Name
 		if n == "" {
 			n = fmt.Sprintf("result%d", kk+1)
+		}
+		if seen[n] {
+			continue
 		}
 		decl := n + " " + r.Type
 		result = append(result, decl)
@@ -258,12 +317,34 @@ func (c *ContextInfo) ResultsDecl() string {
 
 // MemoizedResults helper
 func (c *ContextInfo) MemoizedResults() string {
-	ctx := c.Args[0].Name
+	ctx := c.Params[0].Name
 	result := []string{}
 	for kk, r := range c.Results {
 		n := r.Name
 		if n == "" {
 			n = fmt.Sprintf("result%d", kk+1)
+		}
+		result = append(result, ctx+".memoized."+n)
+	}
+	return strings.Join(result, ", ")
+}
+
+// MemoizedNonStateResults helper
+func (c *ContextInfo) MemoizedNonStateResults() string {
+	seen := map[string]bool{}
+	for _, a := range c.StateArgs().([]interface{}) {
+		seen[a.(map[string]interface{})["ResultName"].(string)] = true
+	}
+
+	ctx := c.Params[0].Name
+	result := []string{}
+	for kk, r := range c.Results {
+		n := r.Name
+		if n == "" {
+			n = fmt.Sprintf("result%d", kk+1)
+		}
+		if seen[n] {
+			continue
 		}
 		result = append(result, ctx+".memoized."+n)
 	}
