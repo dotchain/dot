@@ -22,18 +22,15 @@ issues for even simple questions.
 
 ## Code organization
 
-* The root directory contains indiviual transform code for each
-primitive change type
+* The changes directory contains the core **changes** package
+which implements the basic transformations that is the basis for
+everything else.
 
-* Transformer.go code is mainly about dealing with bulk
-transformations.
+* The ops directory implements **operations** and mainly deals with
+the network/protocol aspects.
 
-* Log.go and client_log.go are mainly stateful structs to manage
-client reconciliation (either actually on the client or on the
-server). Please see [dots](https://github.com/dotchain/dots) for how
-these are used on the server and
-[ver](https://github.com/dotchain/ver) for how it is used on the
-client.
+* The streams and refs package implement the concept of *streams* of
+data for managing changes.
 
 ## Building, testing, linting
 
