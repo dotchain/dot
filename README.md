@@ -1,6 +1,6 @@
 # Operational Transforms Package
 
-[![Status](https://travis-ci.com/dotchain/dot.svg?branch=master)](https://travis-ci.org/dotchain/dot?branch=master)
+[![Status](https://travis-ci.com/dotchain/dot.svg?branch=master)](https://travis-ci.com/dotchain/dot?branch=master)
 [![GoDoc](https://godoc.org/github.com/dotchain/dot?status.svg)](https://godoc.org/github.com/dotchain/dot)
 [![codecov](https://codecov.io/gh/dotchain/dot/branch/master/graph/badge.svg)](https://codecov.io/gh/dotchain/dot)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dotchain/dot)](https://goreportcard.com/report/github.com/dotchain/dot)

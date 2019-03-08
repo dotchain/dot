@@ -14,4 +14,4 @@ before_script:
 notifications:
   email: false
 script: bash ./x/coverage.sh
-after_success: bash ./upload_x/coverage.sh bash <(curl -s https://codecov.io/bash)
+after_success: bash ./x/upload_coverage.sh bash <(curl -s https://codecov.io/bash)
