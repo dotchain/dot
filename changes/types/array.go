@@ -22,33 +22,31 @@ func (a A) Count() int {
 	return len(a)
 }
 
+func (a A) get(key interface{}) changes.Value {
+	if v := a[key.(int)]; v != nil {
+		return v
+	}
+	return changes.Nil
+}
+
+func (a A) set(key interface{}, v changes.Value) changes.Value {
+	clone := append(A(nil), a...)
+	if v != changes.Nil {
+		clone[key.(int)] = v
+	} else {
+		clone[key.(int)] = nil
+	}
+	return clone
+}
+
+func (a A) splice(offset, count int, after changes.Collection) changes.Collection {
+	end := offset + count
+	return append(append(a[:offset:offset], after.(A)...), a[end:]...)
+}
+
 // ApplyCollection implements changes.Collection
 func (a A) ApplyCollection(ctx changes.Context, c changes.Change) changes.Collection {
-	switch c := c.(type) {
-	case changes.Splice:
-		remove := c.Before.Count()
-		after := c.After.(A)
-		start, end := c.Offset, c.Offset+remove
-		return append(append(a[:start:start], after...), a[end:]...)
-	case changes.Move:
-		c = c.Normalize()
-		ox, cx, dx := c.Offset, c.Count, c.Distance
-		x1, x2, x3 := ox, ox+cx, ox+cx+dx
-		return append(append(append(a[:x1:x1], a[x2:x3]...), a[x1:x2]...), a[x3:]...)
-	case changes.PathChange:
-		idx := c.Path[0].(int)
-		clone := append([]changes.Value(nil), a...)
-		if clone[idx] == nil {
-			clone[idx] = changes.Nil
-		}
-		clone[idx] = clone[idx].Apply(ctx, changes.PathChange{c.Path[1:], c.Change})
-		if clone[idx] == changes.Nil {
-			clone[idx] = nil
-		}
-
-		return A(clone)
-	}
-	panic("Unexpected change on Apply")
+	return (Generic{Get: a.get, Set: a.set, Splice: a.splice}).ApplyCollection(ctx, c, a)
 }
 
 // Apply applies the change and returns the updated value
@@ -57,20 +55,5 @@ func (a A) ApplyCollection(ctx changes.Context, c changes.Change) changes.Collec
 // with nil.  It does not actually remove the element -- that needs a
 // changes.Splice.
 func (a A) Apply(ctx changes.Context, c changes.Change) changes.Value {
-	switch c := c.(type) {
-	case nil:
-		return a
-	case changes.Replace:
-		if c.IsDelete() {
-			return changes.Nil
-		}
-		return c.After
-	case changes.PathChange:
-		if len(c.Path) == 0 {
-			return a.Apply(ctx, c.Change)
-		}
-	case changes.Custom:
-		return c.ApplyTo(ctx, a)
-	}
-	return a.ApplyCollection(ctx, c)
+	return (Generic{Get: a.get, Set: a.set, Splice: a.splice}).Apply(ctx, c, a)
 }

@@ -12,32 +12,14 @@ import "github.com/dotchain/dot/changes"
 // an attempt to remove a key.
 type M map[interface{}]changes.Value
 
-// Apply applies the change and returns the updated value
-func (m M) Apply(ctx changes.Context, c changes.Change) changes.Value {
-	switch c := c.(type) {
-	case nil:
-		return m
-	case changes.Replace:
-		if c.IsDelete() {
-			return changes.Nil
-		}
-		return c.After
-	case changes.PathChange:
-		if len(c.Path) > 0 {
-			key := c.Path[0]
-			c.Path = c.Path[1:]
-			return m.applyKey(ctx, key, c)
-		}
+func (m M) get(key interface{}) changes.Value {
+	if v, ok := m[key]; ok {
+		return v
 	}
-	return c.(changes.Custom).ApplyTo(ctx, m)
+	return changes.Nil
 }
 
-func (m M) applyKey(ctx changes.Context, key interface{}, c changes.Change) changes.Value {
-	v, ok := m[key]
-	if !ok {
-		v = changes.Nil
-	}
-	v = v.Apply(ctx, c)
+func (m M) set(key interface{}, v changes.Value) changes.Value {
 	result := make(M, len(m))
 	for k, v := range m {
 		if k != key {
@@ -48,4 +30,9 @@ func (m M) applyKey(ctx changes.Context, key interface{}, c changes.Change) chan
 		result[key] = v
 	}
 	return result
+}
+
+// Apply applies the change and returns the updated value
+func (m M) Apply(ctx changes.Context, c changes.Change) changes.Value {
+	return (Generic{Get: m.get, Set: m.set}).Apply(ctx, c, m)
 }
