@@ -91,9 +91,14 @@ func TestAApply(t *testing.T) {
 	}
 
 	remove := changes.Replace{types.S8("OK"), changes.Nil}
-	x = x.Apply(nil, changes.PathChange{[]interface{}{0}, remove})
-	if !reflect.DeepEqual(x, a) {
-		t.Error("Unexpected apply with nil element", x)
+	x1 := x.(types.A).ApplyCollection(nil, changes.PathChange{[]interface{}{0}, remove})
+	x2 := x.Apply(nil, changes.PathChange{[]interface{}{0}, remove})
+
+	if !reflect.DeepEqual(x1, a) {
+		t.Error("Unexpected apply with nil element", x1)
+	}
+	if !reflect.DeepEqual(x2, a) {
+		t.Error("Unexpected apply with nil element", x2)
 	}
 }
 
