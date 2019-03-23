@@ -5,13 +5,14 @@
 package collab_test
 
 import (
+	"reflect"
+	"testing"
+
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/refs"
 	"github.com/dotchain/dot/streams"
 	"github.com/dotchain/dot/x/ui/collab"
-	"reflect"
-	"testing"
 )
 
 func TestText(t *testing.T) {

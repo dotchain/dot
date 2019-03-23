@@ -5,11 +5,12 @@
 package refs_test
 
 import (
+	"reflect"
+	"testing"
+
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/refs"
-	"reflect"
-	"testing"
 )
 
 func TestCaretNil(t *testing.T) {

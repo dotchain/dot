@@ -5,8 +5,9 @@
 package streams
 
 import (
-	"github.com/dotchain/dot/changes"
 	"sync"
+
+	"github.com/dotchain/dot/changes"
 )
 
 // Async queues any callbacks without executing them

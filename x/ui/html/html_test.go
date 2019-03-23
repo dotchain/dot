@@ -6,8 +6,9 @@ package html_test
 
 import (
 	"fmt"
-	"github.com/dotchain/dot/x/ui/html"
 	"testing"
+
+	"github.com/dotchain/dot/x/ui/html"
 )
 
 func TestMutableNode(t *testing.T) {

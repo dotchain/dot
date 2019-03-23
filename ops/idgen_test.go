@@ -5,8 +5,9 @@
 package ops_test
 
 import (
-	"github.com/dotchain/dot/ops"
 	"testing"
+
+	"github.com/dotchain/dot/ops"
 )
 
 func TestIDCollision(t *testing.T) {

@@ -7,9 +7,10 @@ package nw
 import (
 	"context"
 	"errors"
-	"github.com/dotchain/dot/ops"
 	"net/http"
 	"time"
+
+	"github.com/dotchain/dot/ops"
 )
 
 // Handler implements ServerHTTP using the provided store and codecs

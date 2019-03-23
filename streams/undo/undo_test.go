@@ -5,11 +5,12 @@
 package undo_test
 
 import (
+	"testing"
+
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/streams"
 	"github.com/dotchain/dot/streams/undo"
-	"testing"
 )
 
 func TestNextf(t *testing.T) {

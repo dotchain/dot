@@ -5,10 +5,11 @@
 package types_test
 
 import (
-	"github.com/dotchain/dot/changes"
-	"github.com/dotchain/dot/changes/types"
 	"testing"
 	"unicode/utf16"
+
+	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/changes/types"
 )
 
 func TestS8Slice(t *testing.T) {

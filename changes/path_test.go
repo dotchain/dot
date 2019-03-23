@@ -5,9 +5,10 @@
 package changes_test
 
 import (
-	"github.com/dotchain/dot/changes"
 	"reflect"
 	"testing"
+
+	"github.com/dotchain/dot/changes"
 )
 
 type Path []interface{}

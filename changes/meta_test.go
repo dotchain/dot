@@ -6,10 +6,11 @@ package changes_test
 
 import (
 	"context"
-	"github.com/dotchain/dot/changes"
-	"github.com/dotchain/dot/changes/types"
 	"reflect"
 	"testing"
+
+	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/changes/types"
 )
 
 func TestMetaRevert(t *testing.T) {

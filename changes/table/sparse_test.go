@@ -5,11 +5,12 @@
 package table_test
 
 import (
+	"reflect"
+	"testing"
+
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/table"
 	"github.com/dotchain/dot/changes/types"
-	"reflect"
-	"testing"
 )
 
 func TestSparse(t *testing.T) {

@@ -5,10 +5,11 @@
 package diff_test
 
 import (
+	"testing"
+
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/diff"
 	"github.com/dotchain/dot/changes/types"
-	"testing"
 )
 
 func TestChangingType(t *testing.T) {

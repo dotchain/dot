@@ -7,11 +7,12 @@ package ops_test
 import (
 	"context"
 	"errors"
-	"github.com/dotchain/dot/ops"
 	"math/rand"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/dotchain/dot/ops"
 )
 
 // Fake unreliable store

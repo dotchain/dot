@@ -6,14 +6,15 @@ package bolt_test
 
 import (
 	"context"
-	"github.com/dotchain/dot/changes"
-	"github.com/dotchain/dot/ops"
-	"github.com/dotchain/dot/ops/bolt"
-	"github.com/etcd-io/bbolt"
 	"os"
 	"reflect"
 	"strconv"
 	"testing"
+
+	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/ops"
+	"github.com/dotchain/dot/ops/bolt"
+	"github.com/etcd-io/bbolt"
 )
 
 var fname = "bolt.data"

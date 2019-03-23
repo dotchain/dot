@@ -5,9 +5,10 @@
 package changes_test
 
 import (
+	"testing"
+
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/test/seqtest"
-	"testing"
 )
 
 // These sequences are a bit odd to start with, so the specific

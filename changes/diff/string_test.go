@@ -5,11 +5,12 @@
 package diff_test
 
 import (
+	"math/rand"
+	"testing"
+
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/diff"
 	"github.com/dotchain/dot/changes/types"
-	"math/rand"
-	"testing"
 )
 
 func TestS8Diff(t *testing.T) {

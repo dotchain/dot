@@ -1,3 +1,3 @@
 #!/bin/bash
 
-gometalinter ./... --disable=vet --disable=gotypex --disable=vetshadow --cyclo-over=15
+golangci-lint run -E goimports -E gosec -E interfacer -E maligned -E misspell -E nakedret -E unconvert -D errcheck -e composite $*

@@ -5,12 +5,13 @@
 package ops_test
 
 import (
-	"github.com/dotchain/dot/changes"
-	"github.com/dotchain/dot/ops"
 	"math/rand"
 	"reflect"
 	"sync"
 	"testing"
+
+	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/ops"
 )
 
 func TestConnect(t *testing.T) {

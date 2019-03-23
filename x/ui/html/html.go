@@ -7,10 +7,11 @@ package html
 
 import (
 	"errors"
+	"strings"
+
 	"github.com/dotchain/dot/x/ui/dom"
 	"github.com/dotchain/dot/x/ui/input"
 	"golang.org/x/net/html"
-	"strings"
 )
 
 // TextTag is the tag used by text nodes
