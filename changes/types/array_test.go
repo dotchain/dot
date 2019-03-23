@@ -5,10 +5,11 @@
 package types_test
 
 import (
-	"github.com/dotchain/dot/changes"
-	"github.com/dotchain/dot/changes/types"
 	"reflect"
 	"testing"
+
+	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/changes/types"
 )
 
 func TestASlice(t *testing.T) {

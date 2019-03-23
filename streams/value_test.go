@@ -5,11 +5,12 @@
 package streams_test
 
 import (
+	"reflect"
+	"testing"
+
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/streams"
-	"reflect"
-	"testing"
 )
 
 func TestValueStream(t *testing.T) {

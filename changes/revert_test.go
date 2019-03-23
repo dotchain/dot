@@ -5,8 +5,9 @@
 package changes_test
 
 import (
-	"github.com/dotchain/dot/changes"
 	"testing"
+
+	"github.com/dotchain/dot/changes"
 )
 
 func TestReverts(t *testing.T) {

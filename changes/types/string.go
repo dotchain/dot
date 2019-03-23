@@ -5,8 +5,9 @@
 package types
 
 import (
-	"github.com/dotchain/dot/changes"
 	"unicode/utf16"
+
+	"github.com/dotchain/dot/changes"
 )
 
 // S8 implements a string whose offsets are UTF8 bytes

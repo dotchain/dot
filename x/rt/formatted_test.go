@@ -6,9 +6,10 @@ package rt_test
 
 import (
 	//	"github.com/dotchain/dot/changes"
+	"testing"
+
 	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/x/rt"
-	"testing"
 )
 
 func TestFormattedSliceSimple(t *testing.T) {

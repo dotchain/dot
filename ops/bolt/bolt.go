@@ -31,10 +31,11 @@ package bolt
 import (
 	"bytes"
 	"context"
+	"strconv"
+
 	"github.com/dotchain/dot/ops"
 	"github.com/dotchain/dot/ops/nw"
 	bolt "github.com/etcd-io/bbolt"
-	"strconv"
 )
 
 // New returns a store with the file store backed by the provided filename

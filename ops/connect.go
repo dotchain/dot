@@ -6,9 +6,10 @@ package ops
 
 import (
 	"context"
-	"github.com/dotchain/dot/streams"
 	"sync"
 	"time"
+
+	"github.com/dotchain/dot/streams"
 )
 
 // Connector helps connect a Store to a stream, taking local changes

@@ -5,9 +5,10 @@
 package dom_test
 
 import (
+	"testing"
+
 	"github.com/dotchain/dot/x/ui/dom"
 	"github.com/dotchain/dot/x/ui/html"
-	"testing"
 )
 
 func Test(t *testing.T) {

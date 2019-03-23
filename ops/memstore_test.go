@@ -6,6 +6,7 @@ package ops_test
 
 import (
 	"context"
+
 	"github.com/dotchain/dot/ops"
 )
 

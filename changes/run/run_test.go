@@ -5,12 +5,13 @@
 package run_test
 
 import (
+	"reflect"
+	"testing"
+
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/run"
 	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/refs"
-	"reflect"
-	"testing"
 )
 
 type S = types.S8

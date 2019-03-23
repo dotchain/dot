@@ -30,12 +30,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/dotchain/dot/ops"
-	"github.com/dotchain/dot/ops/nw"
-	"github.com/lib/pq"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/dotchain/dot/ops"
+	"github.com/dotchain/dot/ops/nw"
+	"github.com/lib/pq"
 )
 
 // New returns a store connected to the provided data stource

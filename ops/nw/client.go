@@ -10,9 +10,10 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"github.com/dotchain/dot/ops"
 	"net/http"
 	"time"
+
+	"github.com/dotchain/dot/ops"
 )
 
 // Client implements the ops.Store interface by making network calls

@@ -5,9 +5,10 @@
 package collab
 
 import (
+	"sort"
+
 	"github.com/dotchain/dot/refs"
 	"github.com/dotchain/dot/x/ui/dom"
-	"sort"
 )
 
 // Node implements dom.Node on top of a Text value

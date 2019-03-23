@@ -6,12 +6,13 @@ package nw
 
 import (
 	"encoding/gob"
+	"io"
+	"time"
+
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/ops"
 	"github.com/dotchain/dot/refs"
-	"io"
-	"time"
 )
 
 // Codec is the interface codecs will have to implement to marshal and

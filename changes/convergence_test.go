@@ -5,8 +5,9 @@
 package changes_test
 
 import (
-	"github.com/dotchain/dot/changes"
 	"testing"
+
+	"github.com/dotchain/dot/changes"
 )
 
 func validateMerge(t *testing.T, initial changes.Value, left, right changes.Change) {

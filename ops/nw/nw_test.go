@@ -8,14 +8,15 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"github.com/dotchain/dot/changes"
-	"github.com/dotchain/dot/changes/run"
-	"github.com/dotchain/dot/ops"
-	"github.com/dotchain/dot/ops/nw"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/changes/run"
+	"github.com/dotchain/dot/ops"
+	"github.com/dotchain/dot/ops/nw"
 )
 
 func TestClientErrors(t *testing.T) {

@@ -5,9 +5,10 @@
 package types_test
 
 import (
+	"testing"
+
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
-	"testing"
 )
 
 func TestCounterApply(t *testing.T) {

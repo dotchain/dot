@@ -5,11 +5,12 @@
 package streams_test
 
 import (
-	"github.com/dotchain/dot/changes"
-	"github.com/dotchain/dot/streams"
 	"reflect"
 	"sync"
 	"testing"
+
+	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/streams"
 )
 
 func TestAsync(t *testing.T) {
