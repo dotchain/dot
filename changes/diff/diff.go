@@ -37,5 +37,5 @@ func (s Std) Diff(d Differ, old, new changes.Value) changes.Change {
 			return S16(d, old, new)
 		}
 	}
-	return changes.Replace{old, new}
+	return changes.Replace{Before: old, After: new}
 }

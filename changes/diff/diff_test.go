@@ -17,7 +17,7 @@ func TestChangingType(t *testing.T) {
 	old := types.S8("hello")
 	new := types.S16("World")
 	c := d.Diff(d, old, new)
-	expected := changes.Replace{old, new}
+	expected := changes.Replace{Before: old, After: new}
 	if c != expected {
 		t.Error("Unexpected", c)
 	}

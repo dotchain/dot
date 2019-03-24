@@ -115,7 +115,7 @@ func (n Node) setAttribute(key, val string) {
 			return
 		}
 	}
-	n.Node.Attr = append(n.Node.Attr, html.Attribute{"", key, val})
+	n.Node.Attr = append(n.Node.Attr, html.Attribute{Namespace: "", Key: key, Val: val})
 }
 
 // RemoveAttribute removes the provided attribute. Note that there is

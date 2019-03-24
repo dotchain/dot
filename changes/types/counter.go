@@ -54,7 +54,7 @@ func (c Counter) Apply(ctx changes.Context, cx changes.Change) changes.Value {
 // Increment returns a change which implements the increment
 // operation.
 func (c Counter) Increment(by int32) changes.Change {
-	return changes.Splice{0, Counter(0), Counter(by)}
+	return changes.Splice{Before: Counter(0), After: Counter(by)}
 }
 
 // Set returns a change which implements updating the value

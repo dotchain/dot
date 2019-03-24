@@ -43,40 +43,40 @@ func TestAApply(t *testing.T) {
 		t.Error("Unexpected Apply.nil", x)
 	}
 
-	x = a.Apply(nil, changes.Replace{a, changes.Nil})
+	x = a.Apply(nil, changes.Replace{Before: a, After: changes.Nil})
 	if x != changes.Nil {
 		t.Error("Unexpeted Apply.Replace-Delete", x)
 	}
 
-	x = a.Apply(nil, changes.Replace{a, types.S16("OK")})
+	x = a.Apply(nil, changes.Replace{Before: a, After: types.S16("OK")})
 	if x != types.S16("OK") {
 		t.Error("Unexpected Apply.Replace", x)
 	}
 
-	x = a.Apply(nil, changes.Splice{1, a.Slice(1, 3), types.A{types.S8("-")}})
+	x = a.Apply(nil, changes.Splice{Offset: 1, Before: a.Slice(1, 3), After: types.A{types.S8("-")}})
 	expected := types.A{types.S8("a"), types.S8("-"), types.S8("e")}
 	if !reflect.DeepEqual(x, expected) {
 		t.Error("Unexpected Apply.Splice", x)
 	}
 
-	x = a.Apply(nil, changes.Move{2, 2, -1})
+	x = a.Apply(nil, changes.Move{Offset: 2, Count: 2, Distance: -1})
 	expected = types.A{types.S8("a"), types.S8("c"), types.S8("d"), types.S8("b"), types.S8("e")}
 	if !reflect.DeepEqual(x, expected) {
 		t.Error("Unexpected Apply.Move", x)
 	}
 
-	x = a.Apply(nil, changes.ChangeSet{changes.Move{2, 2, -1}})
+	x = a.Apply(nil, changes.ChangeSet{changes.Move{Offset: 2, Count: 2, Distance: -1}})
 	if !reflect.DeepEqual(x, expected) {
 		t.Error("Unexpected Apply.ChangeSet", x)
 	}
 
-	x = a.Apply(nil, changes.PathChange{nil, changes.Move{2, 2, -1}})
+	x = a.Apply(nil, changes.PathChange{Change: changes.Move{Offset: 2, Count: 2, Distance: -1}})
 	if !reflect.DeepEqual(x, expected) {
 		t.Error("Unexpected Apply.PathChange", x)
 	}
 
-	insert := changes.Splice{0, types.S8(""), types.S8("**")}
-	x = a.Apply(nil, changes.PathChange{[]interface{}{0}, insert})
+	insert := changes.Splice{Before: types.S8(""), After: types.S8("**")}
+	x = a.Apply(nil, changes.PathChange{Path: []interface{}{0}, Change: insert})
 	a[0] = types.S8("**a")
 	if !reflect.DeepEqual(x, a) {
 		t.Error("Unexpected Apply.PathChange", x)
@@ -84,15 +84,15 @@ func TestAApply(t *testing.T) {
 
 	// validate that nil values can be replaced
 	a = types.A{nil}
-	rep := changes.Replace{changes.Nil, types.S8("OK")}
-	x = a.Apply(nil, changes.PathChange{[]interface{}{0}, rep})
+	rep := changes.Replace{Before: changes.Nil, After: types.S8("OK")}
+	x = a.Apply(nil, changes.PathChange{Path: []interface{}{0}, Change: rep})
 	if !reflect.DeepEqual(x, types.A{types.S8("OK")}) {
 		t.Error("Unexpected apply with nil element", x)
 	}
 
-	remove := changes.Replace{types.S8("OK"), changes.Nil}
-	x1 := x.(types.A).ApplyCollection(nil, changes.PathChange{[]interface{}{0}, remove})
-	x2 := x.Apply(nil, changes.PathChange{[]interface{}{0}, remove})
+	remove := changes.Replace{Before: types.S8("OK"), After: changes.Nil}
+	x1 := x.(types.A).ApplyCollection(nil, changes.PathChange{Path: []interface{}{0}, Change: remove})
+	x2 := x.Apply(nil, changes.PathChange{Path: []interface{}{0}, Change: remove})
 
 	if !reflect.DeepEqual(x1, a) {
 		t.Error("Unexpected apply with nil element", x1)
@@ -117,6 +117,6 @@ func TestAPanics(t *testing.T) {
 	})
 
 	mustPanic(func() {
-		(types.A{}).Apply(nil, changes.ChangeSet{changes.Move{7, 3, -1}})
+		(types.A{}).Apply(nil, changes.ChangeSet{changes.Move{Offset: 7, Count: 3, Distance: -1}})
 	})
 }

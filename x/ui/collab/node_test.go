@@ -21,10 +21,10 @@ func ExampleNode_overlappingRegions() {
 		Text:      "Hello World",
 		SessionID: "me",
 		Refs: map[interface{}]refs.Ref{
-			"me":    refs.Range{refs.Caret{p, 1, true}, refs.Caret{p, 4, true}},
-			"alpha": refs.Range{refs.Caret{p, 0, true}, refs.Caret{p, 2, true}},
-			"beta":  refs.Range{refs.Caret{p, 4, true}, refs.Caret{p, 5, true}},
-			"gamma": refs.Range{refs.Caret{p, 5, true}, refs.Caret{p, 5, true}},
+			"me":    refRange(p, 1, true, 4, true),
+			"alpha": refRange(p, 0, true, 2, true),
+			"beta":  refRange(p, 4, true, 5, true),
+			"gamma": refRange(p, 5, true, 5, true),
 		},
 		Stream: nil,
 	}
@@ -53,10 +53,10 @@ func ExampleNode_carets() {
 		Text:      "Hello World",
 		SessionID: "me",
 		Refs: map[interface{}]refs.Ref{
-			"me":    refs.Range{refs.Caret{p, 2, true}, refs.Caret{p, 2, true}},
-			"alpha": refs.Range{refs.Caret{p, 1, true}, refs.Caret{p, 1, true}},
-			"beta":  refs.Range{refs.Caret{p, 1, true}, refs.Caret{p, 1, true}},
-			"gamma": refs.Range{refs.Caret{p, 1, true}, refs.Caret{p, 1, true}},
+			"me":    refRange(p, 2, true, 2, true),
+			"alpha": refRange(p, 1, true, 1, true),
+			"beta":  refRange(p, 1, true, 1, true),
+			"gamma": refRange(p, 1, true, 1, true),
 		},
 		Stream: nil,
 	}
@@ -84,10 +84,10 @@ func ExampleNode_sharedCarets() {
 		Text:      "Hello World",
 		SessionID: "me",
 		Refs: map[interface{}]refs.Ref{
-			"me":    refs.Range{refs.Caret{p, 1, true}, refs.Caret{p, 1, true}},
-			"alpha": refs.Range{refs.Caret{p, 1, true}, refs.Caret{p, 1, true}},
-			"beta":  refs.Range{refs.Caret{p, 1, true}, refs.Caret{p, 1, true}},
-			"gamma": refs.Range{refs.Caret{p, 1, true}, refs.Caret{p, 1, true}},
+			"me":    refRange(p, 1, true, 1, true),
+			"alpha": refRange(p, 1, true, 1, true),
+			"beta":  refRange(p, 1, true, 1, true),
+			"gamma": refRange(p, 1, true, 1, true),
 		},
 		Stream: nil,
 	}
@@ -113,7 +113,7 @@ func ExampleNode_insert() {
 		Text:      "Hullo World",
 		SessionID: "me",
 		Refs: map[interface{}]refs.Ref{
-			"me": refs.Range{refs.Caret{p, 2, true}, refs.Caret{p, 2, true}},
+			"me": refRange(p, 2, true, 2, true),
 		},
 		Stream: streams.New(),
 	}
@@ -156,4 +156,8 @@ func ExampleNode_insert() {
 	//   <span class="caret own"></span>
 	//   <span>World</span>
 	// </div>
+}
+
+func refRange(p refs.Path, start int, startLeft bool, end int, endLeft bool) refs.Range {
+	return refs.Range{Start: refs.Caret{Path: p, Index: start, IsLeft: startLeft}, End: refs.Caret{Path: p, Index: end, IsLeft: endLeft}}
 }

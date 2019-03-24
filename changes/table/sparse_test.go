@@ -28,7 +28,7 @@ func (x Sparse) TestSpliceRows(t *testing.T) {
 	s := table.Sparse{}
 	abc, c1 := s.SpliceRows(0, 0, []interface{}{"a", "b", "c"})
 	ac, c2 := abc.SpliceRows(1, 1, nil)
-	expected := table.Sparse{RowIDs: types.A{changes.Atomic{"a"}, changes.Atomic{"c"}}}
+	expected := table.Sparse{RowIDs: types.A{changes.Atomic{Value: "a"}, changes.Atomic{Value: "c"}}}
 	if !reflect.DeepEqual(ac, expected) {
 		t.Error("Unexpected splice result", ac)
 	}
@@ -43,7 +43,7 @@ func (x Sparse) TestSpliceCols(t *testing.T) {
 	s := table.Sparse{}
 	abc, c1 := s.SpliceCols(0, 0, []interface{}{"a", "b", "c"})
 	ac, c2 := abc.SpliceCols(1, 1, nil)
-	expected := table.Sparse{ColIDs: types.A{changes.Atomic{"a"}, changes.Atomic{"c"}}}
+	expected := table.Sparse{ColIDs: types.A{changes.Atomic{Value: "a"}, changes.Atomic{Value: "c"}}}
 	if !reflect.DeepEqual(ac, expected) {
 		t.Error("Unexpected splice result", ac)
 	}
@@ -120,7 +120,7 @@ func (x Sparse) TestGC(t *testing.T) {
 func (x Sparse) TestEdgeCases(t *testing.T) {
 	s := table.Sparse{Data: types.M{}}
 	s1, c1 := s.SpliceRows(0, 0, []interface{}{"row1"})
-	s2 := s.Apply(nil, changes.PathChange{nil, c1})
+	s2 := s.Apply(nil, changes.PathChange{Change: c1})
 	if !reflect.DeepEqual(s2, s1) {
 		t.Error("Nonconsequential path change had wrong effect", s2)
 	}

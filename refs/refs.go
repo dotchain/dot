@@ -109,5 +109,5 @@ func (p *MergeResult) pc(path []interface{}, c changes.Change) changes.Change {
 	if c == nil {
 		return nil
 	}
-	return changes.PathChange{path, c}
+	return changes.PathChange{Path: path, Change: c}
 }

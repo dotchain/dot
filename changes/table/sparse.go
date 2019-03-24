@@ -37,18 +37,18 @@ type Sparse struct {
 // removing the specified count of IDs.
 func (s Sparse) SpliceRows(offset, remove int, ids []interface{}) (Sparse, changes.Change) {
 	before := s.RowIDs.Slice(offset, remove)
-	c := changes.Splice{offset, before, s.toValues(ids)}
+	c := changes.Splice{Offset: offset, Before: before, After: s.toValues(ids)}
 	s.RowIDs = s.RowIDs.Apply(nil, c).(types.A)
-	return s, changes.PathChange{[]interface{}{"RowIDs"}, c}
+	return s, changes.PathChange{Path: []interface{}{"RowIDs"}, Change: c}
 }
 
 // SpliceCols splices a set of colIDs at the provided offset, first
 // removing the specified count of IDs
 func (s Sparse) SpliceCols(offset, remove int, ids []interface{}) (Sparse, changes.Change) {
 	before := s.ColIDs.Slice(offset, remove)
-	c := changes.Splice{offset, before, s.toValues(ids)}
+	c := changes.Splice{Offset: offset, Before: before, After: s.toValues(ids)}
 	s.ColIDs = s.ColIDs.Apply(nil, c).(types.A)
-	return s, changes.PathChange{[]interface{}{"ColIDs"}, c}
+	return s, changes.PathChange{Path: []interface{}{"ColIDs"}, Change: c}
 }
 
 // Cell returns the value at a given cell position. The bool return
@@ -60,27 +60,27 @@ func (s Sparse) Cell(row, col interface{}) (interface{}, bool) {
 // UpdateCell updates the value of a cell (which need not exist)
 func (s Sparse) UpdateCell(row, col, value interface{}) (Sparse, changes.Change) {
 	key := [2]interface{}{row, col}
-	c := changes.Replace{changes.Nil, s.toValue(value)}
+	c := changes.Replace{Before: changes.Nil, After: s.toValue(value)}
 	if before, ok := s.Data[key]; ok {
 		c.Before = before
 	}
-	pc := changes.PathChange{[]interface{}{key}, c}
+	pc := changes.PathChange{Path: []interface{}{key}, Change: c}
 	s.Data = s.Data.Apply(nil, pc).(types.M)
-	return s, changes.PathChange{[]interface{}{"Data", key}, c}
+	return s, changes.PathChange{Path: []interface{}{"Data", key}, Change: c}
 }
 
 // RemoveCell removes the value of a cell (which need not exist)
 func (s Sparse) RemoveCell(row, col interface{}) (Sparse, changes.Change) {
 	key := [2]interface{}{row, col}
-	c := changes.Replace{changes.Nil, changes.Nil}
+	c := changes.Replace{Before: changes.Nil, After: changes.Nil}
 	if before, ok := s.Data[key]; ok {
 		c.Before = before
 	} else {
 		return s, nil
 	}
-	pc := changes.PathChange{[]interface{}{key}, c}
+	pc := changes.PathChange{Path: []interface{}{key}, Change: c}
 	s.Data = s.Data.Apply(nil, pc).(types.M)
-	return s, changes.PathChange{[]interface{}{"Data", key}, c}
+	return s, changes.PathChange{Path: []interface{}{"Data", key}, Change: c}
 }
 
 // GC finds all cells that are orphaned by prior row/column deletes
@@ -108,8 +108,8 @@ func (s Sparse) GC(rowKey, colKey func(interface{}) interface{}) (Sparse, change
 	})
 	for key, val := range s.Data {
 		if _, ok := data[key]; !ok {
-			replace := changes.Replace{val, changes.Nil}
-			pc := changes.PathChange{[]interface{}{key}, replace}
+			replace := changes.Replace{Before: val, After: changes.Nil}
+			pc := changes.PathChange{Path: []interface{}{key}, Change: replace}
 			c = append(c, pc)
 		}
 	}
@@ -117,7 +117,7 @@ func (s Sparse) GC(rowKey, colKey func(interface{}) interface{}) (Sparse, change
 		return s, nil
 	}
 	s.Data = data
-	return s, changes.PathChange{[]interface{}{"Data"}, c}
+	return s, changes.PathChange{Path: []interface{}{"Data"}, Change: c}
 }
 
 // Apply implements changes.Value:Apply
@@ -156,7 +156,7 @@ func (s Sparse) toValue(v interface{}) changes.Value {
 	if val, ok := v.(changes.Value); ok {
 		return val
 	}
-	return changes.Atomic{v}
+	return changes.Atomic{Value: v}
 }
 
 func (s Sparse) fromValue(v changes.Value) (interface{}, bool) {

@@ -28,7 +28,7 @@ func (g Generic) Apply(ctx changes.Context, c changes.Change, current changes.Va
 		if len(c.Path) == 0 {
 			return g.Apply(ctx, c.Change, current)
 		}
-		inner := changes.PathChange{c.Path[1:], c.Change}
+		inner := changes.PathChange{Path: c.Path[1:], Change: c.Change}
 		return g.Set(c.Path[0], g.Get(c.Path[0]).Apply(ctx, inner))
 	case changes.Splice, changes.Move:
 		return g.ApplyCollection(ctx, c, current.(changes.Collection))
@@ -47,7 +47,7 @@ func (g Generic) ApplyCollection(ctx changes.Context, c changes.Change, current 
 		c = c.Normalize()
 		slice := current.Slice(c.Offset, c.Count)
 		empty := current.Slice(0, 0)
-		splice := changes.Splice{c.Offset + c.Distance, empty, slice}
+		splice := changes.Splice{Offset: c.Offset + c.Distance, Before: empty, After: slice}
 		return g.Splice(c.Offset, c.Count, empty).ApplyCollection(ctx, splice)
 	}
 	return g.Apply(ctx, c, current).(changes.Collection)
