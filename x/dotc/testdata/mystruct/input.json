@@ -6,43 +6,25 @@
 			"Name": "boo",
 			"Key": "b",
 			"Type": "bool",
-			"Atomic": false,
-			"Nullable": false
+			"Atomic": false
 		},
 		{
 			"Name": "boop",
 			"Key": "bp",
 			"Type": "*bool",
-			"Atomic": true,
-			"Nullable": true
+			"Atomic": true
 		},
 		{
 			"Name": "str",
 			"Key": "s",
 			"Type": "string",
-			"Atomic": false,
-			"Nullable": false
+			"Atomic": false
 		},
 		{
 			"Name": "str16",
 			"Key": "s16",
 			"Type": "types.S16",
-			"Atomic": false,
-			"Nullable": false
-		},
-		{
-			"Name": "xtr",
-			"Key": "x",
-			"Type": "string",
-			"Atomic": false,
-			"Nullable": true
-		},
-		{
-			"Name": "xtr16",
-			"Key": "x16",
-			"Type": "types.S16",
-			"Atomic": false,
-			"Nullable": true
+			"Atomic": false
 		}
 	]
 }

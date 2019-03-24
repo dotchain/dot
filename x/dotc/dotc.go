@@ -21,7 +21,7 @@ type Info struct {
 	Structs []Struct
 }
 
-// Generate generates a single file with all the provided info
+// Generate implements the helper methods for the provided types
 func (info Info) Generate() (string, error) {
 	var buf bytes.Buffer
 
@@ -71,40 +71,32 @@ var basic = map[string]bool{
 
 // Field holds info for a struct field
 type Field struct {
-	Name, Key, Type  string
-	Atomic, Nullable bool
+	Name, Key, Type string
+	Atomic          bool
 }
 
+// Wrap returns a string form of the field that maps to a changes.Value type
 func (f Field) Wrap(recv string) string {
 	if f.Atomic || basic[f.Type] {
 		return "changes.Atomic{" + recv + "." + f.Name + "}"
 	}
 	star := ""
-	if f.Nullable {
-		star = "*"
-	}
 	if f.Type == "string" {
 		return "types.S16(" + star + recv + "." + f.Name + ")"
 	}
 	return star + recv + "." + f.Name
 }
 
+// Unwrap converts "v" to the type of the field
 func (f Field) Unwrap() string {
 	if f.Atomic || basic[f.Type] {
 		return "v.(changes.Atomic).Value.(" + f.Type + ")"
 	}
 
-	nullable := func(s string) string {
-		if !f.Nullable {
-			return s
-		}
-		return "func(x " + f.Type + ") *" + f.Type + " { return &x }(" + s + ")"
-	}
-
 	if f.Type == "string" {
-		return nullable("string(v.(types.S16))")
+		return "string(v.(types.S16))"
 	}
-	return nullable("v.(" + f.Type + ")")
+	return "v.(" + f.Type + ")"
 }
 
 // Struct has the type information of a struct for code generation of
@@ -114,21 +106,22 @@ type Struct struct {
 	Fields     []Field
 }
 
+// Pointer specifies if the struct type is itself a pointer
 func (s Struct) Pointer() bool {
 	return s.Type[0] == '*'
 }
 
+// GenerateApply generates the code for the changes.Value Apply() method
 func (s Struct) GenerateApply(w io.Writer) error {
 	return structApply.Execute(w, s)
 }
 
-var structApply = template.Must(template.New("letter").Parse(`
+var structApply = template.Must(template.New("struct").Parse(`
 {{ $r := .Recv }}
 func ({{$r}} {{.Type}}) get(key interface{}) changes.Value {
 	switch key {
 	{{- range .Fields}}
 	case "{{.Key}}":
-		{{- if .Nullable}}if {{$r}}.{{.Name}} == nil { return changes.Nil } {{end}}
 		return {{.Wrap $r}}
         {{- end }}
         }
@@ -140,8 +133,6 @@ func ({{$r}} {{.Type}}) set(key interface{}, v changes.Value) changes.Value {
 	switch key {
 	{{- range .Fields}}
 	case "{{.Key}}":
-		{{- if .Nullable}}if v == changes.Nil { {{$r}}Clone.{{.Name}} = nil; break } 
-		{{end -}}
 		{{$r}}Clone.{{.Name}} = {{.Unwrap}}
         {{- end }}
 	default: 
@@ -155,16 +146,9 @@ func ({{$r}} {{.Type}}) Apply(ctx changes.Context, c changes.Change) changes.Val
 }
 `))
 
-// Union has the information of a struct used for unions for code
-// generation of the Apply() and SetField() methods
-type Union struct {
-	Name   string
-	Fields []Field
-}
-
 // Slice  has the type information of a slice type for code generation
 // of the Apply, ApplyCollection and splice methods
 type Slice struct {
 	Name, ElementName string
-	Atomic, Nullable  bool
+	Atomic            bool
 }
