@@ -16,5 +16,23 @@
 		"Type": "mySlice3",
 		"ElemType": "*bool",
 	        "Atomic": true
+	},
+	{
+		"Recv": "my",
+		"Type": "*MySliceP",
+		"ElemType": "bool",
+	        "Atomic": false
+	},
+	{
+		"Recv": "my",
+		"Type": "*mySlice2P",
+		"ElemType": "*MySliceP",
+	        "Atomic": false
+	},
+	{
+		"Recv": "my",
+		"Type": "*mySlice3P",
+		"ElemType": "*bool",
+	        "Atomic": true
 	}
 ]
