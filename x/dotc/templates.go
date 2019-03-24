@@ -67,3 +67,47 @@ func ({{$r}} {{$type}}) {{.Setter}}(value {{.Type}}) {{$type}} {
 }
 {{end -}}
 `))
+
+var sliceApply = template.Must(template.New("slice_apply").Parse(`
+func ({{.Recv}} {{.Type}}) get(key interface{}) changes.Value {
+	return {{.WrapR .Recv}}
+}
+
+func ({{.Recv}} {{.Type}}) set(key interface{}, v changes.Value) changes.Value {
+	{{.Recv}}Clone := append({{.Type}}(nil), {{.Recv}}...)
+	{{.Recv}}Clone[key.(int)] = {{.Unwrap}}
+	return {{.Recv}}Clone
+}
+
+func ({{.Recv}} {{.Type}}) splice(offset, count int, after changes.Collection) changes.Collection {
+	end := offset + count
+	return append(append({{.Recv}}[:offset:offset], after.({{.Type}})...), {{.Recv}}[end:]...)
+}
+
+// Slice implements changes.Collection Slice() method
+func ({{.Recv}} {{.Type}}) Slice(offset, count int) changes.Collection {
+	return {{.Recv}}[offset:offset+count]
+}
+
+// Count implements changes.Collection Count() method
+func ({{.Recv}} {{.Type}}) Count() int {
+	return len({{.Recv}})
+}
+
+func ({{.Recv}} {{.Type}}) Apply(ctx changes.Context, c changes.Change) changes.Value {
+	return (types.Generic{Get: {{.Recv}}.get, Set: {{.Recv}}.set, Splice: {{.Recv}}.splice}).Apply(ctx, c, {{.Recv}})
+}
+
+func ({{.Recv}} {{.Type}}) ApplyCollection(ctx changes.Context, c changes.Change) changes.Collection {
+	return (types.Generic{Get: {{.Recv}}.get, Set: {{.Recv}}.set, Splice: {{.Recv}}.splice}).ApplyCollection(ctx, c, {{.Recv}})
+}
+
+`))
+
+var sliceSetters = template.Must(template.New("slice_setter").Parse(`
+func ({{.Recv}} {{.Type}}) Splice(offset, count int, insert ...{{.ElemType}}) {{.Type}} {
+	end := offset + count
+	return append(append({{.Recv}}[:offset:offset], insert...), {{.Recv}}[end:]...)
+}
+
+`))

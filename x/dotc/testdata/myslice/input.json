@@ -1,0 +1,20 @@
+[
+	{
+		"Recv": "my",
+		"Type": "MySlice",
+		"ElemType": "bool",
+	        "Atomic": false
+	},
+	{
+		"Recv": "my",
+		"Type": "mySlice2",
+		"ElemType": "MySlice",
+	        "Atomic": false
+	},
+	{
+		"Recv": "my",
+		"Type": "mySlice3",
+		"ElemType": "*bool",
+	        "Atomic": true
+	}
+]
