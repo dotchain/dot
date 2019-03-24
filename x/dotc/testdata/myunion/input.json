@@ -1,0 +1,30 @@
+{
+	"Recv": "my",
+	"Type": "myUnion",
+	"Fields": [
+		{
+			"Name": "boo",
+			"Key": "b",
+			"Type": "bool",
+			"Atomic": false
+		},
+		{
+			"Name": "boop",
+			"Key": "bp",
+			"Type": "*bool",
+			"Atomic": true
+		},
+		{
+			"Name": "str",
+			"Key": "s",
+			"Type": "string",
+			"Atomic": false
+		},
+		{
+			"Name": "Str16",
+			"Key": "s16",
+			"Type": "types.S16",
+			"Atomic": false
+		}
+	]
+}
