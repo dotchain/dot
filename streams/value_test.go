@@ -15,7 +15,7 @@ import (
 
 func TestValueStream(t *testing.T) {
 	s := &streams.ValueStream{types.S8(""), streams.New()}
-	splice := changes.Splice{0, types.S8(""), types.S8("Hello")}
+	splice := changes.Splice{Before: types.S8(""), After: types.S8("Hello")}
 	var cx changes.Change
 	var sx streams.Stream = s
 	s.Nextf("key", func() {

@@ -36,32 +36,32 @@ func TestS8Apply(t *testing.T) {
 		t.Error("Unexpected Apply.nil", x)
 	}
 
-	x = s.Apply(nil, changes.Replace{s, changes.Nil})
+	x = s.Apply(nil, changes.Replace{Before: s, After: changes.Nil})
 	if x != changes.Nil {
 		t.Error("Unexpeted Apply.Replace-Delete", x)
 	}
 
-	x = s.Apply(nil, changes.Replace{s, types.S16("OK")})
+	x = s.Apply(nil, changes.Replace{Before: s, After: types.S16("OK")})
 	if x != types.S16("OK") {
 		t.Error("Unexpected Apply.Replace", x)
 	}
 
-	x = s.Apply(nil, changes.Splice{7, s.Slice(7, 4), types.S8("-")})
+	x = s.Apply(nil, changes.Splice{Offset: 7, Before: s.Slice(7, 4), After: types.S8("-")})
 	if x != types.S8("hello, -🌂") {
 		t.Error("Unexpected Apply.Splice", x)
 	}
 
-	x = s.Apply(nil, changes.Move{7, 4, -1})
+	x = s.Apply(nil, changes.Move{Offset: 7, Count: 4, Distance: -1})
 	if x != types.S8("hello,🌂 🌂") {
 		t.Error("Unexpected Apply.Move", x)
 	}
 
-	x = s.Apply(nil, changes.ChangeSet{changes.Move{7, 4, -1}})
+	x = s.Apply(nil, changes.ChangeSet{changes.Move{Offset: 7, Count: 4, Distance: -1}})
 	if x != types.S8("hello,🌂 🌂") {
 		t.Error("Unexpected Apply.ChangeSet", x)
 	}
 
-	x = s.Apply(nil, changes.PathChange{nil, changes.Move{7, 4, -1}})
+	x = s.Apply(nil, changes.PathChange{Change: changes.Move{Offset: 7, Count: 4, Distance: -1}})
 	if x != types.S8("hello,🌂 🌂") {
 		t.Error("Unexpected Apply.PathChange", x)
 	}
@@ -94,37 +94,37 @@ func TestS16Apply(t *testing.T) {
 		t.Error("Unexpected Apply.nil", x)
 	}
 
-	x = s.Apply(nil, changes.Replace{s, changes.Nil})
+	x = s.Apply(nil, changes.Replace{Before: s, After: changes.Nil})
 	if x != changes.Nil {
 		t.Error("Unexpeted Apply.Replace-Delete", x)
 	}
 
-	x = s.Apply(nil, changes.Replace{s, types.S8("OK")})
+	x = s.Apply(nil, changes.Replace{Before: s, After: types.S8("OK")})
 	if x != types.S8("OK") {
 		t.Error("Unexpected Apply.Replace", x)
 	}
 
-	x = s.Apply(nil, changes.Splice{7, s.Slice(7, 2), types.S16("-")})
+	x = s.Apply(nil, changes.Splice{Offset: 7, Before: s.Slice(7, 2), After: types.S16("-")})
 	if x != types.S16("hello, -🌂") {
 		t.Error("Unexpected Apply.Splice", x)
 	}
 
-	x = s.Apply(nil, changes.Splice{11, types.S16(""), types.S16("-")})
+	x = s.Apply(nil, changes.Splice{Offset: 11, Before: types.S16(""), After: types.S16("-")})
 	if x != types.S16("hello, 🌂🌂-") {
 		t.Error("Unexpected Apply.Splice", x)
 	}
 
-	x = s.Apply(nil, changes.Move{7, 2, -1})
+	x = s.Apply(nil, changes.Move{Offset: 7, Count: 2, Distance: -1})
 	if x != types.S16("hello,🌂 🌂") {
 		t.Error("Unexpected Apply.Move", x)
 	}
 
-	x = s.Apply(nil, changes.ChangeSet{changes.Move{7, 2, -1}})
+	x = s.Apply(nil, changes.ChangeSet{changes.Move{Offset: 7, Count: 2, Distance: -1}})
 	if x != types.S16("hello,🌂 🌂") {
 		t.Error("Unexpected Apply.Move", x)
 	}
 
-	x = s.Apply(nil, changes.PathChange{nil, changes.Move{7, 2, -1}})
+	x = s.Apply(nil, changes.PathChange{Change: changes.Move{Offset: 7, Count: 2, Distance: -1}})
 	if x != types.S16("hello,🌂 🌂") {
 		t.Error("Unexpected Apply.Move", x)
 	}
@@ -161,7 +161,7 @@ func TestStringPanics(t *testing.T) {
 
 	mustPanic(func() {
 		s := types.S16("hello, 🌂🌂")
-		s.Apply(nil, changes.ChangeSet{changes.Move{7, 3, -1}})
+		s.Apply(nil, changes.ChangeSet{changes.Move{Offset: 7, Count: 3, Distance: -1}})
 	})
 
 	mustPanic(func() {

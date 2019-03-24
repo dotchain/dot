@@ -22,7 +22,7 @@ type Run struct {
 // ApplyTo just converts the method into a set of path changes
 func (r Run) ApplyTo(ctx changes.Context, v changes.Value) changes.Value {
 	for kk := r.Offset; kk < r.Offset+r.Count; kk++ {
-		v = v.Apply(ctx, changes.PathChange{[]interface{}{kk}, r.Change})
+		v = v.Apply(ctx, changes.PathChange{Path: []interface{}{kk}, Change: r.Change})
 	}
 	return v
 }
@@ -180,15 +180,15 @@ func (r Run) mergePathChange(o changes.PathChange, reverse bool) (changes.Change
 	if idx+1 < r.Offset+r.Count {
 		right = Run{idx + 1, r.Offset + r.Count - idx - 1, r.Change}
 	}
-	other := changes.PathChange{o.Path[1:], o.Change}
+	other := changes.PathChange{Path: o.Path[1:], Change: o.Change}
 	var ox, mid changes.Change
 	if reverse {
 		mid, ox = other.Merge(r.Change)
 	} else {
 		ox, mid = r.Change.Merge(other)
 	}
-	ox = changes.PathChange{o.Path[:1], ox}
-	mid = changes.PathChange{o.Path[:1], mid}
+	ox = changes.PathChange{Path: o.Path[:1], Change: ox}
+	mid = changes.PathChange{Path: o.Path[:1], Change: mid}
 	return ox, changes.ChangeSet{left, mid, right}
 }
 

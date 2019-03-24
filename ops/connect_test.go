@@ -35,10 +35,10 @@ func TestConnect(t *testing.T) {
 
 	wg.Add(1)
 	s2 := c2.Stream
-	s2.Append(changes.Move{2, 3, 4})
+	s2.Append(changes.Move{Offset: 2, Count: 3, Distance: 4})
 
 	wg.Wait()
-	expected := changes.Move{2, 3, 4}
+	expected := changes.Move{Offset: 2, Count: 3, Distance: 4}
 	if !reflect.DeepEqual(c1ops, expected) {
 		t.Fatal("Unexpected merge", c1ops)
 	}

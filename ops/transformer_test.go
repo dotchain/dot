@@ -146,13 +146,13 @@ func getBranchedOps() (initial, final changes.Value, xformed []ops.Op) {
 	// client 1 => + merge (insert "X") + insert "C " => "A B X C Hello World"
 	// client 2 => + merge (insert "A") + insert "Z " => "A X Y Z Hello World"
 
-	first := changes.Replace{changes.Nil, S("Hello World")}
-	c1_1 := changes.Splice{0, S(""), S("A ")}
-	c1_2 := changes.Splice{2, S(""), S("B ")}
-	c2_1 := changes.Splice{0, S(""), S("X ")}
-	c2_2 := changes.Splice{2, S(""), S("Y ")}
-	c1_3 := changes.Splice{6, S(""), S("C ")}
-	c2_3 := changes.Splice{6, S(""), S("Z ")}
+	first := changes.Replace{Before: changes.Nil, After: S("Hello World")}
+	c1_1 := changes.Splice{Offset: 0, Before: S(""), After: S("A ")}
+	c1_2 := changes.Splice{Offset: 2, Before: S(""), After: S("B ")}
+	c2_1 := changes.Splice{Offset: 0, Before: S(""), After: S("X ")}
+	c2_2 := changes.Splice{Offset: 2, Before: S(""), After: S("Y ")}
+	c1_3 := changes.Splice{Offset: 6, Before: S(""), After: S("C ")}
+	c2_3 := changes.Splice{Offset: 6, Before: S(""), After: S("Z ")}
 
 	items := []ops.Op{
 		ops.Operation{"first", nil, -1, -1, first},

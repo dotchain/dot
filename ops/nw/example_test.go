@@ -23,8 +23,8 @@ func Example() {
 	c := nw.Client{URL: srv.URL, Client: srv.Client()}
 	defer c.Close()
 
-	op1 := ops.Operation{"ID1", "", 100, -1, nil}
-	op2 := ops.Operation{"ID2", "ID1", 100, -1, changes.ChangeSet{changes.Move{1, 2, 3}}}
+	op1 := ops.Operation{OpID: "ID1", ParentID: "", VerID: 100, BasisID: -1}
+	op2 := ops.Operation{OpID: "ID2", ParentID: "ID1", VerID: 100, BasisID: -1, Change: changes.ChangeSet{changes.Move{Offset: 1, Count: 2, Distance: 3}}}
 
 	ctx := getContext()
 	if err := c.Append(ctx, []ops.Op{op1}); err != nil {

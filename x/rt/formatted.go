@@ -97,7 +97,7 @@ func (f Formatted) Concat(args ...Formatted) Formatted {
 			continue
 		}
 
-		text = text.ApplyCollection(nil, changes.Splice{text.Count(), zero, arg.Text})
+		text = text.ApplyCollection(nil, changes.Splice{Offset: text.Count(), Before: zero, After: arg.Text})
 		seg := arg.Segments
 		if len(seg) == 0 {
 			seg = []Segment{{Count: arg.Text.Count()}}

@@ -25,10 +25,10 @@ func TestNextf(t *testing.T) {
 			panic("wa")
 		}
 	})
-	orig.Append(changes.Move{1, 2, 3})
-	orig.Append(changes.Move{2, 3, 4})
+	orig.Append(changes.Move{Offset: 1, Count: 2, Distance: 3})
+	orig.Append(changes.Move{Offset: 2, Count: 3, Distance: 4})
 	downstream.Nextf("key", nil)
-	orig.Append(changes.Move{4, 5, 6})
+	orig.Append(changes.Move{Offset: 4, Count: 5, Distance: 6})
 	if count != 2 {
 		t.Fatal("Nextf did not proxy as expected", count)
 	}
@@ -39,26 +39,26 @@ func TestSimpleUndoRedo(t *testing.T) {
 	downstream, stack := undo.New(streams.New())
 	streams.Connect(upstream, downstream)
 
-	downstream.Append(changes.Splice{10, types.S8(""), types.S8("hello")})
-	upstream.Append(changes.Splice{0, types.S8(""), types.S8("abcde")})
+	downstream.Append(changes.Splice{Offset: 10, Before: types.S8(""), After: types.S8("hello")})
+	upstream.Append(changes.Splice{Offset: 0, Before: types.S8(""), After: types.S8("abcde")})
 
 	// now undo should rewrite downstream to remove at index 15
 	downstream = latest(downstream)
 	stack.Undo()
 	downstream, c := downstream.Next()
-	expected := changes.Splice{15, types.S8("hello"), types.S8("")}
+	expected := changes.Splice{Offset: 15, Before: types.S8("hello"), After: types.S8("")}
 	if c != expected {
 		t.Fatal("Undo failed", c)
 	}
 
 	// now sneak in another upstream op increasing the offset again
-	upstream.Append(changes.Splice{0, types.S8(""), types.S8("abcde")})
+	upstream.Append(changes.Splice{Offset: 0, Before: types.S8(""), After: types.S8("abcde")})
 
 	// now redo and confirm that the redo offset is bumped up by 5more
 	downstream = latest(downstream)
 	stack.Redo()
 	_, c = downstream.Next()
-	expected = changes.Splice{20, types.S8(""), types.S8("hello")}
+	expected = changes.Splice{Offset: 20, Before: types.S8(""), After: types.S8("hello")}
 	if c != expected {
 		t.Fatal("Redo failed", c)
 	}
@@ -187,7 +187,7 @@ func prepareBranch(upstream, downstream streams.Stream, stack undo.Stack, test s
 	ops := []string{}
 	for kk, c := range test {
 		next := letters[kk : kk+1]
-		splice := changes.Splice{0, types.S8(""), types.S8(next)}
+		splice := changes.Splice{Offset: 0, Before: types.S8(""), After: types.S8(next)}
 		switch c {
 		case 'C':
 			latest(downstream).Append(splice)

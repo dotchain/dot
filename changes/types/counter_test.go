@@ -17,11 +17,11 @@ func TestCounterApply(t *testing.T) {
 		t.Error("Apply(nil, nil)", x)
 	}
 
-	if x := c.Apply(nil, changes.Replace{c, changes.Nil}); x != changes.Nil {
+	if x := c.Apply(nil, changes.Replace{Before: c, After: changes.Nil}); x != changes.Nil {
 		t.Error("Replace(IsDelete)", x)
 	}
 
-	if x := c.Apply(nil, changes.Replace{c, types.S8("OK")}); x != types.S8("OK") {
+	if x := c.Apply(nil, changes.Replace{Before: c, After: types.S8("OK")}); x != types.S8("OK") {
 		t.Error("Replace()", x)
 	}
 
@@ -35,7 +35,7 @@ func TestCounterApply(t *testing.T) {
 
 	l := changes.ChangeSet{c.Increment(2), c.Increment(-3)}
 	r := changes.ChangeSet{c.Increment(44), c.Increment(-42)}
-	lx, rx := l.Merge(changes.PathChange{nil, r})
+	lx, rx := l.Merge(changes.PathChange{Change: r})
 	lval := c.Apply(nil, l).Apply(nil, lx)
 	rval := c.Apply(nil, r).Apply(nil, rx)
 	if lval != rval || lval != c+2-3+44-42 {

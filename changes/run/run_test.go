@@ -23,7 +23,7 @@ func TestRunRevert(t *testing.T) {
 		t.Error("Unexpected revert", r.Revert())
 	}
 
-	r = run.Run{0, 5, changes.Move{1, 2, 2}}
+	r = run.Run{0, 5, changes.Move{Offset: 1, Count: 2, Distance: 2}}
 	expected := run.Run{0, 5, r.Change.Revert()}
 	if r.Revert() != expected {
 		t.Error("Unexpected revert", r.Revert())
@@ -31,7 +31,7 @@ func TestRunRevert(t *testing.T) {
 }
 
 func TestRunMergeNils(t *testing.T) {
-	r := run.Run{0, 5, changes.Move{5, 5, 1}}
+	r := run.Run{0, 5, changes.Move{Offset: 5, Count: 5, Distance: 1}}
 	ox, rx := r.Merge(nil)
 	if ox != nil || rx != r {
 		t.Error("Unexpected merge", ox, rx)
@@ -43,13 +43,13 @@ func TestRunMergeNils(t *testing.T) {
 	}
 
 	r.Change = nil
-	ox, rx = r.Merge(changes.Move{5, 5, 1})
-	if ox != (changes.Move{5, 5, 1}) || rx != nil {
+	ox, rx = r.Merge(changes.Move{Offset: 5, Count: 5, Distance: 1})
+	if ox != (changes.Move{Offset: 5, Count: 5, Distance: 1}) || rx != nil {
 		t.Error("Unexpected merge", ox, rx)
 	}
 
-	ox, rx = r.ReverseMerge(changes.Move{5, 5, 1})
-	if ox != (changes.Move{5, 5, 1}) || rx != nil {
+	ox, rx = r.ReverseMerge(changes.Move{Offset: 5, Count: 5, Distance: 1})
+	if ox != (changes.Move{Offset: 5, Count: 5, Distance: 1}) || rx != nil {
 		t.Error("Unexpected merge", ox, rx)
 	}
 }
@@ -60,14 +60,14 @@ var third = A{S("e"), S("f")}
 var initial = A{first, second, third}
 
 func TestRunMergeReplace(t *testing.T) {
-	l := run.Run{0, 2, changes.Move{0, 1, 1}}
+	l := run.Run{0, 2, changes.Move{Offset: 0, Count: 1, Distance: 1}}
 	r := changes.Replace{Before: initial, After: S("OK")}
 	validateMerge(t, l, r)
-	validateMerge(t, l, changes.Replace{initial, changes.Nil})
+	validateMerge(t, l, changes.Replace{Before: initial, After: changes.Nil})
 }
 
 func TestRunMergeSplice(t *testing.T) {
-	l := run.Run{1, 1, changes.Move{0, 1, 1}}
+	l := run.Run{1, 1, changes.Move{Offset: 0, Count: 1, Distance: 1}}
 	r := changes.Splice{Offset: 0, Before: A{}, After: A{S("OK")}}
 	validateMerge(t, l, r)
 	r = changes.Splice{Offset: 0, Before: A{first}, After: A{}}
@@ -79,15 +79,15 @@ func TestRunMergeSplice(t *testing.T) {
 	r = changes.Splice{Offset: 0, Before: initial, After: A{S("OK")}}
 	validateMerge(t, l, r)
 
-	l = run.Run{0, 2, changes.Move{0, 1, 1}}
-	r = changes.Splice{1, A{second, third}, A{S("OK")}}
+	l = run.Run{0, 2, changes.Move{Offset: 0, Count: 1, Distance: 1}}
+	r = changes.Splice{Offset: 1, Before: A{second, third}, After: A{S("OK")}}
 	validateMerge(t, l, r)
-	l = run.Run{1, 2, changes.Move{0, 1, 1}}
-	r = changes.Splice{0, A{first, second}, A{S("OK")}}
+	l = run.Run{1, 2, changes.Move{Offset: 0, Count: 1, Distance: 1}}
+	r = changes.Splice{Offset: 0, Before: A{first, second}, After: A{S("OK")}}
 	validateMerge(t, l, r)
 
-	l = run.Run{0, 3, changes.Move{0, 1, 1}}
-	r = changes.Splice{1, A{second}, A{S("OK")}}
+	l = run.Run{0, 3, changes.Move{Offset: 0, Count: 1, Distance: 1}}
+	r = changes.Splice{Offset: 1, Before: A{second}, After: A{S("OK")}}
 	validateMerge(t, l, r)
 }
 
@@ -98,15 +98,15 @@ func TestRunMergeMove(t *testing.T) {
 				if dest >= offset && dest <= offset+count {
 					continue
 				}
-				r := changes.Move{offset, count, dest - offset - count}
+				r := changes.Move{Offset: offset, Count: count, Distance: dest - offset - count}
 				if dest < offset {
 					r.Distance = dest - offset
 				}
-				l := run.Run{1, 1, changes.Move{0, 1, 1}}
+				l := run.Run{1, 1, changes.Move{Offset: 0, Count: 1, Distance: 1}}
 				validateMerge(t, l, r)
-				l = run.Run{0, 2, changes.Move{0, 1, 1}}
+				l = run.Run{0, 2, changes.Move{Offset: 0, Count: 1, Distance: 1}}
 				validateMerge(t, l, r)
-				l = run.Run{0, 3, changes.Move{0, 1, 1}}
+				l = run.Run{0, 3, changes.Move{Offset: 0, Count: 1, Distance: 1}}
 				validateMerge(t, l, r)
 			}
 		}
@@ -114,29 +114,29 @@ func TestRunMergeMove(t *testing.T) {
 }
 
 func TestRunMergeRun(t *testing.T) {
-	ForEachRun(changes.Splice{0, A{}, A{S("Left")}}, func(l run.Run) {
-		ForEachRun(changes.Splice{0, A{}, A{S("Right")}}, func(r run.Run) {
+	ForEachRun(changes.Splice{Offset: 0, Before: A{}, After: A{S("Left")}}, func(l run.Run) {
+		ForEachRun(changes.Splice{Offset: 0, Before: A{}, After: A{S("Right")}}, func(r run.Run) {
 			validateMerge(t, l, r)
 		})
 	})
 }
 
 func TestRunMergePathChange(t *testing.T) {
-	l := run.Run{1, 1, changes.Splice{0, A{}, A{S("Left")}}}
-	r := changes.PathChange{nil, changes.Replace{initial, changes.Nil}}
+	l := run.Run{1, 1, changes.Splice{Offset: 0, Before: A{}, After: A{S("Left")}}}
+	r := changes.PathChange{Change: changes.Replace{Before: initial, After: changes.Nil}}
 	validateMerge(t, l, r)
 
-	l = run.Run{1, 2, changes.Splice{0, A{}, A{S("Left")}}}
+	l = run.Run{1, 2, changes.Splice{Offset: 0, Before: A{}, After: A{S("Left")}}}
 	for kk := 0; kk < 3; kk++ {
-		replace := changes.Replace{initial[kk], changes.Nil}
-		r := changes.PathChange{[]interface{}{kk}, replace}
+		replace := changes.Replace{Before: initial[kk], After: changes.Nil}
+		r := changes.PathChange{Path: []interface{}{kk}, Change: replace}
 		validateMerge(t, l, r)
 		validateMerge(t, r, l)
 	}
 }
 
 func TestRunMergePath(t *testing.T) {
-	r := run.Run{5, 10, changes.Replace{S("OK"), S("boo")}}
+	r := run.Run{5, 10, changes.Replace{Before: S("OK"), After: S("boo")}}
 	p := refs.Path(nil)
 	px, cx := p.Merge(r)
 	if !reflect.DeepEqual(px, p) || !reflect.DeepEqual(cx, r) {
@@ -162,11 +162,11 @@ func TestRunMergePath(t *testing.T) {
 	}
 
 	p = refs.Path{14, "x"}
-	move := changes.Move{2, 3, 4}
-	r = run.Run{5, 10, changes.PathChange{[]interface{}{"x"}, move}}
+	move := changes.Move{Offset: 2, Count: 3, Distance: 4}
+	r = run.Run{5, 10, changes.PathChange{Path: []interface{}{"x"}, Change: move}}
 	px, cx = p.Merge(r)
 	if !reflect.DeepEqual(px, p) ||
-		!reflect.DeepEqual(cx, changes.PathChange{[]interface{}{}, move}) {
+		!reflect.DeepEqual(cx, changes.PathChange{Path: []interface{}{}, Change: move}) {
 		t.Fatal("Affected refs.Path merge failed", px, cx)
 	}
 
@@ -188,8 +188,8 @@ func ForEachRun(change changes.Change, fn func(r run.Run)) {
 
 func validateMerge(t *testing.T, l, r changes.Change) {
 	validateMerge1(t, initial, l, r)
-	validateMerge1(t, initial, l, changes.PathChange{nil, r})
-	validateMerge1(t, initial, changes.PathChange{nil, l}, r)
+	validateMerge1(t, initial, l, changes.PathChange{Change: r})
+	validateMerge1(t, initial, changes.PathChange{Change: l}, r)
 	validateMerge1(t, initial, changes.ChangeSet{l}, r)
 	validateMerge1(t, initial, l, changes.ChangeSet{r})
 }

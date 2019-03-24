@@ -36,9 +36,9 @@ var p = refs.Path{"Value"}
 
 // SetSelection sets the selection range for the current session
 func (t Text) SetSelection(start, end int, left bool) (Text, changes.Change) {
-	startc := refs.Caret{p, start, start > end || start == end && left}
-	endc := refs.Caret{p, end, start < end || start == end && left}
-	l, c := t.toList().UpdateRef(t.SessionID, refs.Range{startc, endc})
+	startc := refs.Caret{Path: p, Index: start, IsLeft: start > end || start == end && left}
+	endc := refs.Caret{Path: p, Index: end, IsLeft: start < end || start == end && left}
+	l, c := t.toList().UpdateRef(t.SessionID, refs.Range{Start: startc, End: endc})
 	return t.fromList(l, c), c
 }
 
@@ -48,10 +48,10 @@ func (t Text) SetSelection(start, end int, left bool) (Text, changes.Change) {
 func (t Text) Insert(s string) (Text, changes.Change) {
 	offset, before := t.selection()
 	after := types.S8(s)
-	splice := changes.PathChange{p, changes.Splice{offset, before, after}}
+	splice := changes.PathChange{Path: p, Change: changes.Splice{Offset: offset, Before: before, After: after}}
 	l := t.toList().Apply(nil, splice).(refs.Container)
-	caret := refs.Caret{p, offset + after.Count(), false}
-	lx, cx := l.UpdateRef(t.SessionID, refs.Range{caret, caret})
+	caret := refs.Caret{Path: p, Index: offset + after.Count()}
+	lx, cx := l.UpdateRef(t.SessionID, refs.Range{Start: caret, End: caret})
 	cx = changes.ChangeSet{splice, cx}
 	return t.fromList(lx, cx), cx
 }
@@ -65,7 +65,7 @@ func (t Text) Delete() (Text, changes.Change) {
 	}
 
 	after := types.S8("")
-	caret := refs.Caret{p, offset, true}
+	caret := refs.Caret{Path: p, Index: offset, IsLeft: true}
 
 	if string(before) == "" {
 		caret.Index = offset - t.PrevCharWidth(offset)
@@ -73,9 +73,9 @@ func (t Text) Delete() (Text, changes.Change) {
 		offset = caret.Index
 	}
 
-	splice := changes.PathChange{p, changes.Splice{offset, before, after}}
+	splice := changes.PathChange{Path: p, Change: changes.Splice{Offset: offset, Before: before, After: after}}
 	l := t.toList()
-	lx, cx := l.UpdateRef(t.SessionID, refs.Range{caret, caret})
+	lx, cx := l.UpdateRef(t.SessionID, refs.Range{Start: caret, End: caret})
 	lx = lx.Apply(nil, splice).(refs.Container)
 	cx = changes.ChangeSet{cx, splice}
 	return t.fromList(lx, cx), cx
@@ -123,11 +123,11 @@ func (t Text) Copy() string {
 func (t Text) Paste(s string) (Text, changes.Change) {
 	offset, before := t.selection()
 	after := types.S8(s)
-	splice := changes.PathChange{p, changes.Splice{offset, before, after}}
+	splice := changes.PathChange{Path: p, Change: changes.Splice{Offset: offset, Before: before, After: after}}
 	l := t.toList().Apply(nil, splice).(refs.Container)
-	start := refs.Caret{p, offset, after.Count() == 0}
-	end := refs.Caret{p, offset + after.Count(), true}
-	lx, cx := l.UpdateRef(t.SessionID, refs.Range{start, end})
+	start := refs.Caret{Path: p, Index: offset, IsLeft: after.Count() == 0}
+	end := refs.Caret{Path: p, Index: offset + after.Count(), IsLeft: true}
+	lx, cx := l.UpdateRef(t.SessionID, refs.Range{Start: start, End: end})
 	cx = changes.ChangeSet{splice, cx}
 	return t.fromList(lx, cx), cx
 }

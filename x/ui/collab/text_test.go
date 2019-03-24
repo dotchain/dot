@@ -96,8 +96,8 @@ func (s textSuite) testTextCursors(t *testing.T) {
 }
 
 func (s textSuite) testCaretRemoteInsertion(t *testing.T) {
-	insert := changes.Splice{3, types.S8(""), types.S8("book")}
-	cx := changes.PathChange{[]interface{}{"Value"}, insert}
+	insert := changes.Splice{Offset: 3, Before: types.S8(""), After: types.S8("book")}
+	cx := changes.PathChange{Path: []interface{}{"Value"}, Change: insert}
 
 	for _, isLeft := range []bool{true, false} {
 		x := s.text("Hello")
@@ -263,12 +263,12 @@ func (s textSuite) testEmptyDelete(t *testing.T) {
 
 func (s textSuite) testReplace(t *testing.T) {
 	x := s.text("HelOKlo")
-	result := x.Apply(nil, changes.Replace{x, types.S8("boo")})
+	result := x.Apply(nil, changes.Replace{Before: x, After: types.S8("boo")})
 	if result != types.S8("boo") {
 		t.Error("Unexpected Next", result)
 	}
 
-	x.Stream.Append(changes.Replace{x, types.S8("boo")})
+	x.Stream.Append(changes.Replace{Before: x, After: types.S8("boo")})
 	if _, ok := x.Next(); ok {
 		t.Error("Unexpected Next value")
 	}
@@ -375,12 +375,12 @@ func (s textSuite) testShiftArrowRight(t *testing.T) {
 
 func (s textSuite) testLatest(t *testing.T) {
 	p := func(c changes.Change) changes.Change {
-		return changes.PathChange{[]interface{}{"Value"}, c}
+		return changes.PathChange{Path: []interface{}{"Value"}, Change: c}
 	}
 	x := s.text("hello")
 	x.Stream.
-		Append(p(changes.Splice{5, types.S8(""), types.S8(" ")})).
-		Append(p(changes.Splice{6, types.S8(""), types.S8("world")}))
+		Append(p(changes.Splice{Offset: 5, Before: types.S8(""), After: types.S8(" ")})).
+		Append(p(changes.Splice{Offset: 6, Before: types.S8(""), After: types.S8("world")}))
 
 	latest := x.Latest()
 	if latest.Text != "hello world" {

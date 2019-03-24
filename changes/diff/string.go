@@ -18,7 +18,7 @@ func S8(d Differ, old, new changes.Value) changes.Change {
 	result := changes.ChangeSet(nil)
 	offset := 0
 	for _, diff := range diffmatchpatch.New().DiffMain(o, n, false) {
-		splice := changes.Splice{offset, types.S8(""), types.S8("")}
+		splice := changes.Splice{Offset: offset, Before: types.S8(""), After: types.S8("")}
 		switch diff.Type {
 		case diffmatchpatch.DiffDelete:
 			splice.Before = types.S8(diff.Text)
@@ -46,7 +46,7 @@ func S16(d Differ, old, new changes.Value) changes.Change {
 	result := changes.ChangeSet(nil)
 	offset := 0
 	for _, diff := range diffmatchpatch.New().DiffMain(o, n, false) {
-		splice := changes.Splice{offset, types.S16(""), types.S16("")}
+		splice := changes.Splice{Offset: offset, Before: types.S16(""), After: types.S16("")}
 		switch diff.Type {
 		case diffmatchpatch.DiffDelete:
 			splice.Before = types.S16(diff.Text)

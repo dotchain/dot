@@ -91,6 +91,6 @@ func (con Container) applyPathChange(ctx changes.Context, c changes.PathChange) 
 	if c.Path[0] != "Value" {
 		panic("Unexpected path")
 	}
-	val := con.Value.Apply(ctx, changes.PathChange{c.Path[1:], c.Change})
+	val := con.Value.Apply(ctx, changes.PathChange{Path: c.Path[1:], Change: c.Change})
 	return Container{val, updated}
 }

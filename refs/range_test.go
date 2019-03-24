@@ -41,7 +41,7 @@ func TestRangeEqual(t *testing.T) {
 }
 
 func TestRangeReplace(t *testing.T) {
-	replace := changes.Replace{types.S8("OK"), types.S8("goop")}
+	replace := changes.Replace{Before: types.S8("OK"), After: types.S8("goop")}
 
 	ref := refs.Range{refs.Caret{nil, 5, false}, refs.Caret{nil, 6, false}}
 	refx, cx := ref.Merge(replace)
@@ -49,12 +49,12 @@ func TestRangeReplace(t *testing.T) {
 		t.Error("Unexpected Merge", refx, cx)
 	}
 
-	refx, cx = ref.Merge(changes.PathChange{nil, replace})
+	refx, cx = ref.Merge(changes.PathChange{Path: nil, Change: replace})
 	if refx != refs.InvalidRef || cx != nil {
 		t.Error("Unexpected Merge", refx, cx)
 	}
 
-	change := changes.PathChange{[]interface{}{"xyz"}, replace}
+	change := changes.PathChange{Path: []interface{}{"xyz"}, Change: replace}
 	refx, cx = ref.Merge(change)
 	if !reflect.DeepEqual(refx, ref) || cx != nil {
 		t.Error("Unexpected Merge", refx, cx)
@@ -62,7 +62,7 @@ func TestRangeReplace(t *testing.T) {
 }
 
 func TestRangeSplice(t *testing.T) {
-	splice := changes.Splice{5, types.S8("OK"), types.S8("Boo")}
+	splice := changes.Splice{Offset: 5, Before: types.S8("OK"), After: types.S8("Boo")}
 	newRange := func(start, end int) refs.Range {
 		sleft, eleft := false, true
 		if start == end {
@@ -91,7 +91,7 @@ func TestRangeSplice(t *testing.T) {
 		t.Error("Unexpected Merge", refx, cx)
 	}
 
-	splice = changes.Splice{5, types.S8("OK"), types.S8("")}
+	splice = changes.Splice{Offset: 5, Before: types.S8("OK"), After: types.S8("")}
 	refx, cx = newRange(5, 7).Merge(splice)
 	if !reflect.DeepEqual(refx, newRange(5, 5)) || cx != nil {
 		t.Error("Unexpected Merge", refx, cx)

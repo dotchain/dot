@@ -23,17 +23,17 @@ func TestMApply(t *testing.T) {
 		t.Error("Unexpected Apply.nil", x)
 	}
 
-	x = m.Apply(nil, changes.Replace{m, changes.Nil})
+	x = m.Apply(nil, changes.Replace{Before: m, After: changes.Nil})
 	if x != changes.Nil {
 		t.Error("Unexpeted Apply.Replace-Delete", x)
 	}
 
-	x = m.Apply(nil, changes.Replace{m, types.S16("OK")})
+	x = m.Apply(nil, changes.Replace{Before: m, After: types.S16("OK")})
 	if x != types.S16("OK") {
 		t.Error("Unexpected Apply.Replace", x)
 	}
 
-	insert := changes.PathChange{[]interface{}{"new"}, changes.Replace{changes.Nil, types.S8("string")}}
+	insert := changes.PathChange{Path: []interface{}{"new"}, Change: changes.Replace{Before: changes.Nil, After: types.S8("string")}}
 	expected := types.M{
 		true:  types.S8("bool"),
 		5.3:   types.S8("float"),
@@ -50,12 +50,12 @@ func TestMApply(t *testing.T) {
 		t.Error("Unexpected Apply.ChangeSet", x)
 	}
 
-	x = m.Apply(nil, changes.PathChange{nil, insert})
+	x = m.Apply(nil, changes.PathChange{Change: insert})
 	if !reflect.DeepEqual(x, expected) {
 		t.Error("Unexpected Apply.PathChange", x)
 	}
 
-	modify := changes.PathChange{[]interface{}{true}, changes.Replace{types.S8("bool"), types.S8("BOOL")}}
+	modify := changes.PathChange{Path: []interface{}{true}, Change: changes.Replace{Before: types.S8("bool"), After: types.S8("BOOL")}}
 	expected = types.M{
 		true: types.S8("BOOL"),
 		5.3:  types.S8("float"),
@@ -65,7 +65,7 @@ func TestMApply(t *testing.T) {
 		t.Error("Unexpected Apply.PathChange", x)
 	}
 
-	remove := changes.PathChange{[]interface{}{5.3}, changes.Replace{types.S8("float"), changes.Nil}}
+	remove := changes.PathChange{Path: []interface{}{5.3}, Change: changes.Replace{Before: types.S8("float"), After: changes.Nil}}
 	expected = types.M{true: types.S8("BOOL")}
 	x = x.Apply(nil, remove)
 	if !reflect.DeepEqual(x, expected) {
@@ -88,7 +88,7 @@ func TestMPanics(t *testing.T) {
 	})
 
 	mustPanic(func() {
-		(types.M{}).Apply(nil, changes.Move{1, 1, 1})
+		(types.M{}).Apply(nil, changes.Move{Offset: 1, Count: 1, Distance: 1})
 	})
 
 	mustPanic(func() {
