@@ -74,24 +74,28 @@ func ({{.Recv}} {{.Type}}) get(key interface{}) changes.Value {
 }
 
 func ({{.Recv}} {{.Type}}) set(key interface{}, v changes.Value) changes.Value {
-	{{.Recv}}Clone := append({{.Type}}(nil), {{.Recv}}...)
+	{{.Recv}}Clone := {{.RawType}}(append([]{{.ElemType}}(nil), ({{if .Pointer}}*{{end}}{{.Recv}})...))
 	{{.Recv}}Clone[key.(int)] = {{.Unwrap}}
-	return {{.Recv}}Clone
+	return {{if .Pointer}}&{{end}}{{.Recv}}Clone
 }
 
 func ({{.Recv}} {{.Type}}) splice(offset, count int, after changes.Collection) changes.Collection {
 	end := offset + count
-	return append(append({{.Recv}}[:offset:offset], after.({{.Type}})...), {{.Recv}}[end:]...)
+	{{.Recv}}Val := {{if .Pointer}}*{{end}}{{.Recv}}
+	afterVal := {{if .Pointer}}*{{end}}(after.({{.Type}}))
+	{{.Recv}}New := append(append({{.Recv}}Val[:offset:offset], afterVal...), {{.Recv}}Val[end:]...)
+	return {{if .Pointer}}&{{end}}{{.Recv}}New
 }
 
 // Slice implements changes.Collection Slice() method
 func ({{.Recv}} {{.Type}}) Slice(offset, count int) changes.Collection {
-	return {{.Recv}}[offset:offset+count]
+	{{.Recv}}Slice := ({{if .Pointer}}*{{end}}{{.Recv}})[offset:offset+count]
+	return {{if .Pointer}}&{{end}}{{.Recv}}Slice
 }
 
 // Count implements changes.Collection Count() method
 func ({{.Recv}} {{.Type}}) Count() int {
-	return len({{.Recv}})
+	return len({{if .Pointer}}*{{end}}{{.Recv}})
 }
 
 func ({{.Recv}} {{.Type}}) Apply(ctx changes.Context, c changes.Change) changes.Value {
@@ -106,8 +110,8 @@ func ({{.Recv}} {{.Type}}) ApplyCollection(ctx changes.Context, c changes.Change
 
 var sliceSetters = template.Must(template.New("slice_setter").Parse(`
 func ({{.Recv}} {{.Type}}) Splice(offset, count int, insert ...{{.ElemType}}) {{.Type}} {
-	end := offset + count
-	return append(append({{.Recv}}[:offset:offset], insert...), {{.Recv}}[end:]...)
+	{{.Recv}}Insert := {{.RawType}}(insert)
+	return {{.Recv}}.splice(offset, count, {{if .Pointer}}&{{end}}{{.Recv}}Insert).({{.Type}})
 }
 
 `))

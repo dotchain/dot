@@ -13,8 +13,24 @@ type Slice struct {
 	Atomic               bool
 }
 
+// RawType returns the non-pointer inner type if Type is a pointer
+func (s Slice) RawType() string {
+	if s.Pointer() {
+		return s.Type[1:]
+	}
+	return s.Type
+}
+
+// Pointer checks if the slice type is a pointer
+func (s Slice) Pointer() bool {
+	return s.Type[0] == '*'
+}
+
 // WrapR
 func (s Slice) WrapR(recv string) string {
+	if s.Pointer() {
+		recv = "(*" + recv + ")"
+	}
 	return s.Wrap(recv + "[key.(int)]")
 }
 
