@@ -18,6 +18,7 @@ type Info struct {
 	Imports [][2]string
 	Structs []Struct
 	Unions  []Union
+	Slices  []Slice
 }
 
 // Generate implements the helper methods for the provided types
@@ -48,6 +49,15 @@ func (info Info) Generate() (string, error) {
 			return "", err
 		}
 		if err := u.GenerateSetters(&buf); err != nil {
+			return "", err
+		}
+	}
+
+	for _, s := range info.Slices {
+		if err := s.GenerateApply(&buf); err != nil {
+			return "", err
+		}
+		if err := s.GenerateSetters(&buf); err != nil {
 			return "", err
 		}
 	}
