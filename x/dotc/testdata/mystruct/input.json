@@ -21,7 +21,7 @@
 			"Atomic": false
 		},
 		{
-			"Name": "str16",
+			"Name": "Str16",
 			"Key": "s16",
 			"Type": "types.S16",
 			"Atomic": false
