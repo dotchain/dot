@@ -30,19 +30,19 @@ func TestStream(t *testing.T) {
 	s.Nextf("boo", ev)
 	defer s.Nextf("boo", nil)
 
-	s1 := s.Append(changes.Replace{changes.Nil, S("Hello World")})
+	s1 := s.Append(changes.Replace{Before: changes.Nil, After: S("Hello World")})
 
-	c1_1 := s1.Append(changes.Splice{0, S(""), S("A ")})
-	c1_2 := c1_1.Append(changes.Splice{2, S(""), S("B ")})
+	c1_1 := s1.Append(changes.Splice{Offset: 0, Before: S(""), After: S("A ")})
+	c1_2 := c1_1.Append(changes.Splice{Offset: 2, Before: S(""), After: S("B ")})
 
-	c2_1 := s1.Append(changes.Splice{0, S(""), S("X ")})
+	c2_1 := s1.Append(changes.Splice{Offset: 0, Before: S(""), After: S("X ")})
 	c2_1_merged := latest
 
-	c2_2 := c2_1.Append(changes.Splice{2, S(""), S("Y ")})
+	c2_2 := c2_1.Append(changes.Splice{Offset: 2, Before: S(""), After: S("Y ")})
 	c2_2_with_c1_1, _ := c2_2.Next()
 
-	c1_3 := c2_1_merged.Append(changes.Splice{6, S(""), S("C ")})
-	c2_3 := c2_2_with_c1_1.Append(changes.Splice{6, S(""), S("Z ")})
+	c1_3 := c2_1_merged.Append(changes.Splice{Offset: 6, Before: S(""), After: S("C ")})
+	c2_3 := c2_2_with_c1_1.Append(changes.Splice{Offset: 6, Before: S(""), After: S("Z ")})
 
 	if !reflect.DeepEqual(v, S("A B X Y C Z Hello World")) {
 		t.Error("Merge failed: ", v)
@@ -65,22 +65,22 @@ func TestBranch(t *testing.T) {
 	latest = s
 	s.Nextf("boo", ev)
 	defer s.Nextf("boo", nil)
-	s = s.Append(changes.Replace{changes.Nil, S("Hello World")})
+	s = s.Append(changes.Replace{Before: changes.Nil, After: S("Hello World")})
 
 	child := streams.Branch(s)
-	child1 := child.Append(changes.Splice{0, S(""), S("OK ")})
+	child1 := child.Append(changes.Splice{Offset: 0, Before: S(""), After: S("OK ")})
 	if v != S("Hello World") {
 		t.Fatal("Unexpected branch updated", v)
 	}
-	s = s.Append(changes.Splice{0, S(""), S("Oh ")})
-	s.Append(changes.Splice{len("Oh Hello World"), S(""), S("!")})
+	s = s.Append(changes.Splice{Offset: 0, Before: S(""), After: S("Oh ")})
+	s.Append(changes.Splice{Offset: len("Oh Hello World"), Before: S(""), After: S("!")})
 
 	streams.Push(child)
 	if v != S("Oh OK Hello World!") {
 		t.Fatal("Unexpected branch updated", v)
 	}
 
-	child1.Append(changes.Splice{len("OK Hello World"), S(""), S("**")})
+	child1.Append(changes.Splice{Offset: len("OK Hello World"), Before: S(""), After: S("**")})
 	streams.Pull(child)
 	v = changes.Value(S("Hello World"))
 	latest = child
@@ -109,12 +109,12 @@ func TestConnectedBranches(t *testing.T) {
 	})
 
 	streams.Connect(bm, bl)
-	bl.Append(changes.Splice{0, S(""), S("OK")})
+	bl.Append(changes.Splice{Offset: 0, Before: S(""), After: S("OK")})
 	if master != S("OK") || local != S("OK") {
 		t.Fatal("Unexpected master, local", master, local)
 	}
 
-	bm.Append(changes.Splice{2, S(""), S(" Computer")})
+	bm.Append(changes.Splice{Offset: 2, Before: S(""), After: S(" Computer")})
 	if master != S("OK Computer") || local != S("OK Computer") {
 		t.Fatal("Unexpected master, local", master, local)
 	}
@@ -124,12 +124,12 @@ func TestBranchReverseAppend(t *testing.T) {
 	master := streams.New()
 	child := streams.Branch(master)
 
-	child2 := child.Append(changes.Move{2, 2, 2})
-	replace := changes.Replace{types.S8("1234567"), types.S8("boo")}
+	child2 := child.Append(changes.Move{Offset: 2, Count: 2, Distance: 2})
+	replace := changes.Replace{Before: types.S8("1234567"), After: types.S8("boo")}
 	child.ReverseAppend(replace)
 
 	_, c1 := child2.Next()
-	_, expected := replace.Merge(changes.Move{2, 2, 2})
+	_, expected := replace.Merge(changes.Move{Offset: 2, Count: 2, Distance: 2})
 	if c1 != expected {
 		t.Error("Unexpected branch behavior", c1, expected)
 	}
@@ -140,19 +140,19 @@ func TestDoubleBranches(t *testing.T) {
 	child := streams.Branch(master)
 	grandChild := streams.Branch(child)
 
-	master.Append(changes.Move{2, 2, 2})
+	master.Append(changes.Move{Offset: 2, Count: 2, Distance: 2})
 
 	if x, _ := child.Next(); x != nil {
 		t.Error("Branch merged too soon", x)
 	}
 
 	streams.Pull(child)
-	if _, c := child.Next(); c != (changes.Move{2, 2, 2}) {
+	if _, c := child.Next(); c != (changes.Move{Offset: 2, Count: 2, Distance: 2}) {
 		t.Error("Branch move unexpected change", c)
 	}
 
 	streams.Pull(grandChild)
-	if _, c := grandChild.Next(); c != (changes.Move{2, 2, 2}) {
+	if _, c := grandChild.Next(); c != (changes.Move{Offset: 2, Count: 2, Distance: 2}) {
 		t.Error("Branch move unexpected change", c)
 	}
 }

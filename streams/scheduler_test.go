@@ -24,9 +24,9 @@ func TestAsync(t *testing.T) {
 		cx = append(cx, c)
 	})
 
-	s1 := s.Append(changes.Move{0, 1, 2})
-	s2 := s1.Append(changes.Move{5, 6, 7})
-	_ = s2.Append(changes.Move{3, 4, 5})
+	s1 := s.Append(changes.Move{Offset: 0, Count: 1, Distance: 2})
+	s2 := s1.Append(changes.Move{Offset: 5, Count: 6, Distance: 7})
+	_ = s2.Append(changes.Move{Offset: 3, Count: 4, Distance: 5})
 	if len(cx) != 0 {
 		t.Fatal("Async scheduler unexpectedly flushed", cx)
 	}
@@ -40,9 +40,9 @@ func TestAsync(t *testing.T) {
 	}
 
 	expected := []changes.Change{
-		changes.Move{0, 1, 2},
-		changes.Move{5, 6, 7},
-		changes.Move{3, 4, 5},
+		changes.Move{Offset: 0, Count: 1, Distance: 2},
+		changes.Move{Offset: 5, Count: 6, Distance: 7},
+		changes.Move{Offset: 3, Count: 4, Distance: 5},
 	}
 	if !reflect.DeepEqual(cx, expected) {
 		t.Fatal("Unexpected result", cx)
@@ -55,8 +55,8 @@ func TestAsyncMerge(t *testing.T) {
 	down := async.Wrap(streams.New())
 	streams.Connect(up, down)
 
-	up = up.Append(changes.Move{0, 2, 2})
-	down = down.Append(changes.Move{10, 2, 2})
+	up = up.Append(changes.Move{Offset: 0, Count: 2, Distance: 2})
+	down = down.Append(changes.Move{Offset: 10, Count: 2, Distance: 2})
 	if x, cx := up.Next(); x != nil {
 		t.Fatal("unexpected sync behavior", cx)
 	}
@@ -67,8 +67,8 @@ func TestAsyncMerge(t *testing.T) {
 	async.Loop(-1)
 	_, change1 := up.Next()
 	_, change2 := down.Next()
-	exp1 := changes.ChangeSet{nil, changes.Move{10, 2, 2}}
-	exp2 := changes.ChangeSet{nil, changes.Move{0, 2, 2}}
+	exp1 := changes.ChangeSet{nil, changes.Move{Offset: 10, Count: 2, Distance: 2}}
+	exp2 := changes.ChangeSet{nil, changes.Move{Offset: 0, Count: 2, Distance: 2}}
 	if !reflect.DeepEqual(change1, exp1) || !reflect.DeepEqual(change2, exp2) {
 		t.Fatal("Unexpected changes", change1, change2)
 	}
@@ -81,7 +81,7 @@ func TestAsyncForever(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	s.Nextf("key", wg.Done)
-	s.Append(changes.Move{2, 2, 2})
+	s.Append(changes.Move{Offset: 2, Count: 2, Distance: 2})
 	wg.Wait()
 	async.Close()
 }
