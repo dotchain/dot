@@ -10,3 +10,10 @@ type myStruct struct {
 	str   string     `dotc:s`
 	Str16 types.S16  `dotc:s16`
 }
+
+type myStructp struct {
+	boo   bool       `dotc:b`
+	boop  *bool      `dotc:bp,atomic`
+	str   string     `dotc:s`
+	Str16 types.S16  `dotc:s16`
+}
