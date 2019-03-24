@@ -17,6 +17,7 @@ import (
 
 func TestStructGenerateApply(t *testing.T) {
 	test.File(t.Error, "mystruct/input.json", "mystruct/generated.go", genStruct)
+	test.File(t.Error, "mystruct/input2.json", "mystruct/generated2.go", genStruct)
 }
 
 func genStruct(s dotc.Struct) (string, error) {
