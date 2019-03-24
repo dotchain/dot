@@ -6,11 +6,6 @@ package dotc
 
 import "strings"
 
-var basic = map[string]bool{
-	"bool": true,
-	"int":  true,
-}
-
 // Field holds info for a struct field
 type Field struct {
 	Name, Key, Type string
@@ -24,25 +19,12 @@ func (f Field) WrapR(recv string) string {
 
 // Wrap returns a string form of the field that maps to a changes.Value type
 func (f Field) Wrap(val string) string {
-	switch {
-	case f.Atomic || basic[f.Type]:
-		return "changes.Atomic{" + val + "}"
-	case f.Type == "string":
-		return "types.S16(" + val + ")"
-	}
-	return val
+	return wrapValue(val, f.Type, f.Atomic)
 }
 
 // Unwrap converts "v" to the type of the field
 func (f Field) Unwrap() string {
-	if f.Atomic || basic[f.Type] {
-		return "v.(changes.Atomic).Value.(" + f.Type + ")"
-	}
-
-	if f.Type == "string" {
-		return "string(v.(types.S16))"
-	}
-	return "v.(" + f.Type + ")"
+	return unwrapValue("v", f.Type, f.Atomic)
 }
 
 // Setter returns the method name of the field setter
