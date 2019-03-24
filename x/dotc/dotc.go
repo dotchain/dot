@@ -8,7 +8,6 @@ package dotc
 import (
 	"bytes"
 	"go/format"
-	"io"
 
 	"golang.org/x/tools/imports"
 )
@@ -18,6 +17,7 @@ type Info struct {
 	Package string
 	Imports [][2]string
 	Structs []Struct
+	Unions  []Union
 }
 
 // Generate implements the helper methods for the provided types
@@ -43,6 +43,15 @@ func (info Info) Generate() (string, error) {
 		}
 	}
 
+	for _, u := range info.Unions {
+		if err := u.GenerateApply(&buf); err != nil {
+			return "", err
+		}
+		if err := u.GenerateSetters(&buf); err != nil {
+			return "", err
+		}
+	}
+
 	p, err := format.Source(buf.Bytes())
 	if err != nil {
 		return buf.String(), err
@@ -54,33 +63,4 @@ func (info Info) Generate() (string, error) {
 	}
 
 	return string(p2), nil
-}
-
-// Struct has the type information of a struct for code generation of
-// the Apply() and SetField(..) methods
-type Struct struct {
-	Recv, Type string
-	Fields     []Field
-}
-
-// Pointer specifies if the struct type is itself a pointer
-func (s Struct) Pointer() bool {
-	return s.Type[0] == '*'
-}
-
-// GenerateApply generates the code for the changes.Value Apply() method
-func (s Struct) GenerateApply(w io.Writer) error {
-	return structApply.Execute(w, s)
-}
-
-// GenerateSetters generates the code for the field setters
-func (s Struct) GenerateSetters(w io.Writer) error {
-	return structSetters.Execute(w, s)
-}
-
-// Slice  has the type information of a slice type for code generation
-// of the Apply, ApplyCollection and splice methods
-type Slice struct {
-	Name, ElementName string
-	Atomic            bool
 }
