@@ -19,11 +19,15 @@ import (
 	"github.com/dotchain/dot/ops/nw"
 )
 
+func newOp(opID, parentID interface{}, ver, basis int, c changes.Change) ops.Operation {
+	return ops.Operation{OpID: opID, ParentID: parentID, VerID: ver, BasisID: basis, Change: c}
+}
+
 func TestClientErrors(t *testing.T) {
 	c := &nw.Client{URL: "http://localhost:8183/nw?q=1"}
 
 	// unknown type
-	op1 := ops.Operation{"ID1", "", 100, -1, run.Run{}}
+	op1 := newOp("ID1", "", 100, -1, run.Run{})
 	err := c.Append(getContext(), []ops.Op{op1})
 	if err == nil {
 		t.Fatal("Did not fail with unregistered change type")
@@ -95,7 +99,7 @@ func TestPollerStore(t *testing.T) {
 	// now kick off a go routine to wakeup
 	go func() {
 		time.Sleep(10 * time.Millisecond)
-		op := ops.Operation{"ID2", "", 100, -1, run.Run{}}
+		op := newOp("ID2", "", 100, -1, run.Run{})
 		_ = store.Append(context.Background(), []ops.Op{op})
 	}()
 
@@ -131,9 +135,9 @@ func TestClosedPollerStore(t *testing.T) {
 
 func TestStoreGetSince(t *testing.T) {
 	operations := []ops.Op{
-		ops.Operation{"ID1", "", 100, -1, run.Run{}},
-		ops.Operation{"ID2", "", 100, -1, run.Run{}},
-		ops.Operation{"ID3", "", 100, -1, run.Run{}},
+		newOp("ID1", "", 100, -1, run.Run{}),
+		newOp("ID2", "", 100, -1, run.Run{}),
+		newOp("ID3", "", 100, -1, run.Run{}),
 	}
 	store := nw.MemStore(operations)
 	defer store.Close()

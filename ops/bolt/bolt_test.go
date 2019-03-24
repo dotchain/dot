@@ -57,7 +57,7 @@ func TestSimple(t *testing.T) {
 	}
 	defer s.Close()
 
-	c := changes.PathChange{[]interface{}{5}, changes.Move{2, 2, 2}}
+	c := changes.PathChange{Path: []interface{}{5}, Change: changes.Move{Offset: 2, Count: 2, Distance: 2}}
 	op1 := ops.Operation{OpID: "one", Change: c}
 	op2 := ops.Operation{OpID: "two", Change: c}
 	opx := []ops.Op{op1, op2, op1, op2}
