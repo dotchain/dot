@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"go/format"
 	"io"
-	"text/template"
 
 	"golang.org/x/tools/imports"
 )
@@ -53,16 +52,6 @@ func (info Info) Generate() (string, error) {
 
 	return string(p2), nil
 }
-
-var infoTpl = template.Must(template.New("letter").Parse(`
-// Generated.  DO NOT EDIT.
-package {{.Package}}
-
-import (
-	{{range .Imports}}{{index . 0}} "{{index . 1}}"
-	{{end -}}
-)
-`))
 
 var basic = map[string]bool{
 	"bool": true,
@@ -115,36 +104,6 @@ func (s Struct) Pointer() bool {
 func (s Struct) GenerateApply(w io.Writer) error {
 	return structApply.Execute(w, s)
 }
-
-var structApply = template.Must(template.New("struct").Parse(`
-{{ $r := .Recv }}
-func ({{$r}} {{.Type}}) get(key interface{}) changes.Value {
-	switch key {
-	{{- range .Fields}}
-	case "{{.Key}}":
-		return {{.Wrap $r}}
-        {{- end }}
-        }
-	panic(key)
-}
-
-func ({{$r}} {{.Type}}) set(key interface{}, v changes.Value) changes.Value {
-	{{$r}}Clone := {{if .Pointer}}*{{end}}{{$r}}
-	switch key {
-	{{- range .Fields}}
-	case "{{.Key}}":
-		{{$r}}Clone.{{.Name}} = {{.Unwrap}}
-        {{- end }}
-	default: 
-		panic(key)
-        }
-	return {{if .Pointer}}&{{end}} {{.Recv}}Clone
-}
-
-func ({{$r}} {{.Type}}) Apply(ctx changes.Context, c changes.Change) changes.Value {
-	return (types.Generic{Get: {{$r}}.get, Set: {{$r}}.set}).Apply(ctx, c, {{$r}})
-}
-`))
 
 // Slice  has the type information of a slice type for code generation
 // of the Apply, ApplyCollection and splice methods
