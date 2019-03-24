@@ -33,7 +33,7 @@ func TestUpdateMerge(t *testing.T) {
 		},
 		{
 			refs.Update{"array", refs.Path{"Value", "array", 1}, refs.Path{"Value", "array"}},
-			changes.PathChange{refs.Path{"Value"}, changes.Replace{initial.Value, types.S8("ok")}},
+			changes.PathChange{Path: refs.Path{"Value"}, Change: changes.Replace{Before: initial.Value, After: types.S8("ok")}},
 		},
 		{
 			refs.Update{"goo", refs.Path{"Value", "ok"}, refs.Path{"Value", "bok"}},
@@ -53,15 +53,15 @@ func TestUpdateMerge(t *testing.T) {
 		},
 		{
 			refs.Update{"gool", nil, refs.Path{"Value", "bok"}},
-			changes.Replace{initial, types.S8("hello")},
+			changes.Replace{Before: initial, After: types.S8("hello")},
 		},
 		{
 			refs.Update{"gool", nil, refs.Path{"Value", "array", 5}},
-			changes.PathChange{refs.Path{"Value", "array"}, changes.Move{0, 4, 1}},
+			changes.PathChange{Path: refs.Path{"Value", "array"}, Change: changes.Move{Offset: 0, Count: 4, Distance: 1}},
 		},
 		{
 			refs.Update{"gool", nil, refs.Path{"Value", "array", 5}},
-			changes.PathChange{refs.Path{"Value", "array"}, changes.Move{0, 4, 1}},
+			changes.PathChange{Path: refs.Path{"Value", "array"}, Change: changes.Move{Offset: 0, Count: 4, Distance: 1}},
 		},
 	}
 
@@ -74,7 +74,7 @@ func TestUpdateMerge(t *testing.T) {
 			t.Error("Failed to merge", pair)
 		}
 
-		c1y, c2y := c1.Merge(changes.PathChange{nil, changes.ChangeSet{c2}})
+		c1y, c2y := c1.Merge(changes.PathChange{Path: nil, Change: changes.ChangeSet{c2}})
 		final1y := initial.Apply(nil, c1).Apply(nil, c1y)
 		final2y := initial.Apply(nil, c2).Apply(nil, c2y)
 		if !reflect.DeepEqual(final1y, final2y) || !reflect.DeepEqual(final1, final1y) {
@@ -82,7 +82,7 @@ func TestUpdateMerge(t *testing.T) {
 		}
 
 		if custom, ok := c1.(changes.Custom); ok {
-			c1z, c2z := custom.ReverseMerge(changes.PathChange{nil, changes.ChangeSet{c2}})
+			c1z, c2z := custom.ReverseMerge(changes.PathChange{Path: nil, Change: changes.ChangeSet{c2}})
 			final1z := initial.Apply(nil, c1).Apply(nil, c1z)
 			final2z := initial.Apply(nil, c2).Apply(nil, c2z)
 			if !reflect.DeepEqual(final1z, final2z) {
@@ -108,7 +108,7 @@ func TestUpdateUnknownMerge(t *testing.T) {
 		}
 	}()
 	u := refs.Update{"goo", refs.Path{"ok"}, refs.Path{"q"}}
-	u.Merge(changes.Move{5, 2, 2})
+	u.Merge(changes.Move{Offset: 5, Count: 2, Distance: 2})
 }
 
 func TestUpdateMiscReverseMerge(t *testing.T) {
@@ -123,7 +123,7 @@ func TestUpdateMiscReverseMerge(t *testing.T) {
 			t.Fatal("Failed to panic")
 		}
 	}()
-	u.ReverseMerge(changes.Move{5, 2, 2})
+	u.ReverseMerge(changes.Move{Offset: 5, Count: 2, Distance: 2})
 }
 
 func TestUpdateApplyTo(t *testing.T) {
@@ -205,9 +205,9 @@ func TestContainerPanics(t *testing.T) {
 
 	con := refs.Container{Value: types.S8("hello")}
 	mustPanic("bad apply", func() {
-		con.Apply(nil, changes.Move{2, 2, 2})
+		con.Apply(nil, changes.Move{Offset: 2, Count: 2, Distance: 2})
 	})
 	mustPanic("bad path apply", func() {
-		con.Apply(nil, changes.PathChange{refs.Path{"zoo"}, changes.Move{2, 2, 2}})
+		con.Apply(nil, changes.PathChange{Path: refs.Path{"zoo"}, Change: changes.Move{Offset: 2, Count: 2, Distance: 2}})
 	})
 }

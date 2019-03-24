@@ -22,7 +22,7 @@ func TestPathNil(t *testing.T) {
 }
 
 func TestPathReplace(t *testing.T) {
-	replace := changes.Replace{types.S8("OK"), types.S8("goop")}
+	replace := changes.Replace{Before: types.S8("OK"), After: types.S8("goop")}
 
 	p := refs.Path(nil)
 	p2, cx := p.Merge(replace)
@@ -30,7 +30,7 @@ func TestPathReplace(t *testing.T) {
 		t.Error("Unexpected Merge", p2, cx)
 	}
 
-	change := changes.PathChange{[]interface{}{"xyz"}, replace}
+	change := changes.PathChange{Path: []interface{}{"xyz"}, Change: replace}
 	p2, cx = p.Merge(change)
 	if !reflect.DeepEqual(p2, p) || !reflect.DeepEqual(cx, change) {
 		t.Error("Unexpected Merge", p2, cx)
@@ -38,7 +38,7 @@ func TestPathReplace(t *testing.T) {
 }
 
 func TestPathSplice(t *testing.T) {
-	splice := changes.Splice{2, types.S8("OK"), types.S8("Boo")}
+	splice := changes.Splice{Offset: 2, Before: types.S8("OK"), After: types.S8("Boo")}
 
 	p := refs.Path{1}
 	p2, cx := p.Merge(splice)
@@ -66,7 +66,7 @@ func TestPathSplice(t *testing.T) {
 }
 
 func TestPathMoveRight(t *testing.T) {
-	move := changes.Move{2, 2, 2}
+	move := changes.Move{Offset: 2, Count: 2, Distance: 2}
 
 	p := refs.Path{1}
 	p2, cx := p.Merge(move)
@@ -94,7 +94,7 @@ func TestPathMoveRight(t *testing.T) {
 }
 
 func TestPathMoveLeft(t *testing.T) {
-	move := changes.Move{2, 2, -1}
+	move := changes.Move{Offset: 2, Count: 2, Distance: -1}
 	p := refs.Path{1}
 	p2, cx := p.Merge(move)
 	if !reflect.DeepEqual(p2, refs.Path{3}) || cx != nil {
@@ -127,8 +127,8 @@ func TestPathMoveLeft(t *testing.T) {
 }
 
 func TestPathChangeSet(t *testing.T) {
-	move1 := changes.Move{2, 2, 1}
-	move2 := changes.Move{3, 2, 5}
+	move1 := changes.Move{Offset: 2, Count: 2, Distance: 1}
+	move2 := changes.Move{Offset: 3, Count: 2, Distance: 5}
 	p := refs.Path{2}
 	px, cx := p.Merge(changes.ChangeSet{move1, move2})
 	if !reflect.DeepEqual(px, refs.Path{8}) || cx != nil {
@@ -149,30 +149,30 @@ func TestPathChangeSet(t *testing.T) {
 }
 
 func TestPathPathChange(t *testing.T) {
-	splice := changes.Splice{2, types.S8("OK"), types.S8("Boo")}
+	splice := changes.Splice{Offset: 2, Before: types.S8("OK"), After: types.S8("Boo")}
 
 	p := refs.Path{"hello", 4}
-	p2, cx := p.Merge(changes.PathChange{[]interface{}{"hello"}, splice})
+	p2, cx := p.Merge(changes.PathChange{Path: []interface{}{"hello"}, Change: splice})
 	if !reflect.DeepEqual(p2, refs.Path{"hello", 5}) || cx != nil {
 		t.Error("Unexpected Merge", p2, cx)
 	}
 
 	p = refs.Path{"hello"}
-	p2, cx = p.Merge(changes.PathChange{[]interface{}{"hello"}, splice})
-	exp := changes.PathChange{[]interface{}{}, splice}
+	p2, cx = p.Merge(changes.PathChange{Path: []interface{}{"hello"}, Change: splice})
+	exp := changes.PathChange{Path: []interface{}{}, Change: splice}
 	if !reflect.DeepEqual(p2, p) || !reflect.DeepEqual(cx, exp) {
 		t.Error("Unexpected Merge", p2, cx)
 	}
 
 	p = refs.Path{"hello"}
-	p2, cx = p.Merge(changes.PathChange{[]interface{}{"hello", "world"}, splice})
-	expected := changes.PathChange{[]interface{}{"world"}, splice}
+	p2, cx = p.Merge(changes.PathChange{Path: []interface{}{"hello", "world"}, Change: splice})
+	expected := changes.PathChange{Path: []interface{}{"world"}, Change: splice}
 	if !reflect.DeepEqual(p2, p) || !reflect.DeepEqual(cx, expected) {
 		t.Error("Unexpected Merge", p2, cx)
 	}
 
 	p = refs.Path{"goop"}
-	p2, cx = p.Merge(changes.PathChange{[]interface{}{"hello"}, splice})
+	p2, cx = p.Merge(changes.PathChange{Path: []interface{}{"hello"}, Change: splice})
 	if !reflect.DeepEqual(p2, p) || cx != nil {
 		t.Error("Unexpected Merge", p2, cx)
 	}
@@ -183,7 +183,7 @@ func TestPathInvalidRef(t *testing.T) {
 	replace1 := changes.Replace{Before: types.S8("OK"), After: types.S8("Boo")}
 	replace2 := changes.Replace{Before: types.S8("Boo"), After: types.S8("Goo")}
 	cset := changes.ChangeSet{replace1, replace2}
-	c := changes.PathChange{[]interface{}{"xyz"}, cset}
+	c := changes.PathChange{Path: []interface{}{"xyz"}, Change: cset}
 	px, cx := p.Merge(c)
 	if px != refs.InvalidRef || cx != nil {
 		t.Error("Unexpected merge", px, cx)

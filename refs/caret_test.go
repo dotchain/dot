@@ -41,7 +41,7 @@ func TestCaretEqual(t *testing.T) {
 }
 
 func TestCaretReplace(t *testing.T) {
-	replace := changes.Replace{types.S8("OK"), types.S8("goop")}
+	replace := changes.Replace{Before: types.S8("OK"), After: types.S8("goop")}
 
 	ref := refs.Caret{Index: 5}
 	refx, cx := ref.Merge(replace)
@@ -49,12 +49,12 @@ func TestCaretReplace(t *testing.T) {
 		t.Error("Unexpected Merge", refx, cx)
 	}
 
-	refx, cx = ref.Merge(changes.PathChange{nil, replace})
+	refx, cx = ref.Merge(changes.PathChange{Path: nil, Change: replace})
 	if refx != refs.InvalidRef || cx != nil {
 		t.Error("Unexpected Merge", refx, cx)
 	}
 
-	change := changes.PathChange{[]interface{}{"xyz"}, replace}
+	change := changes.PathChange{Path: []interface{}{"xyz"}, Change: replace}
 	refx, cx = ref.Merge(change)
 	if !reflect.DeepEqual(refx, ref) || cx != nil {
 		t.Error("Unexpected Merge", refx, cx)
@@ -62,7 +62,7 @@ func TestCaretReplace(t *testing.T) {
 }
 
 func TestCaretSplice(t *testing.T) {
-	splice := changes.Splice{2, types.S8("OK"), types.S8("Boo")}
+	splice := changes.Splice{Offset: 2, Before: types.S8("OK"), After: types.S8("Boo")}
 
 	ref := refs.Caret{nil, 1, false}
 	refx, cx := ref.Merge(splice)
@@ -92,7 +92,7 @@ func TestCaretSplice(t *testing.T) {
 }
 
 func TestCaretSpliceAtIndex(t *testing.T) {
-	splice := changes.Splice{5, types.S8(""), types.S8("boo")}
+	splice := changes.Splice{Offset: 5, Before: types.S8(""), After: types.S8("boo")}
 	ref := refs.Caret{refs.Path{}, splice.Offset, false}
 	refx, _ := ref.Merge(splice)
 	expected := refs.Caret{nil, splice.Offset + splice.After.Count(), false}
@@ -101,7 +101,7 @@ func TestCaretSpliceAtIndex(t *testing.T) {
 		t.Error("Unexpected Merge", refx)
 	}
 
-	splice = changes.Splice{5, types.S8("a"), types.S8("boo")}
+	splice = changes.Splice{Offset: 5, Before: types.S8("a"), After: types.S8("boo")}
 	ref = refs.Caret{nil, splice.Offset, false}
 	refx, _ = ref.Merge(splice)
 	expected = ref
@@ -110,7 +110,7 @@ func TestCaretSpliceAtIndex(t *testing.T) {
 		t.Error("Unexpected Merge", refx)
 	}
 
-	splice = changes.Splice{5, types.S8(""), types.S8("boo")}
+	splice = changes.Splice{Offset: 5, Before: types.S8(""), After: types.S8("boo")}
 	ref = refs.Caret{nil, splice.Offset, true}
 	refx, _ = ref.Merge(splice)
 	expected = ref
@@ -121,7 +121,7 @@ func TestCaretSpliceAtIndex(t *testing.T) {
 }
 
 func TestCaretMoveRight(t *testing.T) {
-	move := changes.Move{2, 2, 2}
+	move := changes.Move{Offset: 2, Count: 2, Distance: 2}
 
 	p := refs.Path(nil)
 	ref := refs.Caret{p, 1, false}
@@ -150,7 +150,7 @@ func TestCaretMoveRight(t *testing.T) {
 }
 
 func TestCaretMoveLeft(t *testing.T) {
-	move := changes.Move{2, 2, -1}
+	move := changes.Move{Offset: 2, Count: 2, Distance: -1}
 	p := refs.Path(nil)
 	ref := refs.Caret{p, 1, false}
 	refx, cx := ref.Merge(move)
@@ -178,7 +178,7 @@ func TestCaretMoveLeft(t *testing.T) {
 }
 
 func TestCaretMoveAtIndex(t *testing.T) {
-	move := changes.Move{2, 2, 2}
+	move := changes.Move{Offset: 2, Count: 2, Distance: 2}
 
 	p := refs.Path(nil)
 	ref := refs.Caret{p, 6, false}
@@ -194,7 +194,7 @@ func TestCaretMoveAtIndex(t *testing.T) {
 		t.Error("Unexpected Merge", refx)
 	}
 
-	move = changes.Move{2, 2, -1}
+	move = changes.Move{Offset: 2, Count: 2, Distance: -1}
 
 	ref = refs.Caret{p, 1, false}
 	refx, _ = ref.Merge(move)
@@ -211,8 +211,8 @@ func TestCaretMoveAtIndex(t *testing.T) {
 }
 
 func TestCaretChangeSet(t *testing.T) {
-	move1 := changes.Move{2, 2, 1}
-	move2 := changes.Move{3, 2, 5}
+	move1 := changes.Move{Offset: 2, Count: 2, Distance: 1}
+	move2 := changes.Move{Offset: 3, Count: 2, Distance: 5}
 	p := refs.Path(nil)
 	ref := refs.Caret{p, 2, false}
 	refx, cx := ref.Merge(changes.ChangeSet{move1, move2})
@@ -222,26 +222,26 @@ func TestCaretChangeSet(t *testing.T) {
 }
 
 func TestCaretPathChange(t *testing.T) {
-	splice := changes.Splice{2, types.S8("OK"), types.S8("Boo")}
+	splice := changes.Splice{Offset: 2, Before: types.S8("OK"), After: types.S8("Boo")}
 
 	p := refs.Path{"hello"}
 	ref := refs.Caret{p, 4, false}
-	refx, cx := ref.Merge(changes.PathChange{p, splice})
+	refx, cx := ref.Merge(changes.PathChange{Path: p, Change: splice})
 	if !reflect.DeepEqual(refx, refs.Caret{p, 5, false}) || cx != nil {
 		t.Error("Unexpected Merge", refx, cx)
 	}
 
-	refx, cx = ref.Merge(changes.PathChange{p, changes.PathChange{nil, splice}})
+	refx, cx = ref.Merge(changes.PathChange{Path: p, Change: changes.PathChange{Path: nil, Change: splice}})
 	if !reflect.DeepEqual(refx, refs.Caret{p, 5, false}) || cx != nil {
 		t.Error("Unexpected Merge", refx, cx)
 	}
 
-	refx, cx = ref.Merge(changes.PathChange{[]interface{}{"hello", 4}, splice})
+	refx, cx = ref.Merge(changes.PathChange{Path: []interface{}{"hello", 4}, Change: splice})
 	if !reflect.DeepEqual(refx, ref) || cx != nil {
 		t.Error("Unexpected Merge", refx, cx)
 	}
 
-	refx, cx = ref.Merge(changes.PathChange{[]interface{}{"goop"}, splice})
+	refx, cx = ref.Merge(changes.PathChange{Path: []interface{}{"goop"}, Change: splice})
 	if !reflect.DeepEqual(refx, ref) || cx != nil {
 		t.Error("Unexpected Merge", refx, cx)
 	}
@@ -253,7 +253,7 @@ func TestCaretInvalidRef(t *testing.T) {
 	replace1 := changes.Replace{Before: types.S8("OK"), After: types.S8("Boo")}
 	replace2 := changes.Replace{Before: types.S8("Boo"), After: types.S8("Goo")}
 	cset := changes.ChangeSet{replace1, replace2}
-	c := changes.PathChange{[]interface{}{"xyz"}, cset}
+	c := changes.PathChange{Path: []interface{}{"xyz"}, Change: cset}
 	refx, cx := ref.Merge(c)
 	if refx != refs.InvalidRef || cx != nil {
 		t.Error("Unexpected merge", refx, cx)
