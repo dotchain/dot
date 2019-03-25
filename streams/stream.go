@@ -51,8 +51,8 @@
 //
 // Streams inherently only track the actual changes and not the
 // underlying values but most applications also need to track the
-// current value. See Int for an example stream that tracks an
-// underlying int value, backed by a Stream.
+// current value. See Int, Bool, S16 or S8 for an example stream that
+// tracks an underlying value backed by a Stream.
 package streams
 
 import "github.com/dotchain/dot/changes"
