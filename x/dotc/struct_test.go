@@ -44,8 +44,12 @@ func logErrorContext(e error, code string) {
 	if before < 0 {
 		before = 0
 	}
-	if after >= len(lines) {
+	if after > len(lines) {
 		after = len(lines)
+	}
+	if before >= after {
+		log.Println("\nerror:", e)
+		return
 	}
 	log.Println("error", strings.Join(lines[before:after], "\n"), "\nerror:", e)
 }

@@ -1,0 +1,30 @@
+{
+	"Recv": "my",
+	"Type": "MyStruct",
+	"Fields": [
+		{
+			"Name": "boo",
+			"Key": "b",
+			"Type": "bool",
+			"Atomic": false
+		},
+		{
+			"Name": "boop",
+			"Key": "bp",
+			"Type": "*bool",
+			"Atomic": true
+		},
+		{
+			"Name": "str",
+			"Key": "s",
+			"Type": "string",
+			"Atomic": false
+		},
+		{
+			"Name": "Count",
+			"Key": "count",
+			"Type": "int",
+			"Atomic": false
+		}
+	]
+}

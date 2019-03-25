@@ -4,7 +4,10 @@
 
 package dotc
 
-import "fmt"
+import (
+	"fmt"
+	"unicode"
+)
 
 func wrapValue(v, vType string, atomic bool) string {
 	if atomic || atomicTypes[vType] {
@@ -29,6 +32,18 @@ func unwrapValue(v, vType string, atomic bool) string {
 	return v + ".(" + vType + ")"
 }
 
+func streamType(s string) string {
+	runes := []rune(s)
+	for !unicode.IsLetter(runes[0]) {
+		runes = runes[1:]
+	}
+	s = string(runes)
+	if x, ok := streamTypes[s]; ok {
+		return x
+	}
+	return s + "Stream"
+}
+
 var atomicTypes = map[string]bool{
 	"bool": true,
 	"int":  true,
@@ -40,4 +55,12 @@ var wrappers = map[string]string{
 
 var unwrappers = map[string]string{
 	"string": "string(%s.(types.S16))",
+}
+
+var streamTypes = map[string]string{
+	"bool":      "streams.Bool",
+	"int":       "streams.Int",
+	"string":    "streams.S16",
+	"types.S16": "streams.S16",
+	"types.S8":  "streams.S8",
 }
