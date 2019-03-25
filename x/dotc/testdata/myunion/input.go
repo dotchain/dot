@@ -5,15 +5,15 @@ import (
 )
 
 type myUnion struct {
-	boo   bool       `dotc:b`
-	boop  *bool      `dotc:bp,atomic`
-	str   string     `dotc:s`
-	Str16 types.S16  `dotc:s16`
+	boo   bool
+	boop  *bool
+	str   string
+	Str16 types.S16
 }
 
 type myUnionp struct {
-	boo   bool       `dotc:b`
-	boop  *bool      `dotc:bp,atomic`
-	str   string     `dotc:s`
-	Str16 types.S16  `dotc:s16`
+	boo   bool
+	boop  *bool
+	str   string
+	Str16 types.S16
 }

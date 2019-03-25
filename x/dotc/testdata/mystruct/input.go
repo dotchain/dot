@@ -5,23 +5,24 @@ import (
 )
 
 type myStruct struct {
-	boo   bool       `dotc:b`
-	boop  *bool      `dotc:bp,atomic`
-	str   string     `dotc:s`
-	Str16 types.S16  `dotc:s16`
+	boo   bool
+	boop  *bool
+	str   string
+	Str16 types.S16
 }
 
 type myStructp struct {
-	boo   bool       `dotc:b`
-	boop  *bool      `dotc:bp,atomic`
-	str   string     `dotc:s`
-	Str16 types.S16  `dotc:s16`
+	boo   bool
+	boop  *bool
+	str   string
+	Str16 types.S16
 }
 
+// MyStruct is public
 type MyStruct struct {
-	boo   bool       `dotc:b`
-	boop  *bool      `dotc:bp,atomic`
-	str   string     `dotc:s`
-	Str16 types.S16  `dotc:s16`
-	Count int        `dotc:count`
+	boo   bool
+	boop  *bool
+	str   string
+	Str16 types.S16
+	Count int
 }

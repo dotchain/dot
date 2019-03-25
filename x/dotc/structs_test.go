@@ -11,13 +11,23 @@ import (
 	"github.com/tvastar/test"
 )
 
-func TestStructStreamGenerateInterface(t *testing.T) {
+func TestStructStream(t *testing.T) {
 	test.File(t.Error, "mystruct/input3.json", "mystruct/generated3.go", genStructStream)
+	test.File(t.Error, "mystruct/input3.json", "mystruct/generated3_test.go", genStructStreamTests)
 }
 
 func genStructStream(s dotc.Struct) (string, error) {
 	info := dotc.Info{Package: "mystruct", Structs: []dotc.Struct{s}}
 	code, err := info.Generate()
+	if err != nil {
+		logErrorContext(err, code)
+	}
+	return code, err
+}
+
+func genStructStreamTests(s dotc.Struct) (string, error) {
+	info := dotc.Info{Package: "mystruct", Structs: []dotc.Struct{s}}
+	code, err := info.GenerateTests()
 	if err != nil {
 		logErrorContext(err, code)
 	}
