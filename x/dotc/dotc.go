@@ -22,6 +22,42 @@ type Info struct {
 	Slices  []Slice
 }
 
+// GenerateTests generates the tests
+func (info Info) GenerateTests() (result string, err error) {
+	var buf bytes.Buffer
+
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
+
+	info.Imports = append(
+		[][2]string{
+			{"", "github.com/dotchain/dot/changes"},
+			{"", "github.com/dotchain/dot/changes/types"},
+			{"", "github.com/dotchain/dot/streams"},
+			{"", "reflect"},
+			{"", "testing"},
+		}, info.Imports...)
+
+	must(infoTpl.Execute(&buf, info))
+
+	for _, s := range info.Structs {
+		if isExported(s.Type) {
+			must(StructStream(s).GenerateStreamTests(&buf))
+		}
+	}
+
+	result = buf.String()
+	p, err := format.Source([]byte(result))
+	must(err)
+
+	result = string(p)
+	p, err = imports.Process("generated_test.go", p, nil)
+	return string(p), err
+}
+
 // Generate implements the helper methods for the provided types
 func (info Info) Generate() (result string, err error) {
 	var buf bytes.Buffer
