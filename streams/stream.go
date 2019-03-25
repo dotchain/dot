@@ -34,6 +34,18 @@
 //
 // A branch is just a derived stream with ability to Commit and Cancel
 // local changes.
+//
+//
+// Substream
+//
+// It is possible to create sub-streams for elements rooted below the
+// current element.  For example, one can take a stream of elements
+// and only focus on the substream of changes to the 5th element. In
+// this case, if the parent stream has a change which splices in a
+// few elements before 5, the sub-stream should correspondingly refer
+// to the new indices.   And any changes on the sub-stream should
+// refer to the correct index on the parent.   The Substream() method
+// provides the implementation of this concept.
 package streams
 
 import "github.com/dotchain/dot/changes"
@@ -68,7 +80,6 @@ import "github.com/dotchain/dot/changes"
 // possible to create git-like branches using the Branch type, where
 // the changes are cached until an explicit call to Pull or Push to
 // move the changes between two branches.
-//
 type Stream interface {
 	// Append adds a change on top of the current change.  If
 	// the current change has a Next, this is merged with the next
