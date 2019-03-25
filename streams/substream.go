@@ -41,7 +41,7 @@ type substream struct {
 
 func (s *substream) Next() (Stream, changes.Change) {
 	if s.ref == refs.InvalidRef {
-		return s, nil
+		return nil, nil
 	}
 
 	next, nextc := s.parent.Next()

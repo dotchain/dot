@@ -91,7 +91,7 @@ func (s subsuite) InvalidRef(t *testing.T) {
 	}
 
 	nn2, cc2 := nn.Next()
-	if nn2 != nn || cc2 != nil {
+	if nn2 != nil || cc2 != nil {
 		t.Error("Invalid ref didn't do its thing", nn2, cc2)
 	}
 
