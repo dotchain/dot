@@ -44,9 +44,10 @@ func (info Info) GenerateTests() (result string, err error) {
 	must(infoTpl.Execute(&buf, info))
 
 	for _, s := range info.Structs {
-		if isExported(s.Type) {
-			must(StructStream(s).GenerateStreamTests(&buf))
-		}
+		must(StructStream(s).GenerateStreamTests(&buf))
+	}
+	for _, s := range info.Slices {
+		must(SliceStream(s).GenerateStreamTests(&buf))
 	}
 
 	result = buf.String()
@@ -80,9 +81,7 @@ func (info Info) Generate() (result string, err error) {
 	for _, s := range info.Structs {
 		must(s.GenerateApply(&buf))
 		must(s.GenerateSetters(&buf))
-		if isExported(s.Type) {
-			must(StructStream(s).GenerateStream(&buf))
-		}
+		must(StructStream(s).GenerateStream(&buf))
 	}
 
 	for _, u := range info.Unions {
@@ -93,6 +92,7 @@ func (info Info) Generate() (result string, err error) {
 	for _, s := range info.Slices {
 		must(s.GenerateApply(&buf))
 		must(s.GenerateSetters(&buf))
+		must(SliceStream(s).GenerateStream(&buf))
 	}
 
 	result = buf.String()

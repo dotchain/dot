@@ -9,41 +9,28 @@ import (
 	"text/template"
 )
 
-// StructStream implements code generation for streams of structs
-type StructStream Struct
-
-// PublicFields lists all the exported fields of the underlying struct
-func (s StructStream) PublicFields() []Field {
-	result := []Field{}
-	for _, f := range s.Fields {
-		if isExported(f.Name) {
-			result = append(result, f)
-		}
-	}
-	return result
-}
+// SliceStream implements code generation for streams of slices
+type SliceStream Slice
 
 // GenerateStream generates the stream implementation
-func (s StructStream) GenerateStream(w io.Writer) error {
+func (s SliceStream) GenerateStream(w io.Writer) error {
 	if !isExported(s.Type) {
 		return nil
 	}
 
-	return structStreamImpl.Execute(w, s)
+	return sliceStreamImpl.Execute(w, Slice(s))
 }
 
 // GenerateStreamTests generates the stream tests
-func (s StructStream) GenerateStreamTests(w io.Writer) error {
+func (s SliceStream) GenerateStreamTests(w io.Writer) error {
 	if !isExported(s.Type) {
 		return nil
 	}
 
-	return structStreamTests.Execute(w, s)
+	return sliceStreamTests.Execute(w, Slice(s))
 }
 
-var streamFns = template.FuncMap{"stream": streamType}
-
-var structStreamImpl = template.Must(template.New("struct_stream_impl").Funcs(streamFns).Parse(`
+var sliceStreamImpl = template.Must(template.New("slice_stream_impl").Funcs(streamFns).Parse(`
 // {{stream .Type}} implements a stream of {{.Type}} values
 type {{stream .Type}} struct {
 	Stream streams.Stream
@@ -84,15 +71,21 @@ func (s *{{stream .Type}}) Update(val {{.Type}}) *{{stream .Type}} {
 	return s
 }
 
-{{ $stype := stream .Type}}
-{{range .PublicFields -}}
-func (s *{{$stype}}) {{.Name}}() *{{stream .Type}} {
-	return &{{stream .Type}}{Stream: streams.Substream(s.Stream, "{{.Key}}"), Value: s.Value.{{.Name}}}
+// Item returns the sub item stream
+func (s *{{stream .Type}}) Item(index int) *{{stream .ElemType}} {
+	return &{{stream .ElemType}}{Stream: streams.Substream(s.Stream, index), Value: ({{if .Pointer}}*{{end}}s.Value)[index]}
 }
-{{end -}}
+
+// Splice splices the items
+func (s *{{stream .Type}}) Splice(offset, count int, replacement ...{{.ElemType}}) *{{stream .Type}} {
+	after := {{.RawType}}(replacement)
+	c := changes.Replace{Before: s.Value.Slice(offset, count), After: {{if .Pointer}}&{{end}}after}
+	str := s.Stream.Append(c)
+	return &{{stream .Type}}{Stream: str, Value: s.Value.Splice(offset, count, replacement...)}
+}
 `))
 
-var structStreamTests = template.Must(template.New("struct_stream_test").Funcs(streamFns).Parse(`
+var sliceStreamTests = template.Must(template.New("slice_stream_tests").Funcs(streamFns).Parse(`
 func Test{{stream .Type}}(t *testing.T) {
 	s := streams.New()
 	values := valuesFor{{stream .Type}}()
@@ -134,15 +127,24 @@ func Test{{stream .Type}}(t *testing.T) {
 	}
 }
 
-{{ $stype := stream .Type}}
-{{range .PublicFields -}}
-func Test{{$stype}}{{.Name}}(t *testing.T) {
+func Test{{stream .Type}}Splice(t *testing.T) {
 	s := streams.New()
-	values := valuesFor{{$stype}}()
-	strong := &{{$stype}}{Stream: s, Value: values[0]}
-	if !reflect.DeepEqual(strong.Value.{{.Name}}, strong.{{.Name}}().Value) {
-		t.Error("Substream returned unexpected value", strong.{{.Name}}().Value)
+	values := valuesFor{{stream .Type}}()
+	strong := &{{stream .Type}}{Stream: s, Value: values[1]}
+	strong1 := strong.Splice(0, strong.Value.Count(), {{if .Pointer}}*{{end}}values[2]...)
+	if !reflect.DeepEqual(strong1.Value, values[2]) {
+		t.Error("Splice did the unexpected", strong1.Value)
 	}
 }
-{{end -}}
+
+func Test{{stream .Type}}Item(t *testing.T) {
+	s := streams.New()
+	values := valuesFor{{stream .Type}}()
+	strong := &{{stream .Type}}{Stream: s, Value: values[1]}
+	item0 := strong.Item(0)
+	if !reflect.DeepEqual(item0.Value, ({{if .Pointer}}*{{end}}values[1])[0]) {
+		t.Error("Splice did the unexpected", item0.Value)
+	}
+}
+
 `))

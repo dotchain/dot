@@ -4,6 +4,7 @@ package myslice
 import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
+	"github.com/dotchain/dot/streams"
 )
 
 func (my MySlice) get(key interface{}) changes.Value {
@@ -46,6 +47,59 @@ func (my MySlice) ApplyCollection(ctx changes.Context, c changes.Change) changes
 func (my MySlice) Splice(offset, count int, insert ...bool) MySlice {
 	myInsert := MySlice(insert)
 	return my.splice(offset, count, myInsert).(MySlice)
+}
+
+// MySliceStream implements a stream of MySlice values
+type MySliceStream struct {
+	Stream streams.Stream
+	Value  MySlice
+}
+
+// Next returns the next entry in the stream if there is one
+func (s *MySliceStream) Next() (*MySliceStream, changes.Change) {
+	if s.Stream == nil {
+		return nil, nil
+	}
+
+	next, nextc := s.Stream.Next()
+	if next == nil {
+		return nil, nil
+	}
+
+	if nextVal, ok := s.Value.Apply(nil, nextc).(MySlice); ok {
+		return &MySliceStream{Stream: next, Value: nextVal}, nextc
+	}
+	return &MySliceStream{Value: s.Value}, nil
+}
+
+// Latest returns the latest entry in the stream
+func (s *MySliceStream) Latest() *MySliceStream {
+	for n, _ := s.Next(); n != nil; n, _ = s.Next() {
+		s = n
+	}
+	return s
+}
+
+// Update replaces the current value with the new value
+func (s *MySliceStream) Update(val MySlice) *MySliceStream {
+	if s.Stream != nil {
+		nexts := s.Stream.Append(changes.Replace{Before: s.Value, After: val})
+		s = &MySliceStream{Stream: nexts, Value: val}
+	}
+	return s
+}
+
+// Item returns the sub item stream
+func (s *MySliceStream) Item(index int) *streams.Bool {
+	return &streams.Bool{Stream: streams.Substream(s.Stream, index), Value: (s.Value)[index]}
+}
+
+// Splice splices the items
+func (s *MySliceStream) Splice(offset, count int, replacement ...bool) *MySliceStream {
+	after := MySlice(replacement)
+	c := changes.Replace{Before: s.Value.Slice(offset, count), After: after}
+	str := s.Stream.Append(c)
+	return &MySliceStream{Stream: str, Value: s.Value.Splice(offset, count, replacement...)}
 }
 
 func (my mySlice2) get(key interface{}) changes.Value {
@@ -172,6 +226,59 @@ func (my *MySliceP) ApplyCollection(ctx changes.Context, c changes.Change) chang
 func (my *MySliceP) Splice(offset, count int, insert ...bool) *MySliceP {
 	myInsert := MySliceP(insert)
 	return my.splice(offset, count, &myInsert).(*MySliceP)
+}
+
+// MySlicePStream implements a stream of *MySliceP values
+type MySlicePStream struct {
+	Stream streams.Stream
+	Value  *MySliceP
+}
+
+// Next returns the next entry in the stream if there is one
+func (s *MySlicePStream) Next() (*MySlicePStream, changes.Change) {
+	if s.Stream == nil {
+		return nil, nil
+	}
+
+	next, nextc := s.Stream.Next()
+	if next == nil {
+		return nil, nil
+	}
+
+	if nextVal, ok := s.Value.Apply(nil, nextc).(*MySliceP); ok {
+		return &MySlicePStream{Stream: next, Value: nextVal}, nextc
+	}
+	return &MySlicePStream{Value: s.Value}, nil
+}
+
+// Latest returns the latest entry in the stream
+func (s *MySlicePStream) Latest() *MySlicePStream {
+	for n, _ := s.Next(); n != nil; n, _ = s.Next() {
+		s = n
+	}
+	return s
+}
+
+// Update replaces the current value with the new value
+func (s *MySlicePStream) Update(val *MySliceP) *MySlicePStream {
+	if s.Stream != nil {
+		nexts := s.Stream.Append(changes.Replace{Before: s.Value, After: val})
+		s = &MySlicePStream{Stream: nexts, Value: val}
+	}
+	return s
+}
+
+// Item returns the sub item stream
+func (s *MySlicePStream) Item(index int) *streams.Bool {
+	return &streams.Bool{Stream: streams.Substream(s.Stream, index), Value: (*s.Value)[index]}
+}
+
+// Splice splices the items
+func (s *MySlicePStream) Splice(offset, count int, replacement ...bool) *MySlicePStream {
+	after := MySliceP(replacement)
+	c := changes.Replace{Before: s.Value.Slice(offset, count), After: &after}
+	str := s.Stream.Append(c)
+	return &MySlicePStream{Stream: str, Value: s.Value.Splice(offset, count, replacement...)}
 }
 
 func (my *mySlice2P) get(key interface{}) changes.Value {
