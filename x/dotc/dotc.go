@@ -8,6 +8,7 @@ package dotc
 import (
 	"bytes"
 	"go/format"
+	"unicode"
 
 	"golang.org/x/tools/imports"
 )
@@ -22,55 +23,61 @@ type Info struct {
 }
 
 // Generate implements the helper methods for the provided types
-func (info Info) Generate() (string, error) {
+func (info Info) Generate() (result string, err error) {
 	var buf bytes.Buffer
+
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
 
 	info.Imports = append(
 		[][2]string{
 			{"", "github.com/dotchain/dot/changes"},
 			{"", "github.com/dotchain/dot/changes/types"},
+			{"", "github.com/dotchain/dot/streams"},
 		}, info.Imports...)
 
-	if err := infoTpl.Execute(&buf, info); err != nil {
-		return "", err
-	}
+	must(infoTpl.Execute(&buf, info))
 
 	for _, s := range info.Structs {
-		if err := s.GenerateApply(&buf); err != nil {
-			return "", err
-		}
-		if err := s.GenerateSetters(&buf); err != nil {
-			return "", err
+		must(s.GenerateApply(&buf))
+		must(s.GenerateSetters(&buf))
+		if isExported(s.Type) {
+			must(StructStream(s).GenerateStream(&buf))
 		}
 	}
 
 	for _, u := range info.Unions {
-		if err := u.GenerateApply(&buf); err != nil {
-			return "", err
-		}
-		if err := u.GenerateSetters(&buf); err != nil {
-			return "", err
-		}
+		must(u.GenerateApply(&buf))
+		must(u.GenerateSetters(&buf))
 	}
 
 	for _, s := range info.Slices {
-		if err := s.GenerateApply(&buf); err != nil {
-			return "", err
-		}
-		if err := s.GenerateSetters(&buf); err != nil {
-			return "", err
-		}
+		must(s.GenerateApply(&buf))
+		must(s.GenerateSetters(&buf))
 	}
 
-	p, err := format.Source(buf.Bytes())
+	result = buf.String()
+	p, err := format.Source([]byte(result))
+	must(err)
+
+	result = string(p)
+	p, err = imports.Process("generated.go", p, nil)
+	return string(p), err
+}
+
+func isExported(nameOrType string) bool {
+	runes := []rune(nameOrType)
+	for !unicode.IsLetter(runes[0]) {
+		runes = runes[1:]
+	}
+	return unicode.IsUpper(runes[0])
+}
+
+func must(err error) {
 	if err != nil {
-		return buf.String(), err
+		panic(err)
 	}
-
-	p2, err := imports.Process("generated.go", p, nil)
-	if err != nil {
-		return string(p), err
-	}
-
-	return string(p2), nil
 }
