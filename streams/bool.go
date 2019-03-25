@@ -6,14 +6,14 @@ package streams
 
 import "github.com/dotchain/dot/changes"
 
-// Int implements an int stream.
-type Int struct {
+// Bool implements a bool stream.
+type Bool struct {
 	Stream Stream
-	Value  int
+	Value  bool
 }
 
 // Next returns the next if there is one.
-func (s *Int) Next() (*Int, changes.Change) {
+func (s *Bool) Next() (*Bool, changes.Change) {
 	if s.Stream == nil {
 		return nil, nil
 	}
@@ -26,18 +26,18 @@ func (s *Int) Next() (*Int, changes.Change) {
 	v := s.Value
 	val, ok := (changes.Atomic{Value: v}).Apply(nil, nextc).(changes.Atomic)
 	if ok {
-		v, ok = val.Value.(int)
+		v, ok = val.Value.(bool)
 	}
 	if !ok {
 		next = nil
 		v = s.Value
 		nextc = nil
 	}
-	return &Int{Stream: next, Value: v}, nextc
+	return &Bool{Stream: next, Value: v}, nextc
 }
 
 // Latest returns the latest non-nil entry in the stream
-func (s *Int) Latest() *Int {
+func (s *Bool) Latest() *Bool {
 	for next, _ := s.Next(); next != nil; next, _ = s.Next() {
 		s = next
 	}
@@ -45,12 +45,12 @@ func (s *Int) Latest() *Int {
 }
 
 // Update replaces the current value with the new value
-func (s *Int) Update(val int) *Int {
+func (s *Bool) Update(val bool) *Bool {
 	before, after := changes.Atomic{Value: s.Value}, changes.Atomic{Value: val}
 
 	if s.Stream != nil {
 		nexts := s.Stream.Append(changes.Replace{Before: before, After: after})
-		s = &Int{Stream: nexts, Value: val}
+		s = &Bool{Stream: nexts, Value: val}
 	}
 	return s
 }
