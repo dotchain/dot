@@ -107,6 +107,12 @@ func (s *MyStructStream) Update(val MyStruct) *MyStructStream {
 	return s
 }
 
+func (s *MyStructStream) boo() *streams.Bool {
+	return &streams.Bool{Stream: streams.Substream(s.Stream, "b"), Value: (s.Value.boo)}
+}
+func (s *MyStructStream) str() *streams.S16 {
+	return &streams.S16{Stream: streams.Substream(s.Stream, "s"), Value: (s.Value.str)}
+}
 func (s *MyStructStream) Count() *streams.Int {
-	return &streams.Int{Stream: streams.Substream(s.Stream, "count"), Value: s.Value.Count}
+	return &streams.Int{Stream: streams.Substream(s.Stream, "count"), Value: (s.Value.Count)}
 }

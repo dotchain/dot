@@ -12,11 +12,11 @@ import (
 // StructStream implements code generation for streams of structs
 type StructStream Struct
 
-// PublicFields lists all the exported fields of the underlying struct
+// PublicFields lists all fields which support streams
 func (s StructStream) PublicFields() []Field {
 	result := []Field{}
 	for _, f := range s.Fields {
-		if isExported(f.Name) {
+		if !f.Atomic || streamTypes[f.Type] != "" {
 			result = append(result, f)
 		}
 	}
@@ -25,19 +25,11 @@ func (s StructStream) PublicFields() []Field {
 
 // GenerateStream generates the stream implementation
 func (s StructStream) GenerateStream(w io.Writer) error {
-	if !isExported(s.Type) {
-		return nil
-	}
-
 	return structStreamImpl.Execute(w, s)
 }
 
 // GenerateStreamTests generates the stream tests
 func (s StructStream) GenerateStreamTests(w io.Writer) error {
-	if !isExported(s.Type) {
-		return nil
-	}
-
 	return structStreamTests.Execute(w, s)
 }
 
@@ -87,7 +79,7 @@ func (s *{{stream .Type}}) Update(val {{.Type}}) *{{stream .Type}} {
 {{ $stype := stream .Type}}
 {{range .PublicFields -}}
 func (s *{{$stype}}) {{.Name}}() *{{stream .Type}} {
-	return &{{stream .Type}}{Stream: streams.Substream(s.Stream, "{{.Key}}"), Value: s.Value.{{.Name}}}
+	return &{{stream .Type}}{Stream: streams.Substream(s.Stream, "{{.Key}}"), Value: {{.Unstringify}}(s.Value.{{.Name}})}
 }
 {{end -}}
 `))

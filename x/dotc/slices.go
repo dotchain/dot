@@ -14,7 +14,7 @@ type SliceStream Slice
 
 // GenerateStream generates the stream implementation
 func (s SliceStream) GenerateStream(w io.Writer) error {
-	if !isExported(s.Type) {
+	if s.Atomic && streamTypes[s.ElemType] == "" {
 		return nil
 	}
 
@@ -23,7 +23,7 @@ func (s SliceStream) GenerateStream(w io.Writer) error {
 
 // GenerateStreamTests generates the stream tests
 func (s SliceStream) GenerateStreamTests(w io.Writer) error {
-	if !isExported(s.Type) {
+	if s.Atomic && streamTypes[s.ElemType] == "" {
 		return nil
 	}
 

@@ -144,6 +144,59 @@ func (my mySlice2) Splice(offset, count int, insert ...MySlice) mySlice2 {
 	return my.splice(offset, count, myInsert).(mySlice2)
 }
 
+// mySlice2Stream implements a stream of mySlice2 values
+type mySlice2Stream struct {
+	Stream streams.Stream
+	Value  mySlice2
+}
+
+// Next returns the next entry in the stream if there is one
+func (s *mySlice2Stream) Next() (*mySlice2Stream, changes.Change) {
+	if s.Stream == nil {
+		return nil, nil
+	}
+
+	next, nextc := s.Stream.Next()
+	if next == nil {
+		return nil, nil
+	}
+
+	if nextVal, ok := s.Value.Apply(nil, nextc).(mySlice2); ok {
+		return &mySlice2Stream{Stream: next, Value: nextVal}, nextc
+	}
+	return &mySlice2Stream{Value: s.Value}, nil
+}
+
+// Latest returns the latest entry in the stream
+func (s *mySlice2Stream) Latest() *mySlice2Stream {
+	for n, _ := s.Next(); n != nil; n, _ = s.Next() {
+		s = n
+	}
+	return s
+}
+
+// Update replaces the current value with the new value
+func (s *mySlice2Stream) Update(val mySlice2) *mySlice2Stream {
+	if s.Stream != nil {
+		nexts := s.Stream.Append(changes.Replace{Before: s.Value, After: val})
+		s = &mySlice2Stream{Stream: nexts, Value: val}
+	}
+	return s
+}
+
+// Item returns the sub item stream
+func (s *mySlice2Stream) Item(index int) *MySliceStream {
+	return &MySliceStream{Stream: streams.Substream(s.Stream, index), Value: (s.Value)[index]}
+}
+
+// Splice splices the items
+func (s *mySlice2Stream) Splice(offset, count int, replacement ...MySlice) *mySlice2Stream {
+	after := mySlice2(replacement)
+	c := changes.Replace{Before: s.Value.Slice(offset, count), After: after}
+	str := s.Stream.Append(c)
+	return &mySlice2Stream{Stream: str, Value: s.Value.Splice(offset, count, replacement...)}
+}
+
 func (my mySlice3) get(key interface{}) changes.Value {
 	return changes.Atomic{my[key.(int)]}
 }
@@ -321,6 +374,59 @@ func (my *mySlice2P) ApplyCollection(ctx changes.Context, c changes.Change) chan
 func (my *mySlice2P) Splice(offset, count int, insert ...*MySliceP) *mySlice2P {
 	myInsert := mySlice2P(insert)
 	return my.splice(offset, count, &myInsert).(*mySlice2P)
+}
+
+// mySlice2PStream implements a stream of *mySlice2P values
+type mySlice2PStream struct {
+	Stream streams.Stream
+	Value  *mySlice2P
+}
+
+// Next returns the next entry in the stream if there is one
+func (s *mySlice2PStream) Next() (*mySlice2PStream, changes.Change) {
+	if s.Stream == nil {
+		return nil, nil
+	}
+
+	next, nextc := s.Stream.Next()
+	if next == nil {
+		return nil, nil
+	}
+
+	if nextVal, ok := s.Value.Apply(nil, nextc).(*mySlice2P); ok {
+		return &mySlice2PStream{Stream: next, Value: nextVal}, nextc
+	}
+	return &mySlice2PStream{Value: s.Value}, nil
+}
+
+// Latest returns the latest entry in the stream
+func (s *mySlice2PStream) Latest() *mySlice2PStream {
+	for n, _ := s.Next(); n != nil; n, _ = s.Next() {
+		s = n
+	}
+	return s
+}
+
+// Update replaces the current value with the new value
+func (s *mySlice2PStream) Update(val *mySlice2P) *mySlice2PStream {
+	if s.Stream != nil {
+		nexts := s.Stream.Append(changes.Replace{Before: s.Value, After: val})
+		s = &mySlice2PStream{Stream: nexts, Value: val}
+	}
+	return s
+}
+
+// Item returns the sub item stream
+func (s *mySlice2PStream) Item(index int) *MySlicePStream {
+	return &MySlicePStream{Stream: streams.Substream(s.Stream, index), Value: (*s.Value)[index]}
+}
+
+// Splice splices the items
+func (s *mySlice2PStream) Splice(offset, count int, replacement ...*MySliceP) *mySlice2PStream {
+	after := mySlice2P(replacement)
+	c := changes.Replace{Before: s.Value.Slice(offset, count), After: &after}
+	str := s.Stream.Append(c)
+	return &mySlice2PStream{Stream: str, Value: s.Value.Splice(offset, count, replacement...)}
 }
 
 func (my *mySlice3P) get(key interface{}) changes.Value {
