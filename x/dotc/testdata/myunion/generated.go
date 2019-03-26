@@ -26,13 +26,13 @@ func (my myUnion) set(key interface{}, v changes.Value) changes.Value {
 	myClone := my
 	switch key {
 	case "b":
-		myClone.boo = v.(changes.Atomic).Value.(bool)
+		myClone.boo = (v).(changes.Atomic).Value.(bool)
 	case "bp":
-		myClone.boop = v.(changes.Atomic).Value.(*bool)
+		myClone.boop = (v).(changes.Atomic).Value.(*bool)
 	case "s":
-		myClone.str = string(v.(types.S16))
+		myClone.str = string((v).(types.S16))
 	case "s16":
-		myClone.Str16 = v.(types.S16)
+		myClone.Str16 = (v).(types.S16)
 	default:
 		panic(key)
 	}
@@ -100,10 +100,13 @@ func (s *myUnionStream) Update(val myUnion) *myUnionStream {
 }
 
 func (s *myUnionStream) boo() *streams.Bool {
-	return &streams.Bool{Stream: streams.Substream(s.Stream, "b"), Value: (s.Value.boo)}
+	return &streams.Bool{Stream: streams.Substream(s.Stream, "b"), Value: s.Value.boo}
+}
+func (s *myUnionStream) boop() *boolStream {
+	return &boolStream{Stream: streams.Substream(s.Stream, "bp"), Value: s.Value.boop}
 }
 func (s *myUnionStream) str() *streams.S16 {
-	return &streams.S16{Stream: streams.Substream(s.Stream, "s"), Value: (s.Value.str)}
+	return &streams.S16{Stream: streams.Substream(s.Stream, "s"), Value: s.Value.str}
 }
 func (s *myUnionStream) Str16() *streams.S16 {
 	return &streams.S16{Stream: streams.Substream(s.Stream, "s16"), Value: string(s.Value.Str16)}

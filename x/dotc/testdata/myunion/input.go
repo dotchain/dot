@@ -2,6 +2,7 @@ package myunion
 
 import (
 	"github.com/dotchain/dot/changes/types"
+	"github.com/dotchain/dot/streams"
 )
 
 type myUnion struct {
@@ -16,4 +17,9 @@ type myUnionp struct {
 	boop  *bool
 	str   string
 	Str16 types.S16
+}
+
+type boolStream struct {
+	Stream streams.Stream
+	Value *bool
 }

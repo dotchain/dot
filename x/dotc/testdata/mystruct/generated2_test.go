@@ -9,7 +9,7 @@ import (
 	"github.com/dotchain/dot/streams"
 )
 
-func TestmyStructpStream(t *testing.T) {
+func TestStreammyStructpStream(t *testing.T) {
 	s := streams.New()
 	values := valuesFormyStructpStream()
 	strong := &myStructpStream{Stream: s, Value: values[0]}
@@ -50,27 +50,39 @@ func TestmyStructpStream(t *testing.T) {
 	}
 }
 
-func TestmyStructpStreamboo(t *testing.T) {
+func TestStreammyStructpStreamboo(t *testing.T) {
 	s := streams.New()
 	values := valuesFormyStructpStream()
 	strong := &myStructpStream{Stream: s, Value: values[0]}
-	if !reflect.DeepEqual(strong.Value.boo, strong.boo().Value) {
+	expected := strong.Value.boo
+	if !reflect.DeepEqual(expected, strong.boo().Value) {
 		t.Error("Substream returned unexpected value", strong.boo().Value)
 	}
 }
-func TestmyStructpStreamstr(t *testing.T) {
+func TestStreammyStructpStreamboop(t *testing.T) {
 	s := streams.New()
 	values := valuesFormyStructpStream()
 	strong := &myStructpStream{Stream: s, Value: values[0]}
-	if !reflect.DeepEqual(strong.Value.str, strong.str().Value) {
+	expected := strong.Value.boop
+	if !reflect.DeepEqual(expected, strong.boop().Value) {
+		t.Error("Substream returned unexpected value", strong.boop().Value)
+	}
+}
+func TestStreammyStructpStreamstr(t *testing.T) {
+	s := streams.New()
+	values := valuesFormyStructpStream()
+	strong := &myStructpStream{Stream: s, Value: values[0]}
+	expected := strong.Value.str
+	if !reflect.DeepEqual(expected, strong.str().Value) {
 		t.Error("Substream returned unexpected value", strong.str().Value)
 	}
 }
-func TestmyStructpStreamStr16(t *testing.T) {
+func TestStreammyStructpStreamStr16(t *testing.T) {
 	s := streams.New()
 	values := valuesFormyStructpStream()
 	strong := &myStructpStream{Stream: s, Value: values[0]}
-	if !reflect.DeepEqual(strong.Value.Str16, strong.Str16().Value) {
+	expected := string(strong.Value.Str16)
+	if !reflect.DeepEqual(expected, strong.Str16().Value) {
 		t.Error("Substream returned unexpected value", strong.Str16().Value)
 	}
 }

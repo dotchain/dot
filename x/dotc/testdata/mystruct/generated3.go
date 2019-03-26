@@ -26,13 +26,13 @@ func (my MyStruct) set(key interface{}, v changes.Value) changes.Value {
 	myClone := my
 	switch key {
 	case "b":
-		myClone.boo = v.(changes.Atomic).Value.(bool)
+		myClone.boo = (v).(changes.Atomic).Value.(bool)
 	case "bp":
-		myClone.boop = v.(changes.Atomic).Value.(*bool)
+		myClone.boop = (v).(changes.Atomic).Value.(*bool)
 	case "s":
-		myClone.str = string(v.(types.S16))
+		myClone.str = string((v).(types.S16))
 	case "count":
-		myClone.Count = v.(changes.Atomic).Value.(int)
+		myClone.Count = (v).(changes.Atomic).Value.(int)
 	default:
 		panic(key)
 	}
@@ -108,11 +108,14 @@ func (s *MyStructStream) Update(val MyStruct) *MyStructStream {
 }
 
 func (s *MyStructStream) boo() *streams.Bool {
-	return &streams.Bool{Stream: streams.Substream(s.Stream, "b"), Value: (s.Value.boo)}
+	return &streams.Bool{Stream: streams.Substream(s.Stream, "b"), Value: s.Value.boo}
+}
+func (s *MyStructStream) boop() *boolStream {
+	return &boolStream{Stream: streams.Substream(s.Stream, "bp"), Value: s.Value.boop}
 }
 func (s *MyStructStream) str() *streams.S16 {
-	return &streams.S16{Stream: streams.Substream(s.Stream, "s"), Value: (s.Value.str)}
+	return &streams.S16{Stream: streams.Substream(s.Stream, "s"), Value: s.Value.str}
 }
 func (s *MyStructStream) Count() *streams.Int {
-	return &streams.Int{Stream: streams.Substream(s.Stream, "count"), Value: (s.Value.Count)}
+	return &streams.Int{Stream: streams.Substream(s.Stream, "count"), Value: s.Value.Count}
 }

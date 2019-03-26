@@ -12,15 +12,9 @@ import (
 // StructStream implements code generation for streams of structs
 type StructStream Struct
 
-// SubFields lists all fields which support streams
-func (s StructStream) SubFields() []Field {
-	result := []Field{}
-	for _, f := range s.Fields {
-		if !f.Atomic || streamTypes[f.Type] != "" {
-			result = append(result, f)
-		}
-	}
-	return result
+// StreamType provides the stream type of the struct
+func (s StructStream) StreamType() string {
+	return (Field{Type: s.Type}).ToStreamType()
 }
 
 // GenerateStream generates the stream implementation
@@ -33,17 +27,15 @@ func (s StructStream) GenerateStreamTests(w io.Writer) error {
 	return structStreamTests.Execute(w, s)
 }
 
-var streamFns = template.FuncMap{"stream": streamType}
-
-var structStreamImpl = template.Must(template.New("struct_stream_impl").Funcs(streamFns).Parse(`
-// {{stream .Type}} implements a stream of {{.Type}} values
-type {{stream .Type}} struct {
+var structStreamImpl = template.Must(template.New("struct_stream_impl").Parse(`
+// {{.StreamType}} implements a stream of {{.Type}} values
+type {{.StreamType}} struct {
 	Stream streams.Stream
 	Value {{.Type}}
 }
 
 // Next returns the next entry in the stream if there is one
-func (s *{{stream .Type}}) Next() (*{{stream .Type}}, changes.Change) {
+func (s *{{.StreamType}}) Next() (*{{.StreamType}}, changes.Change) {
 	if s.Stream == nil {
 		return nil, nil
 	}
@@ -54,13 +46,13 @@ func (s *{{stream .Type}}) Next() (*{{stream .Type}}, changes.Change) {
 	}
 
 	if nextVal, ok := s.Value.Apply(nil, nextc).({{.Type}}); ok {
-		return &{{stream .Type}}{Stream: next, Value: nextVal}, nextc
+		return &{{.StreamType}}{Stream: next, Value: nextVal}, nextc
 	}
-	return &{{stream .Type}}{Value: s.Value}, nil
+	return &{{.StreamType}}{Value: s.Value}, nil
 }
 
 // Latest returns the latest entry in the stream
-func (s *{{stream .Type}}) Latest() *{{stream .Type}} {
+func (s *{{.StreamType}}) Latest() *{{.StreamType}} {
 	for n, _ := s.Next(); n != nil; n, _ = s.Next() {
 		s = n
 	}
@@ -68,27 +60,27 @@ func (s *{{stream .Type}}) Latest() *{{stream .Type}} {
 }
 
 // Update replaces the current value with the new value
-func (s *{{stream .Type}}) Update(val {{.Type}}) *{{stream .Type}} {
+func (s *{{.StreamType}}) Update(val {{.Type}}) *{{.StreamType}} {
 	if s.Stream != nil {
 		nexts := s.Stream.Append(changes.Replace{Before: s.Value, After: val})
-		s = &{{stream .Type}}{Stream: nexts, Value: val}
+		s = &{{.StreamType}}{Stream: nexts, Value: val}
 	}
 	return s
 }
 
-{{ $stype := stream .Type}}
-{{range .SubFields -}}
-func (s *{{$stype}}) {{.Name}}() *{{stream .Type}} {
-	return &{{stream .Type}}{Stream: streams.Substream(s.Stream, "{{.Key}}"), Value: {{.Unstringify}}(s.Value.{{.Name}})}
+{{ $stype := .StreamType}}
+{{range .Fields -}}
+func (s *{{$stype}}) {{.Name}}() *{{.ToStreamType}} {
+	return &{{.ToStreamType}}{Stream: streams.Substream(s.Stream, "{{.Key}}"), Value: {{.FromStreamValue "s.Value" .Name}} }
 }
 {{end -}}
 `))
 
-var structStreamTests = template.Must(template.New("struct_stream_test").Funcs(streamFns).Parse(`
-func Test{{stream .Type}}(t *testing.T) {
+var structStreamTests = template.Must(template.New("struct_stream_test").Parse(`
+func TestStream{{.StreamType}}(t *testing.T) {
 	s := streams.New()
-	values := valuesFor{{stream .Type}}()
-	strong := &{{stream .Type}}{Stream: s, Value: values[0]}
+	values := valuesFor{{.StreamType}}()
+	strong := &{{.StreamType}}{Stream: s, Value: values[0]}
 
 	strong = strong.Update(values[1])
 	if !reflect.DeepEqual(strong.Value, values[1]) {
@@ -126,13 +118,14 @@ func Test{{stream .Type}}(t *testing.T) {
 	}
 }
 
-{{ $stype := stream .Type}}
-{{range .SubFields -}}
-func Test{{$stype}}{{.Name}}(t *testing.T) {
+{{ $stype := .StreamType}}
+{{range .Fields -}}
+func TestStream{{$stype}}{{.Name}}(t *testing.T) {
 	s := streams.New()
 	values := valuesFor{{$stype}}()
 	strong := &{{$stype}}{Stream: s, Value: values[0]}
-	if !reflect.DeepEqual(strong.Value.{{.Name}}, strong.{{.Name}}().Value) {
+	expected := {{.FromStreamValue "strong.Value" .Name}}
+	if !reflect.DeepEqual(expected, strong.{{.Name}}().Value) {
 		t.Error("Substream returned unexpected value", strong.{{.Name}}().Value)
 	}
 }
