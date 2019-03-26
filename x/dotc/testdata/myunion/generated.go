@@ -4,6 +4,7 @@ package myunion
 import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
+	"github.com/dotchain/dot/streams"
 )
 
 func (my myUnion) get(key interface{}) changes.Value {
@@ -56,4 +57,54 @@ func (my myUnion) setStr(value string) myUnion {
 
 func (my myUnion) SetStr16(value types.S16) myUnion {
 	return myUnion{Str16: value}
+}
+
+// myUnionStream implements a stream of myUnion values
+type myUnionStream struct {
+	Stream streams.Stream
+	Value  myUnion
+}
+
+// Next returns the next entry in the stream if there is one
+func (s *myUnionStream) Next() (*myUnionStream, changes.Change) {
+	if s.Stream == nil {
+		return nil, nil
+	}
+
+	next, nextc := s.Stream.Next()
+	if next == nil {
+		return nil, nil
+	}
+
+	if nextVal, ok := s.Value.Apply(nil, nextc).(myUnion); ok {
+		return &myUnionStream{Stream: next, Value: nextVal}, nextc
+	}
+	return &myUnionStream{Value: s.Value}, nil
+}
+
+// Latest returns the latest entry in the stream
+func (s *myUnionStream) Latest() *myUnionStream {
+	for n, _ := s.Next(); n != nil; n, _ = s.Next() {
+		s = n
+	}
+	return s
+}
+
+// Update replaces the current value with the new value
+func (s *myUnionStream) Update(val myUnion) *myUnionStream {
+	if s.Stream != nil {
+		nexts := s.Stream.Append(changes.Replace{Before: s.Value, After: val})
+		s = &myUnionStream{Stream: nexts, Value: val}
+	}
+	return s
+}
+
+func (s *myUnionStream) boo() *streams.Bool {
+	return &streams.Bool{Stream: streams.Substream(s.Stream, "b"), Value: (s.Value.boo)}
+}
+func (s *myUnionStream) str() *streams.S16 {
+	return &streams.S16{Stream: streams.Substream(s.Stream, "s"), Value: (s.Value.str)}
+}
+func (s *myUnionStream) Str16() *streams.S16 {
+	return &streams.S16{Stream: streams.Substream(s.Stream, "s16"), Value: string(s.Value.Str16)}
 }
