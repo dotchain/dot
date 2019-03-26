@@ -4,6 +4,7 @@ package mystruct
 import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
+	"github.com/dotchain/dot/streams"
 )
 
 func (my myStruct) get(key interface{}) changes.Value {
@@ -64,4 +65,54 @@ func (my myStruct) SetStr16(value types.S16) myStruct {
 	myReplace := changes.Replace{my.Str16, value}
 	myChange := changes.PathChange{[]interface{}{"s16"}, myReplace}
 	return my.Apply(nil, myChange).(myStruct)
+}
+
+// myStructStream implements a stream of myStruct values
+type myStructStream struct {
+	Stream streams.Stream
+	Value  myStruct
+}
+
+// Next returns the next entry in the stream if there is one
+func (s *myStructStream) Next() (*myStructStream, changes.Change) {
+	if s.Stream == nil {
+		return nil, nil
+	}
+
+	next, nextc := s.Stream.Next()
+	if next == nil {
+		return nil, nil
+	}
+
+	if nextVal, ok := s.Value.Apply(nil, nextc).(myStruct); ok {
+		return &myStructStream{Stream: next, Value: nextVal}, nextc
+	}
+	return &myStructStream{Value: s.Value}, nil
+}
+
+// Latest returns the latest entry in the stream
+func (s *myStructStream) Latest() *myStructStream {
+	for n, _ := s.Next(); n != nil; n, _ = s.Next() {
+		s = n
+	}
+	return s
+}
+
+// Update replaces the current value with the new value
+func (s *myStructStream) Update(val myStruct) *myStructStream {
+	if s.Stream != nil {
+		nexts := s.Stream.Append(changes.Replace{Before: s.Value, After: val})
+		s = &myStructStream{Stream: nexts, Value: val}
+	}
+	return s
+}
+
+func (s *myStructStream) boo() *streams.Bool {
+	return &streams.Bool{Stream: streams.Substream(s.Stream, "b"), Value: (s.Value.boo)}
+}
+func (s *myStructStream) str() *streams.S16 {
+	return &streams.S16{Stream: streams.Substream(s.Stream, "s"), Value: (s.Value.str)}
+}
+func (s *myStructStream) Str16() *streams.S16 {
+	return &streams.S16{Stream: streams.Substream(s.Stream, "s16"), Value: string(s.Value.Str16)}
 }

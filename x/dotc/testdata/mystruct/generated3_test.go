@@ -50,6 +50,22 @@ func TestMyStructStream(t *testing.T) {
 	}
 }
 
+func TestMyStructStreamboo(t *testing.T) {
+	s := streams.New()
+	values := valuesForMyStructStream()
+	strong := &MyStructStream{Stream: s, Value: values[0]}
+	if !reflect.DeepEqual(strong.Value.boo, strong.boo().Value) {
+		t.Error("Substream returned unexpected value", strong.boo().Value)
+	}
+}
+func TestMyStructStreamstr(t *testing.T) {
+	s := streams.New()
+	values := valuesForMyStructStream()
+	strong := &MyStructStream{Stream: s, Value: values[0]}
+	if !reflect.DeepEqual(strong.Value.str, strong.str().Value) {
+		t.Error("Substream returned unexpected value", strong.str().Value)
+	}
+}
 func TestMyStructStreamCount(t *testing.T) {
 	s := streams.New()
 	values := valuesForMyStructStream()

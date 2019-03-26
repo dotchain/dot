@@ -8,7 +8,6 @@ package dotc
 import (
 	"bytes"
 	"go/format"
-	"unicode"
 
 	"golang.org/x/tools/imports"
 )
@@ -102,14 +101,6 @@ func (info Info) Generate() (result string, err error) {
 	result = string(p)
 	p, err = imports.Process("generated.go", p, nil)
 	return string(p), err
-}
-
-func isExported(nameOrType string) bool {
-	runes := []rune(nameOrType)
-	for !unicode.IsLetter(runes[0]) {
-		runes = runes[1:]
-	}
-	return unicode.IsUpper(runes[0])
 }
 
 func must(err error) {

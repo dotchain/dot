@@ -35,3 +35,12 @@ func (f Field) Setter() string {
 	}
 	return "set" + title
 }
+
+// Unstringify is oddball special case where types.S16 and types.S8
+// also end up using being cast to string when used with streams.S16
+func (f Field) Unstringify() string {
+	if f.Type == "types.S16" || f.Type == "types.S8" {
+		return "string"
+	}
+	return ""
+}
