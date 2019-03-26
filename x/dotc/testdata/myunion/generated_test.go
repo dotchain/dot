@@ -9,7 +9,7 @@ import (
 	"github.com/dotchain/dot/streams"
 )
 
-func TestmyUnionStream(t *testing.T) {
+func TestStreammyUnionStream(t *testing.T) {
 	s := streams.New()
 	values := valuesFormyUnionStream()
 	strong := &myUnionStream{Stream: s, Value: values[0]}
@@ -50,27 +50,39 @@ func TestmyUnionStream(t *testing.T) {
 	}
 }
 
-func TestmyUnionStreamboo(t *testing.T) {
+func TestStreammyUnionStreamboo(t *testing.T) {
 	s := streams.New()
 	values := valuesFormyUnionStream()
 	strong := &myUnionStream{Stream: s, Value: values[0]}
-	if !reflect.DeepEqual(strong.Value.boo, strong.boo().Value) {
+	expected := strong.Value.boo
+	if !reflect.DeepEqual(expected, strong.boo().Value) {
 		t.Error("Substream returned unexpected value", strong.boo().Value)
 	}
 }
-func TestmyUnionStreamstr(t *testing.T) {
+func TestStreammyUnionStreamboop(t *testing.T) {
 	s := streams.New()
 	values := valuesFormyUnionStream()
 	strong := &myUnionStream{Stream: s, Value: values[0]}
-	if !reflect.DeepEqual(strong.Value.str, strong.str().Value) {
+	expected := strong.Value.boop
+	if !reflect.DeepEqual(expected, strong.boop().Value) {
+		t.Error("Substream returned unexpected value", strong.boop().Value)
+	}
+}
+func TestStreammyUnionStreamstr(t *testing.T) {
+	s := streams.New()
+	values := valuesFormyUnionStream()
+	strong := &myUnionStream{Stream: s, Value: values[0]}
+	expected := strong.Value.str
+	if !reflect.DeepEqual(expected, strong.str().Value) {
 		t.Error("Substream returned unexpected value", strong.str().Value)
 	}
 }
-func TestmyUnionStreamStr16(t *testing.T) {
+func TestStreammyUnionStreamStr16(t *testing.T) {
 	s := streams.New()
 	values := valuesFormyUnionStream()
 	strong := &myUnionStream{Stream: s, Value: values[0]}
-	if !reflect.DeepEqual(strong.Value.Str16, strong.Str16().Value) {
+	expected := string(strong.Value.Str16)
+	if !reflect.DeepEqual(expected, strong.Str16().Value) {
 		t.Error("Substream returned unexpected value", strong.Str16().Value)
 	}
 }

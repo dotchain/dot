@@ -9,7 +9,7 @@ import (
 	"github.com/dotchain/dot/streams"
 )
 
-func TestMyStructStream(t *testing.T) {
+func TestStreamMyStructStream(t *testing.T) {
 	s := streams.New()
 	values := valuesForMyStructStream()
 	strong := &MyStructStream{Stream: s, Value: values[0]}
@@ -50,27 +50,39 @@ func TestMyStructStream(t *testing.T) {
 	}
 }
 
-func TestMyStructStreamboo(t *testing.T) {
+func TestStreamMyStructStreamboo(t *testing.T) {
 	s := streams.New()
 	values := valuesForMyStructStream()
 	strong := &MyStructStream{Stream: s, Value: values[0]}
-	if !reflect.DeepEqual(strong.Value.boo, strong.boo().Value) {
+	expected := strong.Value.boo
+	if !reflect.DeepEqual(expected, strong.boo().Value) {
 		t.Error("Substream returned unexpected value", strong.boo().Value)
 	}
 }
-func TestMyStructStreamstr(t *testing.T) {
+func TestStreamMyStructStreamboop(t *testing.T) {
 	s := streams.New()
 	values := valuesForMyStructStream()
 	strong := &MyStructStream{Stream: s, Value: values[0]}
-	if !reflect.DeepEqual(strong.Value.str, strong.str().Value) {
+	expected := strong.Value.boop
+	if !reflect.DeepEqual(expected, strong.boop().Value) {
+		t.Error("Substream returned unexpected value", strong.boop().Value)
+	}
+}
+func TestStreamMyStructStreamstr(t *testing.T) {
+	s := streams.New()
+	values := valuesForMyStructStream()
+	strong := &MyStructStream{Stream: s, Value: values[0]}
+	expected := strong.Value.str
+	if !reflect.DeepEqual(expected, strong.str().Value) {
 		t.Error("Substream returned unexpected value", strong.str().Value)
 	}
 }
-func TestMyStructStreamCount(t *testing.T) {
+func TestStreamMyStructStreamCount(t *testing.T) {
 	s := streams.New()
 	values := valuesForMyStructStream()
 	strong := &MyStructStream{Stream: s, Value: values[0]}
-	if !reflect.DeepEqual(strong.Value.Count, strong.Count().Value) {
+	expected := strong.Value.Count
+	if !reflect.DeepEqual(expected, strong.Count().Value) {
 		t.Error("Substream returned unexpected value", strong.Count().Value)
 	}
 }

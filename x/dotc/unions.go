@@ -8,23 +8,12 @@ import "io"
 
 type UnionStream Union
 
-// SubFields lists all fields which support streams
-func (s UnionStream) SubFields() []Field {
-	result := []Field{}
-	for _, f := range s.Fields {
-		if !f.Atomic || streamTypes[f.Type] != "" {
-			result = append(result, f)
-		}
-	}
-	return result
-}
-
 // GenerateStream generates the stream implementation
 func (s UnionStream) GenerateStream(w io.Writer) error {
-	return structStreamImpl.Execute(w, s)
+	return structStreamImpl.Execute(w, StructStream(Union(s)))
 }
 
 // GenerateStreamTests generates the stream tests
 func (s UnionStream) GenerateStreamTests(w io.Writer) error {
-	return structStreamTests.Execute(w, s)
+	return structStreamTests.Execute(w, StructStream(Union(s)))
 }

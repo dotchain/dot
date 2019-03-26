@@ -13,7 +13,7 @@ func (my MySlice) get(key interface{}) changes.Value {
 
 func (my MySlice) set(key interface{}, v changes.Value) changes.Value {
 	myClone := MySlice(append([]bool(nil), (my)...))
-	myClone[key.(int)] = v.(changes.Atomic).Value.(bool)
+	myClone[key.(int)] = (v).(changes.Atomic).Value.(bool)
 	return myClone
 }
 
@@ -108,7 +108,7 @@ func (my mySlice2) get(key interface{}) changes.Value {
 
 func (my mySlice2) set(key interface{}, v changes.Value) changes.Value {
 	myClone := mySlice2(append([]MySlice(nil), (my)...))
-	myClone[key.(int)] = v.(MySlice)
+	myClone[key.(int)] = (v).(MySlice)
 	return myClone
 }
 
@@ -203,7 +203,7 @@ func (my mySlice3) get(key interface{}) changes.Value {
 
 func (my mySlice3) set(key interface{}, v changes.Value) changes.Value {
 	myClone := mySlice3(append([]*bool(nil), (my)...))
-	myClone[key.(int)] = v.(changes.Atomic).Value.(*bool)
+	myClone[key.(int)] = (v).(changes.Atomic).Value.(*bool)
 	return myClone
 }
 
@@ -239,13 +239,66 @@ func (my mySlice3) Splice(offset, count int, insert ...*bool) mySlice3 {
 	return my.splice(offset, count, myInsert).(mySlice3)
 }
 
+// mySlice3Stream implements a stream of mySlice3 values
+type mySlice3Stream struct {
+	Stream streams.Stream
+	Value  mySlice3
+}
+
+// Next returns the next entry in the stream if there is one
+func (s *mySlice3Stream) Next() (*mySlice3Stream, changes.Change) {
+	if s.Stream == nil {
+		return nil, nil
+	}
+
+	next, nextc := s.Stream.Next()
+	if next == nil {
+		return nil, nil
+	}
+
+	if nextVal, ok := s.Value.Apply(nil, nextc).(mySlice3); ok {
+		return &mySlice3Stream{Stream: next, Value: nextVal}, nextc
+	}
+	return &mySlice3Stream{Value: s.Value}, nil
+}
+
+// Latest returns the latest entry in the stream
+func (s *mySlice3Stream) Latest() *mySlice3Stream {
+	for n, _ := s.Next(); n != nil; n, _ = s.Next() {
+		s = n
+	}
+	return s
+}
+
+// Update replaces the current value with the new value
+func (s *mySlice3Stream) Update(val mySlice3) *mySlice3Stream {
+	if s.Stream != nil {
+		nexts := s.Stream.Append(changes.Replace{Before: s.Value, After: val})
+		s = &mySlice3Stream{Stream: nexts, Value: val}
+	}
+	return s
+}
+
+// Item returns the sub item stream
+func (s *mySlice3Stream) Item(index int) *boolStream {
+	return &boolStream{Stream: streams.Substream(s.Stream, index), Value: (s.Value)[index]}
+}
+
+// Splice splices the items
+func (s *mySlice3Stream) Splice(offset, count int, replacement ...*bool) *mySlice3Stream {
+	after := mySlice3(replacement)
+	c := changes.Replace{Before: s.Value.Slice(offset, count), After: after}
+	str := s.Stream.Append(c)
+	return &mySlice3Stream{Stream: str, Value: s.Value.Splice(offset, count, replacement...)}
+}
+
 func (my *MySliceP) get(key interface{}) changes.Value {
 	return changes.Atomic{(*my)[key.(int)]}
 }
 
 func (my *MySliceP) set(key interface{}, v changes.Value) changes.Value {
 	myClone := MySliceP(append([]bool(nil), (*my)...))
-	myClone[key.(int)] = v.(changes.Atomic).Value.(bool)
+	myClone[key.(int)] = (v).(changes.Atomic).Value.(bool)
 	return &myClone
 }
 
@@ -340,7 +393,7 @@ func (my *mySlice2P) get(key interface{}) changes.Value {
 
 func (my *mySlice2P) set(key interface{}, v changes.Value) changes.Value {
 	myClone := mySlice2P(append([]*MySliceP(nil), (*my)...))
-	myClone[key.(int)] = v.(*MySliceP)
+	myClone[key.(int)] = (v).(*MySliceP)
 	return &myClone
 }
 
@@ -435,7 +488,7 @@ func (my *mySlice3P) get(key interface{}) changes.Value {
 
 func (my *mySlice3P) set(key interface{}, v changes.Value) changes.Value {
 	myClone := mySlice3P(append([]*bool(nil), (*my)...))
-	myClone[key.(int)] = v.(changes.Atomic).Value.(*bool)
+	myClone[key.(int)] = (v).(changes.Atomic).Value.(*bool)
 	return &myClone
 }
 
@@ -469,4 +522,57 @@ func (my *mySlice3P) ApplyCollection(ctx changes.Context, c changes.Change) chan
 func (my *mySlice3P) Splice(offset, count int, insert ...*bool) *mySlice3P {
 	myInsert := mySlice3P(insert)
 	return my.splice(offset, count, &myInsert).(*mySlice3P)
+}
+
+// mySlice3PStream implements a stream of *mySlice3P values
+type mySlice3PStream struct {
+	Stream streams.Stream
+	Value  *mySlice3P
+}
+
+// Next returns the next entry in the stream if there is one
+func (s *mySlice3PStream) Next() (*mySlice3PStream, changes.Change) {
+	if s.Stream == nil {
+		return nil, nil
+	}
+
+	next, nextc := s.Stream.Next()
+	if next == nil {
+		return nil, nil
+	}
+
+	if nextVal, ok := s.Value.Apply(nil, nextc).(*mySlice3P); ok {
+		return &mySlice3PStream{Stream: next, Value: nextVal}, nextc
+	}
+	return &mySlice3PStream{Value: s.Value}, nil
+}
+
+// Latest returns the latest entry in the stream
+func (s *mySlice3PStream) Latest() *mySlice3PStream {
+	for n, _ := s.Next(); n != nil; n, _ = s.Next() {
+		s = n
+	}
+	return s
+}
+
+// Update replaces the current value with the new value
+func (s *mySlice3PStream) Update(val *mySlice3P) *mySlice3PStream {
+	if s.Stream != nil {
+		nexts := s.Stream.Append(changes.Replace{Before: s.Value, After: val})
+		s = &mySlice3PStream{Stream: nexts, Value: val}
+	}
+	return s
+}
+
+// Item returns the sub item stream
+func (s *mySlice3PStream) Item(index int) *boolStream {
+	return &boolStream{Stream: streams.Substream(s.Stream, index), Value: (*s.Value)[index]}
+}
+
+// Splice splices the items
+func (s *mySlice3PStream) Splice(offset, count int, replacement ...*bool) *mySlice3PStream {
+	after := mySlice3P(replacement)
+	c := changes.Replace{Before: s.Value.Slice(offset, count), After: &after}
+	str := s.Stream.Append(c)
+	return &mySlice3PStream{Stream: str, Value: s.Value.Splice(offset, count, replacement...)}
 }

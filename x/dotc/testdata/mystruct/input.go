@@ -2,6 +2,7 @@ package mystruct
 
 import (
 	"github.com/dotchain/dot/changes/types"
+	"github.com/dotchain/dot/streams"
 )
 
 type myStruct struct {
@@ -25,4 +26,9 @@ type MyStruct struct {
 	str   string
 	Str16 types.S16
 	Count int
+}
+
+type boolStream struct {
+	Stream streams.Stream
+	Value *bool
 }
