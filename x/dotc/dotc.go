@@ -45,6 +45,9 @@ func (info Info) GenerateTests() (result string, err error) {
 	for _, s := range info.Structs {
 		must(StructStream(s).GenerateStreamTests(&buf))
 	}
+	for _, u := range info.Unions {
+		must(UnionStream(u).GenerateStreamTests(&buf))
+	}
 	for _, s := range info.Slices {
 		must(SliceStream(s).GenerateStreamTests(&buf))
 	}
@@ -86,6 +89,7 @@ func (info Info) Generate() (result string, err error) {
 	for _, u := range info.Unions {
 		must(u.GenerateApply(&buf))
 		must(u.GenerateSetters(&buf))
+		must(UnionStream(u).GenerateStream(&buf))
 	}
 
 	for _, s := range info.Slices {

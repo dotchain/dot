@@ -14,11 +14,22 @@ import (
 func TestUnionGenerateApply(t *testing.T) {
 	test.File(t.Error, "myunion/input.json", "myunion/generated.go", genUnion)
 	test.File(t.Error, "myunion/input2.json", "myunion/generated2.go", genUnion)
+	test.File(t.Error, "myunion/input.json", "myunion/generated_test.go", genUnionTests)
+	test.File(t.Error, "myunion/input2.json", "myunion/generated2_test.go", genUnionTests)
 }
 
 func genUnion(s dotc.Union) (string, error) {
 	info := dotc.Info{Package: "myunion", Unions: []dotc.Union{s}}
 	code, err := info.Generate()
+	if err != nil {
+		logErrorContext(err, code)
+	}
+	return code, err
+}
+
+func genUnionTests(s dotc.Union) (string, error) {
+	info := dotc.Info{Package: "myunion", Unions: []dotc.Union{s}}
+	code, err := info.GenerateTests()
 	if err != nil {
 		logErrorContext(err, code)
 	}

@@ -12,8 +12,8 @@ import (
 // StructStream implements code generation for streams of structs
 type StructStream Struct
 
-// PublicFields lists all fields which support streams
-func (s StructStream) PublicFields() []Field {
+// SubFields lists all fields which support streams
+func (s StructStream) SubFields() []Field {
 	result := []Field{}
 	for _, f := range s.Fields {
 		if !f.Atomic || streamTypes[f.Type] != "" {
@@ -77,7 +77,7 @@ func (s *{{stream .Type}}) Update(val {{.Type}}) *{{stream .Type}} {
 }
 
 {{ $stype := stream .Type}}
-{{range .PublicFields -}}
+{{range .SubFields -}}
 func (s *{{$stype}}) {{.Name}}() *{{stream .Type}} {
 	return &{{stream .Type}}{Stream: streams.Substream(s.Stream, "{{.Key}}"), Value: {{.Unstringify}}(s.Value.{{.Name}})}
 }
@@ -127,7 +127,7 @@ func Test{{stream .Type}}(t *testing.T) {
 }
 
 {{ $stype := stream .Type}}
-{{range .PublicFields -}}
+{{range .SubFields -}}
 func Test{{$stype}}{{.Name}}(t *testing.T) {
 	s := streams.New()
 	values := valuesFor{{$stype}}()

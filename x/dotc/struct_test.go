@@ -18,11 +18,24 @@ import (
 func TestStructGenerateApply(t *testing.T) {
 	test.File(t.Error, "mystruct/input.json", "mystruct/generated.go", genStruct)
 	test.File(t.Error, "mystruct/input2.json", "mystruct/generated2.go", genStruct)
+	test.File(t.Error, "mystruct/input3.json", "mystruct/generated3.go", genStruct)
+	test.File(t.Error, "mystruct/input.json", "mystruct/generated_test.go", genStructTests)
+	test.File(t.Error, "mystruct/input2.json", "mystruct/generated2_test.go", genStructTests)
+	test.File(t.Error, "mystruct/input3.json", "mystruct/generated3_test.go", genStructTests)
 }
 
 func genStruct(s dotc.Struct) (string, error) {
 	info := dotc.Info{Package: "mystruct", Structs: []dotc.Struct{s}}
 	code, err := info.Generate()
+	if err != nil {
+		logErrorContext(err, code)
+	}
+	return code, err
+}
+
+func genStructTests(s dotc.Struct) (string, error) {
+	info := dotc.Info{Package: "mystruct", Structs: []dotc.Struct{s}}
+	code, err := info.GenerateTests()
 	if err != nil {
 		logErrorContext(err, code)
 	}
