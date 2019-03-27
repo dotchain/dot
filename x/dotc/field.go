@@ -80,7 +80,7 @@ func (f Field) FromValue(recv, field string) string {
 	return f.format(key, f.ToValueFmt, fromValueFormats)
 }
 
-// FromStreamType returns the name of the associated stream type
+// FromStreamValue returns the name of the associated stream type
 func (f Field) FromStreamValue(recv, field string) string {
 	key := recv
 	if field != "" {
