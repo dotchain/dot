@@ -105,6 +105,15 @@ func (f Field) ToStreamType() string {
 	return fmt.Sprintf(format, t)
 }
 
+// Getter returns the method name of the field getter
+func (f Field) Getter() string {
+	title := strings.Title(f.Name)
+	if title == f.Name {
+		return "Get" + title
+	}
+	return "get" + title
+}
+
 // Setter returns the method name of the field setter
 func (f Field) Setter() string {
 	title := strings.Title(f.Name)

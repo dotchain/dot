@@ -5,10 +5,13 @@ import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/streams"
+	"github.com/dotchain/dot/x/heap"
 )
 
 func (my *myUnionp) get(key interface{}) changes.Value {
 	switch key {
+	case "_heap_":
+		return my.activeKeyHeap
 
 	case "b":
 		return changes.Atomic{my.boo}
@@ -25,6 +28,8 @@ func (my *myUnionp) get(key interface{}) changes.Value {
 func (my *myUnionp) set(key interface{}, v changes.Value) changes.Value {
 	myClone := *my
 	switch key {
+	case "_heap_":
+		myClone.activeKeyHeap = v.(heap.Heap)
 	case "b":
 		myClone.boo = (v).(changes.Atomic).Value.(bool)
 	case "bp":
@@ -43,20 +48,81 @@ func (my *myUnionp) Apply(ctx changes.Context, c changes.Change) changes.Value {
 	return (types.Generic{Get: my.get, Set: my.set}).Apply(ctx, c, my)
 }
 
+func (my *myUnionp) activeKey() string {
+	result := ""
+	// fetch the largest ranked key => latest
+	my.activeKeyHeap.Iterate(func(key interface{}, _ int) bool {
+		if s, ok := key.(string); ok {
+			result = s
+		}
+		return false
+	})
+	return result
+}
+
+func (my *myUnionp) maxRank() int {
+	rank := -1
+	// fetch the largest rank
+	my.activeKeyHeap.Iterate(func(_ interface{}, r int) bool {
+		rank = r
+		return false
+	})
+	return rank
+}
 func (my *myUnionp) setBoo(value bool) *myUnionp {
-	return &myUnionp{boo: value}
+	rank := my.maxRank() + 1
+	h := my.activeKeyHeap.Update("b", rank)
+	return &myUnionp{activeKeyHeap: h, boo: value}
+}
+
+func (my *myUnionp) getBoo() (bool, bool) {
+	var result bool
+	if my.activeKey() != "b" {
+		return result, false
+	}
+	return my.boo, true
 }
 
 func (my *myUnionp) setBoop(value *bool) *myUnionp {
-	return &myUnionp{boop: value}
+	rank := my.maxRank() + 1
+	h := my.activeKeyHeap.Update("bp", rank)
+	return &myUnionp{activeKeyHeap: h, boop: value}
+}
+
+func (my *myUnionp) getBoop() (*bool, bool) {
+	var result *bool
+	if my.activeKey() != "bp" {
+		return result, false
+	}
+	return my.boop, true
 }
 
 func (my *myUnionp) setStr(value string) *myUnionp {
-	return &myUnionp{str: value}
+	rank := my.maxRank() + 1
+	h := my.activeKeyHeap.Update("s", rank)
+	return &myUnionp{activeKeyHeap: h, str: value}
+}
+
+func (my *myUnionp) getStr() (string, bool) {
+	var result string
+	if my.activeKey() != "s" {
+		return result, false
+	}
+	return my.str, true
 }
 
 func (my *myUnionp) SetStr16(value types.S16) *myUnionp {
-	return &myUnionp{Str16: value}
+	rank := my.maxRank() + 1
+	h := my.activeKeyHeap.Update("s16", rank)
+	return &myUnionp{activeKeyHeap: h, Str16: value}
+}
+
+func (my *myUnionp) GetStr16() (types.S16, bool) {
+	var result types.S16
+	if my.activeKey() != "s16" {
+		return result, false
+	}
+	return my.Str16, true
 }
 
 // myUnionpStream implements a stream of *myUnionp values
