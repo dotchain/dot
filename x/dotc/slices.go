@@ -155,7 +155,29 @@ func TestStream{{.StreamType}}Item(t *testing.T) {
 	strong := &{{.StreamType}}{Stream: s, Value: values[1]}
 	item0 := strong.Item(0)
 	if !reflect.DeepEqual(item0.Value, ({{if .Pointer}}*{{end}}values[1])[0]) {
-		t.Error("Splice did the unexpected", item0.Value)
+		t.Error("Item() did the unexpected", item0.Value)
+	}
+
+	for kk := range values {
+		item := {{if .Pointer}}*{{end}}values[kk]
+		l := len(item) - 1
+		if l < 0 {
+			continue
+		}
+		item0 = item0.Update(item[l])
+		if !reflect.DeepEqual(item0.Value, item[l]) {
+			t.Error("Update did not take effect", item0.Value, item[l])
+		}
+		strong = strong.Latest()
+		v := ({{if .Pointer}}*{{end}}strong.Value)[0]
+		if !reflect.DeepEqual(v, item[l]) {
+			t.Error("Update did not take effect", v, item[l])
+		}		
+	}
+
+	v := strong.Value.ApplyCollection(nil, changes.Splice{Before: strong.Value.Slice(0, 1), After: strong.Value.Slice(0, 0)})
+	if !reflect.DeepEqual(v.Slice(0, 0), v) {
+		t.Error("Could not slice away item", v)
 	}
 }
 
