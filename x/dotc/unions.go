@@ -6,6 +6,7 @@ package dotc
 
 import "io"
 
+// UnionStream implements stream functionality for unions
 type UnionStream Union
 
 // GenerateStream generates the stream implementation
