@@ -33,8 +33,6 @@ func (my myStruct) set(key interface{}, v changes.Value) changes.Value {
 		myClone.str = string((v).(types.S16))
 	case "s16":
 		myClone.Str16 = (v).(types.S16)
-	default:
-		panic(key)
 	}
 	return myClone
 }

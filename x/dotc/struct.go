@@ -48,8 +48,6 @@ func ({{$r}} {{.Type}}) set(key interface{}, v changes.Value) changes.Value {
 	case "{{.Key}}":
 		{{$r}}Clone.{{.Name}} = {{.FromValue "v" ""}}
         {{- end }}
-	default: 
-		panic(key)
         }
 	return {{if .Pointer}}&{{end}} {{$r}}Clone
 }

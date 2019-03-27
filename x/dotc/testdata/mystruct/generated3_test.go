@@ -58,6 +58,23 @@ func TestStreamMyStructStreamboo(t *testing.T) {
 	if !reflect.DeepEqual(expected, strong.boo().Value) {
 		t.Error("Substream returned unexpected value", strong.boo().Value)
 	}
+
+	child := strong.boo()
+	for kk := range values {
+		child = child.Update(values[kk].boo)
+		strong = strong.Latest()
+		if !reflect.DeepEqual(child.Value, values[kk].boo) {
+			t.Error("updating child didn't  take effect", child.Value)
+		}
+		if !reflect.DeepEqual(child.Value, strong.Value.boo) {
+			t.Error("updating child didn't  take effect", child.Value)
+		}
+	}
+
+	v := strong.Value.setBoo(values[0].boo)
+	if !reflect.DeepEqual(v.boo, values[0].boo) {
+		t.Error("Could not update", "setBoo")
+	}
 }
 func TestStreamMyStructStreamboop(t *testing.T) {
 	s := streams.New()
@@ -66,6 +83,23 @@ func TestStreamMyStructStreamboop(t *testing.T) {
 	expected := strong.Value.boop
 	if !reflect.DeepEqual(expected, strong.boop().Value) {
 		t.Error("Substream returned unexpected value", strong.boop().Value)
+	}
+
+	child := strong.boop()
+	for kk := range values {
+		child = child.Update(values[kk].boop)
+		strong = strong.Latest()
+		if !reflect.DeepEqual(child.Value, values[kk].boop) {
+			t.Error("updating child didn't  take effect", child.Value)
+		}
+		if !reflect.DeepEqual(child.Value, strong.Value.boop) {
+			t.Error("updating child didn't  take effect", child.Value)
+		}
+	}
+
+	v := strong.Value.setBoop(values[0].boop)
+	if !reflect.DeepEqual(v.boop, values[0].boop) {
+		t.Error("Could not update", "setBoop")
 	}
 }
 func TestStreamMyStructStreamstr(t *testing.T) {
@@ -76,6 +110,23 @@ func TestStreamMyStructStreamstr(t *testing.T) {
 	if !reflect.DeepEqual(expected, strong.str().Value) {
 		t.Error("Substream returned unexpected value", strong.str().Value)
 	}
+
+	child := strong.str()
+	for kk := range values {
+		child = child.Update(values[kk].str)
+		strong = strong.Latest()
+		if !reflect.DeepEqual(child.Value, values[kk].str) {
+			t.Error("updating child didn't  take effect", child.Value)
+		}
+		if !reflect.DeepEqual(child.Value, strong.Value.str) {
+			t.Error("updating child didn't  take effect", child.Value)
+		}
+	}
+
+	v := strong.Value.setStr(values[0].str)
+	if !reflect.DeepEqual(v.str, values[0].str) {
+		t.Error("Could not update", "setStr")
+	}
 }
 func TestStreamMyStructStreamCount(t *testing.T) {
 	s := streams.New()
@@ -84,5 +135,22 @@ func TestStreamMyStructStreamCount(t *testing.T) {
 	expected := strong.Value.Count
 	if !reflect.DeepEqual(expected, strong.Count().Value) {
 		t.Error("Substream returned unexpected value", strong.Count().Value)
+	}
+
+	child := strong.Count()
+	for kk := range values {
+		child = child.Update(values[kk].Count)
+		strong = strong.Latest()
+		if !reflect.DeepEqual(child.Value, values[kk].Count) {
+			t.Error("updating child didn't  take effect", child.Value)
+		}
+		if !reflect.DeepEqual(child.Value, strong.Value.Count) {
+			t.Error("updating child didn't  take effect", child.Value)
+		}
+	}
+
+	v := strong.Value.SetCount(values[0].Count)
+	if !reflect.DeepEqual(v.Count, values[0].Count) {
+		t.Error("Could not update", "SetCount")
 	}
 }

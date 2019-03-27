@@ -128,6 +128,23 @@ func TestStream{{$stype}}{{.Name}}(t *testing.T) {
 	if !reflect.DeepEqual(expected, strong.{{.Name}}().Value) {
 		t.Error("Substream returned unexpected value", strong.{{.Name}}().Value)
 	}
+
+	child := strong.{{.Name}}()
+	for kk := range values {
+		child = child.Update({{.FromStreamValue "values[kk]" .Name}})
+		strong = strong.Latest()
+		if !reflect.DeepEqual(child.Value, {{.FromStreamValue "values[kk]" .Name}}) {
+			t.Error("updating child didn't  take effect", child.Value)
+		}
+		if !reflect.DeepEqual(child.Value, {{.FromStreamValue "strong.Value" .Name}}) {
+			t.Error("updating child didn't  take effect", child.Value)
+		}
+	}
+
+	v := strong.Value.{{.Setter}}(values[0].{{.Name}})
+	if !reflect.DeepEqual(v.{{.Name}}, values[0].{{.Name}}) {
+		t.Error("Could not update", "{{.Setter}}")
+	}
 }
 {{end -}}
 `))
