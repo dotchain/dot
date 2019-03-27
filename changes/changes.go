@@ -8,11 +8,15 @@
 // replaces a value altogether while Splice replaces a sub-sequence in
 // an array-like object and Move shuffles a sub-sequence.
 //
-// Both Slice and Move work on strings as well as strings are just a
-// form of arrays as far as OT is concerned. The actual representation
+// Both Slice and Move work on strings as well -- strings are treated
+// like arrays as far as OT is concerned. The actual representation
 // of strings is abstracted away.  See
-// https://godoc.org/github.com/dotchain/dot/changes/types#S8 for the
+// https://godoc.org/github.com/dotchain/dot/changes/types#S16 for an
 // implementation of an OT-compatible string type.
+//
+//
+// Composition
+//
 //
 // ChangeSet allows a set of mutations to be grouped together.
 //
@@ -21,10 +25,18 @@
 // path is simply how a particular node is to be traversed, with keys
 // and indices in the order in which they appear.
 //
+//
+// Custom Changes
+//
+//
 // Custom change types can be defined. They should implement the
 // Custom interface. See
 // https://godoc.org/github.com/dotchain/dot/changes/x/rt#Run for an
 // example custom change type.
+//
+//
+// Notes
+//
 //
 // Replace and Splice change both expect the Before and After fields
 // to be non-nil Value implementations. Replace can use changes.Nil
@@ -33,8 +45,12 @@
 // and After use the "empty" representations of the respective types.
 //
 // Slices also should generally make sure that the Before and After
-// types are compatible -- i.e. inserting a number within a string is
-// not permitted.
+// types are compatible -- i.e. each should be able to be spliced
+// within the other.
+//
+//
+// Value Interface
+//
 //
 // Any custom Value implementation should implement the Value
 // interface.  See https://godoc.org/github.com/dotchain/dot/changes/types
@@ -45,12 +61,12 @@
 // type that has a specific custom change associated with it.
 package changes
 
-// Change represents an OT-compatible mutation of the virtual JSON.
+// Change represents an OT-compatible mutation
 //
 // The methods provided here are the core methods.  Custom changes
 // should implement the Custom interface in addition to this.
-// Note that it is legal for a change to be nil. It represents a
-// noop.
+// Note that it is legal for a change to be nil (meaning the value
+// isnt change at all)
 type Change interface {
 	// Merge takes the current change and another change that were
 	// both applied to the same virtual JSON and returns
@@ -221,8 +237,8 @@ func (c ChangeSet) ApplyTo(ctx Context, v Value) Value {
 // or "virtual time" etc.  For true convergence, the context itself
 // should be derived from the change -- say via Meta.
 //
-// Note that this interface is a subset of the standard golang package
-// "context"
+// Note that this interface is a subset of the standard golang
+// "context.Context"
 type Context interface {
 	Value(key interface{}) interface{}
 }
