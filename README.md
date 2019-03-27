@@ -15,7 +15,19 @@ stream processing.
 The project marries conflict-free merging with eventually convergent
 persistent datastrutures.
 
-## Features and demos
+## Status
+
+Most of the code here is quite stable at this point but the project is
+not yet ready for production:
+
+1. Comprehensive end-to-end stress tests to validate runtime stability
+are needed.
+2. Some interfaces (particularly connecting to the network) are still
+awkward.
+3. TODO MVC demo is needed.
+
+
+## Features
 
 1. Small, well tested mutations that compose for rich JSON-like values
 2. Immutable, Persistent types for ease of use
@@ -26,7 +38,6 @@ persistent datastrutures.
 7. Folding (committed changes on top of uncommitted changes)
 8. Customizable rich types for values and changes
 
-See [Demos](https://dotchain.github.io/demos/).
 
 ## Walkthrough of the project
 
@@ -46,6 +57,17 @@ look like this:
         updated := initial.Apply(append)
 
         // now updated == "hello world"
+```
+
+A less verbose *stream* based version (preferred) would look like so:
+
+```golang
+        // import "github.com/dotchain/streams
+
+        initial := &streams.S8{Stream: streams.New(), Value: "hello"}
+        updated := initial.Splice(5, 0, " world")
+
+        // now updated.Value == "hello world"
 ```
 
 The [changes](https://godoc.org/github.com/dotchain/dot/changes)
@@ -164,47 +186,52 @@ value are considered part of the same "family" and iterating on its
 value: 
 
 ```golang
-       // import "github.com/dotchain/streams/text
+       // import "github.com/dotchain/streams
 
-       // create an UTF8 text stream
-       useUTF16 := false
-       initial := text.StreamFromString("hello", useUTF16)
+       // create a text stream
+       initial := streams.S8{Stream: streams.New(), Value: "hello"}
 
        // two changes: append " world" and delete "lo"
-       insert := changes.Splice{5, types.S8(""), types.S8(" world")}
-       remove := changes.Splice{3, types.S8("lo"), types.S8("")}
+       inserted := initial.Splice(5, 0, " world")
+       removed := initial.Splice(3, len("lo"), "")
 
-       // two versions directly on top of the initial value
-       inserted := initial.Append(insert).(*text.Stream)
-       removed := initial.Append(remove).(*text.Stream)
-
-       // like persistent types,
-       //    inserted.Value() == "helloworld" and removed.Value() = "hel"
+       // inserted.Value == "hello world" && removed.Value == "hel"
 
        // the converged value can be obtained from both:
-       final1 := streams.Latest(inserted).(*text.Stream)
-       final2 := streams.Latest(removed).(*text.Stream)
+       final1 := inserted.Latest()
+       final2 := removed.Latest()
+
+       // final1.Value == final2.Value && final1.Value == "hel world"
 
        // or even from the initial value
-       final3 := streams.Latest(initial).(*text.Stream)
-
-       // all three are: "helworld"
+       final3 := initial.Latest()
+       // final3.Value == "hel world"
 ```
 
-The example above uses **text.Stream** which tracks not just the
-changes but the effective value along with the changes.  The
-[streams](https://godoc.org/github.com/dotchain/dot/streams) package
-defines a
-[ValueStream](https://godoc.org/github.com/dotchain/dot/streams#ValueStream)
-type that is similar but there is also the ability to work purely with
-a change stream with no associated value. This is useful for pure
-transformations (such as "scoping" changes to specific fields or array
-indices which allows applications to only maintain the values needed
-rather than track the whole state).
+The example above uses **streams.S8** which is a strongly typed
+stream implemented on the weakly typed **streams.Stream**.  The
+default stream implemention provided via **streams.New** only tracks
+the stream changes and guarantees the correct seqeunce of changes for
+convergence. The strongly typed **streams.S8** is built on top of that
+to also track the current value.  Any custom type can similarly be
+defined quite easily.
 
 Those familiar with [ReactiveX](http://reactivex.io/) will find the
-streams approach quite similar -- except that streams are guaranteed
-to converge.
+streams approach quite similar.   Except:
+
+1. Streams here inherently expect multiple writers in different
+context.
+2. Each stream instance is immutable -- appending changes produces new
+stream instances connected to the current one.
+3. Multiple changes on the same stream instance cause convergence:
+i.e. the result of any individual edit is consistent with the current
+change but all other changes show as "futures" -- calling Next()
+sequentially gets all the other changes made and Latest() is
+guaranteed to be the same for all callers.
+4. Streams are encouraged to be strongly typed.  So, methods like
+filter or map etc are not inherently provided.  But code generation
+for strongly typed streams is available at
+[dotc](https://godoc.org/github.com/dotchain/dot/x/dotc)
 
 ### Branching of streams
 
