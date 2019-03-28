@@ -12,14 +12,24 @@ import (
 // UnionStream implements stream functionality for unions
 type UnionStream Union
 
+// StreamType provides the stream type of the struct
+func (s UnionStream) StreamType() string {
+	return (Field{Type: s.Type}).ToStreamType()
+}
+
+// Pointer specifies if the struct type is itself a pointer
+func (s UnionStream) Pointer() bool {
+	return s.Type[0] == '*'
+}
+
 // GenerateStream generates the stream implementation
 func (s UnionStream) GenerateStream(w io.Writer) error {
-	return unionStreamImpl.Execute(w, StructStream(Union(s)))
+	return unionStreamImpl.Execute(w, s)
 }
 
 // GenerateStreamTests generates the stream tests
 func (s UnionStream) GenerateStreamTests(w io.Writer) error {
-	return unionStreamTests.Execute(w, StructStream(Union(s)))
+	return unionStreamTests.Execute(w, s)
 }
 
 var unionStreamImpl = template.Must(template.New("union_stream_impl").Parse(`
@@ -63,10 +73,51 @@ func (s *{{.StreamType}}) Update(val {{.Type}}) *{{.StreamType}} {
 	return s
 }
 
+func (s *{{.StreamType}}) transformer() func(changes.Change) changes.Change {
+	h := ({{if .Pointer}}*{{end}}s.Value).activeKeyHeap
+	var xform func(changes.Change) changes.Change
+	p := []interface{}{"_heap_"}
+
+	maxRank := func() int {
+		result := -1
+		h.Iterate(func(_ interface{}, r int) bool {
+			result = r
+			return false
+		})
+		return result
+	}
+
+	xform = func(c changes.Change) changes.Change {
+	switch c := c.(type) {
+	case changes.ChangeSet:
+		result := make(changes.ChangeSet, 0, len(c))
+		for _, cx := range c {
+			if cx = xform(cx); cx != nil {
+				result = append(result, cx)
+			}
+		}
+		return result
+	case changes.PathChange:
+		if len(c.Path) == 0 {
+			return xform(c.Change)
+		}
+		if c.Path[0] != p[0] {
+			cx := h.UpdateChange(c.Path[0], maxRank()+1)
+			h = h.Update(c.Path[0], maxRank()+1)
+			return changes.ChangeSet{changes.PathChange{Path: p, Change: cx}, c}
+		}
+	}
+	return c
+	}
+	return xform
+}
+
+
 {{ $stype := .StreamType}}
 {{range .Fields -}}
 func (s *{{$stype}}) {{.Name}}() *{{.ToStreamType}} {
-	return &{{.ToStreamType}}{Stream: streams.Substream(s.Stream, "{{.Key}}"), Value: {{.FromStreamValue "s.Value" .Name}} }
+	stream := streams.Transform(s.Stream, s.transformer(), nil)
+	return &{{.ToStreamType}}{Stream: streams.Substream(stream, "{{.Key}}"), Value: {{.FromStreamValue "s.Value" .Name}} }
 }
 {{end -}}
 `))
@@ -122,6 +173,30 @@ func TestStream{{$stype}}{{.Name}}(t *testing.T) {
 	expected := {{.FromStreamValue "strong.Value" .Name}}
 	if !reflect.DeepEqual(expected, strong.{{.Name}}().Value) {
 		t.Error("Substream returned unexpected value", strong.{{.Name}}().Value)
+	}
+
+	child := strong.{{.Name}}()
+	for kk := range values {
+		child = child.Update({{.FromStreamValue "values[kk]" .Name}})
+		strong = strong.Latest()
+		if !reflect.DeepEqual(child.Value, {{.FromStreamValue "values[kk]" .Name}}) {
+			t.Error("updating child didn't  take effect", child.Value)
+		}
+		if !reflect.DeepEqual(child.Value, {{.FromStreamValue "strong.Value" .Name}}) {
+			t.Error("updating child didn't  take effect", child.Value)
+		}
+
+		{{$current := .}}
+		{{range $f := $.Fields}}
+		if _, ok := strong.Value.{{.Getter}}(); {{if eq $current.Name $f.Name}}!ok{{else}}ok{{end}} {
+			t.Error("Getter failed")
+		}
+		{{end}}
+	}
+
+	v := strong.Value.{{.Setter}}(values[0].{{.Name}})
+	if !reflect.DeepEqual(v.{{.Name}}, values[0].{{.Name}}) {
+		t.Error("Could not update", "{{.Setter}}")
 	}
 }
 {{end -}}
