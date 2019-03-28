@@ -33,8 +33,6 @@ func (my MyStruct) set(key interface{}, v changes.Value) changes.Value {
 		myClone.str = string((v).(types.S16))
 	case "count":
 		myClone.Count = (v).(changes.Atomic).Value.(int)
-	default:
-		panic(key)
 	}
 	return myClone
 }
