@@ -38,8 +38,6 @@ func (my myUnion) set(key interface{}, v changes.Value) changes.Value {
 		myClone.str = string((v).(types.S16))
 	case "s16":
 		myClone.Str16 = (v).(types.S16)
-	default:
-		panic(key)
 	}
 	return myClone
 }
@@ -165,15 +163,58 @@ func (s *myUnionStream) Update(val myUnion) *myUnionStream {
 	return s
 }
 
+func (s *myUnionStream) transformer() func(changes.Change) changes.Change {
+	h := (s.Value).activeKeyHeap
+	var xform func(changes.Change) changes.Change
+	p := []interface{}{"_heap_"}
+
+	maxRank := func() int {
+		result := -1
+		h.Iterate(func(_ interface{}, r int) bool {
+			result = r
+			return false
+		})
+		return result
+	}
+
+	xform = func(c changes.Change) changes.Change {
+		switch c := c.(type) {
+		case changes.ChangeSet:
+			result := make(changes.ChangeSet, 0, len(c))
+			for _, cx := range c {
+				if cx = xform(cx); cx != nil {
+					result = append(result, cx)
+				}
+			}
+			return result
+		case changes.PathChange:
+			if len(c.Path) == 0 {
+				return xform(c.Change)
+			}
+			if c.Path[0] != p[0] {
+				cx := h.UpdateChange(c.Path[0], maxRank()+1)
+				h = h.Update(c.Path[0], maxRank()+1)
+				return changes.ChangeSet{changes.PathChange{Path: p, Change: cx}, c}
+			}
+		}
+		return c
+	}
+	return xform
+}
+
 func (s *myUnionStream) boo() *streams.Bool {
-	return &streams.Bool{Stream: streams.Substream(s.Stream, "b"), Value: s.Value.boo}
+	stream := streams.Transform(s.Stream, s.transformer(), nil)
+	return &streams.Bool{Stream: streams.Substream(stream, "b"), Value: s.Value.boo}
 }
 func (s *myUnionStream) boop() *boolStream {
-	return &boolStream{Stream: streams.Substream(s.Stream, "bp"), Value: s.Value.boop}
+	stream := streams.Transform(s.Stream, s.transformer(), nil)
+	return &boolStream{Stream: streams.Substream(stream, "bp"), Value: s.Value.boop}
 }
 func (s *myUnionStream) str() *streams.S16 {
-	return &streams.S16{Stream: streams.Substream(s.Stream, "s"), Value: s.Value.str}
+	stream := streams.Transform(s.Stream, s.transformer(), nil)
+	return &streams.S16{Stream: streams.Substream(stream, "s"), Value: s.Value.str}
 }
 func (s *myUnionStream) Str16() *streams.S16 {
-	return &streams.S16{Stream: streams.Substream(s.Stream, "s16"), Value: string(s.Value.Str16)}
+	stream := streams.Transform(s.Stream, s.transformer(), nil)
+	return &streams.S16{Stream: streams.Substream(stream, "s16"), Value: string(s.Value.Str16)}
 }
