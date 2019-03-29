@@ -19,12 +19,16 @@ types and Stream implementations.
 ```go global
 // import fmt
 // import github.com/dotchain/dot/x/dotc
+// import io/ioutil
 func main() {
 	code, err := info.Generate()
         if err != nil {
         	panic(err)
         }
-        fmt.Println(code)
+        err = ioutil.WriteFile("example/generated.go", []byte(code), 0644)
+        if err != nil {
+        	panic(err)
+        }
 }
 
 var info = dotc.Info{
@@ -61,5 +65,5 @@ so:
 
 ```sh
 $ go get github.com/tvastar/test/cmd/testmd
-$ testmd -pkg main codegen.md > example/generated.go
+$ testmd -pkg main codegen.md
 ```

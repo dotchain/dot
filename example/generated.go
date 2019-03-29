@@ -129,9 +129,16 @@ func (t TodoList) ApplyCollection(ctx changes.Context, c changes.Change) changes
 	return (types.Generic{Get: t.get, Set: t.set, Splice: t.splice}).ApplyCollection(ctx, c, t)
 }
 
+// Splice replaces [offset:offset+count] with insert...
 func (t TodoList) Splice(offset, count int, insert ...Todo) TodoList {
 	tInsert := TodoList(insert)
 	return t.splice(offset, count, tInsert).(TodoList)
+}
+
+// Move shuffles [offset:offset+count] by distance.
+func (t TodoList) Move(offset, count, distance int) TodoList {
+	c := changes.Move{Offset: offset, Count: count, Distance: distance}
+	return t.ApplyCollection(nil, c).(TodoList)
 }
 
 // TodoListStream implements a stream of TodoList values
@@ -179,10 +186,17 @@ func (s *TodoListStream) Item(index int) *TodoStream {
 	return &TodoStream{Stream: streams.Substream(s.Stream, index), Value: (s.Value)[index]}
 }
 
-// Splice splices the items
+// Splice splices the items replacing Value[offset:offset+count] with replacement
 func (s *TodoListStream) Splice(offset, count int, replacement ...Todo) *TodoListStream {
 	after := TodoList(replacement)
-	c := changes.Splice{Before: s.Value.Slice(offset, count), After: after}
+	c := changes.Splice{Offset: offset, Before: s.Value.Slice(offset, count), After: after}
 	str := s.Stream.Append(c)
 	return &TodoListStream{Stream: str, Value: s.Value.Splice(offset, count, replacement...)}
+}
+
+// Move shuffles Value[offset:offset+count] over by distance
+func (s *TodoListStream) Move(offset, count, distance int) *TodoListStream {
+	c := changes.Move{Offset: offset, Count: count, Distance: distance}
+	str := s.Stream.Append(c)
+	return &TodoListStream{Stream: str, Value: s.Value.Move(offset, count, distance)}
 }
