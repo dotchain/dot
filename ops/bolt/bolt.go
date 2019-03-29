@@ -135,7 +135,10 @@ func (s *store) GetSince(ctx context.Context, version, limit int) ([]ops.Op, err
 }
 
 func (s *store) Poll(ctx context.Context, version int) error {
-	return nil
+	if ch := ctx.Done(); ch != nil {
+		<-ctx.Done()
+	}
+	return ctx.Err()
 }
 
 type opdata struct {
