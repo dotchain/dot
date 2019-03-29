@@ -12,7 +12,7 @@ import (
 	"github.com/dotchain/dot/x/fold"
 )
 
-func Example_applying_changes() {
+func Example_applyingChanges() {
 	// import fmt
 	// import github.com/dotchain/dot/changes
 	// import github.com/dotchain/dot/changes/types
@@ -34,7 +34,7 @@ func Example_applying_changes() {
 
 }
 
-func Example_apply_stream() {
+func Example_applyingChangesUsingStreams() {
 	// import fmt
 	// import github.com/dotchain/dot/streams
 
@@ -46,7 +46,7 @@ func Example_apply_stream() {
 
 }
 
-func Example_changeset_composition() {
+func Example_changesetComposition() {
 	// import fmt
 	// import github.com/dotchain/dot/changes
 	// import github.com/dotchain/dot/changes/types
@@ -76,7 +76,7 @@ func Example_changeset_composition() {
 
 }
 
-func Example_path_composition() {
+func Example_pathComposition() {
 	// import fmt
 	// import github.com/dotchain/dot/changes
 	// import github.com/dotchain/dot/changes/types
@@ -124,7 +124,7 @@ func Example_convergence() {
 
 }
 
-func Example_convergence_streams() {
+func Example_convergenceUsingStreams() {
 	// import fmt
 	// import github.com/dotchain/dot/streams
 
@@ -144,7 +144,7 @@ func Example_convergence_streams() {
 
 }
 
-func Example_undo_streams() {
+func Example_undoStreams() {
 	// import fmt
 	// import github.com/dotchain/dot/streams
 	// import github.com/dotchain/dot/changes
