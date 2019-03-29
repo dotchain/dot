@@ -118,7 +118,7 @@ interface (or in the case of lists like `TodoList`, also implement the
 interface).  This allows for structured convergent mutations.
 
 For example, such an implementation would indicate that `Complete` can
-be modified independently and insertionss into `TodoList` can happen
+be modified independently and insertions into `TodoList` can happen
 along with deletions etc.
 
 For the most part, these implementations are routine for structs,
@@ -170,18 +170,19 @@ Each stream also exposes the underlying type (such as `Todo` or
 
 ### Changing description
 
-Changing description is similar.  The string field maps to a
-`streams.S16` stream (the S16 refers  to unicode UTF16 format).
+The code for Changing description is similar.  The string
+`Description` field in `Todo` maps to a `streams.S16` stream in
+`TodoStream` which allows `Update()` to modify the value.
 
 But to make things interesting, lets look at **splicing** rather
 than replacing the whole string. Splicing is taking a subsequence of
 the string at a particular position and replacing it with the provided
 value.  It captures insert,  delete and replace in one operation.
 
-This probably mimics what text editors do better and a benefit of such
-low granularity edits is that when two users edit the same text, so
+This probably better mimics what text editors do and a benefit of such
+high granularity edits is that when two users edit the same text, so
 long as they don't directly touch the same characters, the edits will
-merge quite cleanly even when they are simultaneous.
+merge quite cleanly.
 
 The `Splice` method is already implemented on the underlying string
 stream and so the code here looks quite similar.
@@ -221,7 +222,8 @@ code generation yet).
 ### Client connection
 
 Setting up the client requires connecting to the URL where the server
-is hosted:
+is hosted. In the example below, a render function is expected as a
+parameter. 
 
 ```go global
 // import github.com/dotchain/dot/ops/nw
@@ -249,6 +251,7 @@ func Client(stop chan struct{}, url string, render func(*TodoListStream)) {
         	stream = stream.Latest()
         	render(stream)
         })
+        render(stream)
 	defer func() {
         	client.Stream.Nextf("key", nil)
         }()
@@ -270,7 +273,37 @@ func SavedSession() (version int, pending []ops.Op, todos TodoList) {
 
 ```
 
-## Walkthrough of the project
+### Running the demo
+
+The TODO MVC demo is in the
+[example](https://github.com/dotchain/dot/tree/master/example)
+folder.
+
+The snippets in this markdown file can be used to generate the
+**todo.go** file and then auto-generate the "generated.go" file:
+
+```sh
+$ go get github.com/tvastar/test/cmd/testmd
+$ testmd -pkg example -o examples/todo.go README.md
+$ testmd -pkg main codegen.md > examples/generated.go
+```
+
+The server can then be started by:
+
+```sh
+$ go run server.go
+```
+
+The client can then be started by:
+
+```sh
+$ go run client.go
+```
+
+The provide client.go stub file simply appends a task every 10
+seconds.  A real browser-based UX app is in the works.
+
+## Design details of the project
 
 The DOT project is based on *immutable* or *persistent* **values** and
 **changes**. For example, inserting a character into a string would

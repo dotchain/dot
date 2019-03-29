@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"log"
 	"net/http"
 	"time"
 
@@ -68,6 +69,7 @@ func (c *Client) call(ctx context.Context, r *request) ([]ops.Op, error) {
 		if err == nil {
 			err = errors.New(resp.Status)
 		}
+		log.Println("client connect error", err)
 		return nil, err
 	}
 
