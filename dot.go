@@ -35,8 +35,8 @@
 //
 // Changes are immutable too and generally are meant to not maintain
 // any reference to the value they apply on.  While custom changes are
-// possible (they have to implement the changes.Change interface),
-// they are expected to rare as the default set of chnange types cover
+// possible (they have to implement the changes.Custom interface),
+// they are expected to be rare as the default set of chnange types cover
 // a vast variety of scenarios.
 //
 // The core logic of DOT is in the Merge methods of changes: they
@@ -67,19 +67,19 @@
 // This allows streams to perform quite nicely as convergent data
 // structures without much syntax overhead:
 //
-//	initial := streams.S8{Stream:  streams.New(), Value: "hello"}
+//    initial := streams.S8{Stream:  streams.New(), Value: "hello"}
 //
-//	// two changes: append " world" and delete "lo"
-//      s1 := initial.Splice(5, 0, " world")
-//	s2 := initial.Splice(3, len("lo"), "")
+//    // two changes: append " world" and delete "lo"
+//    s1 := initial.Splice(5, 0, " world")
+//    s2 := initial.Splice(3, len("lo"), "")
 //
-//	// streams automatically merge because they are both
-//      // based on initial
-//      s1 = s1.Latest()
-//      s2 = s2.Latest()
+//    // streams automatically merge because they are both
+//    // based on initial
+//    s1 = s1.Latest()
+//    s2 = s2.Latest()
 //
-//      fmt.Println(s1.Value, s1.Value == s2.Value)
-//      // Output: hel world true
+//    fmt.Println(s1.Value, s1.Value == s2.Value)
+//    // Output: hel world true
 //
 // Strongly typed streams
 //

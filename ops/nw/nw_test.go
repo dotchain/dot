@@ -54,7 +54,9 @@ func TestClientErrors(t *testing.T) {
 	}
 
 	srv2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("gooopey"))
+		if _, err := w.Write([]byte("gooopey")); err != nil {
+			panic(err)
+		}
 	}))
 	defer srv2.Close()
 
@@ -69,7 +71,6 @@ func TestHeaderPasssing(t *testing.T) {
 	foundHeader := false
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		foundHeader = r.Header.Get("Zug") == "Zug"
-		w.Write(nil)
 	})
 	srv := httptest.NewServer(handler)
 	defer srv.Close()
@@ -77,7 +78,9 @@ func TestHeaderPasssing(t *testing.T) {
 	h := http.Header{}
 	h.Set("Zug", "Zug")
 	c := &nw.Client{URL: srv.URL, Client: srv.Client(), Header: h}
-	c.Append(getContext(), []ops.Op{})
+
+	// ignore error because it is a fake server
+	ignore(c.Append(getContext(), []ops.Op{}))
 	if !foundHeader {
 		t.Fatal("Missed Zug Header")
 	}
@@ -211,3 +214,5 @@ func getContext() context.Context {
 	_ = cancel
 	return ctx
 }
+
+func ignore(err error) {}
