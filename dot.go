@@ -2,299 +2,129 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-// Package dot is currently a documentation placeholder.
+// Package dot is a container for operational transformations
+//
+// Please see https://github.com/dotchain/dot for a tutorial on
+// how to use DOT.
 //
 // The core functionality is spread out between dot/changes,
 // dot/refs, dot/streams and dot/x.
 //
-// At some point this package will provide a much simpler interface to
-// the commonly used features to enable quick bootstrapping.
+// Immutable values
 //
-// Please see [github](https://gitbub.com/dotchain/dot) for
-// details about the project
+// DOT uses immutable values. Every Value must implement the
+// change.Value interface which is a single Apply method that returns
+// the result of applying a mutation (while leaving the original value
+// effectively unchanged).
 //
-// Features and demos
+// If the underlying type behaves like a collection (such as with
+// Slices), the type must also implement some collection specific
+// methods specified in the changes.Collection interface.
 //
-// 1. Small, well tested mutations that compose for rich JSON-like
-// values
+// Most actual types are likely to be structs or slices with
+// boilerplate implementaations of the interfaces. The x/dotc package
+// has a code generator which can emit such boilerplate
+// implementations simplifying this task.
 //
-// 2. Immutable, Persistent types for ease of use
+// Changes
 //
-// 3. Strong references support that are automatically updated with
-// changes
+// The changes package implements a set of simple changes (Replace,
+// Splice and Move). Richer changes are expected to be built up by
+// composition via changes.ChangeSet (which is a sequence of changes)
+// and changes.PathChange (which modifies a value at a path).
 //
-// 4. Streams and **Git-like** branching, merging support
+// Changes are immutable too and generally are meant to not maintain
+// any reference to the value they apply on.  While custom changes are
+// possible (they have to implement the changes.Change interface),
+// they are expected to rare as the default set of chnange types cover
+// a vast variety of scenarios.
 //
-// 5. Simple network support (Gob serialization)
+// The core logic of DOT is in the Merge methods of changes: they
+// guaranteee that if two independent changes are done to a value, the
+// deviation in the values can be converged.  The basic property of
+// any two changes (on the same value) is that:
 //
-// 6. Rich builtin undo support
+//      leftx, rightx := left.Merge(right)
+//      initial.Apply(nil, left).Apply(nil, leftx) ==
+//      initial.Apply(nil, right).Apply(nil, rightx)
 //
-// 7. Folding (committed changes on top of uncommitted changes)
-//
-// 8. Customizable rich types for values and changes
-//
-// Demo
-//
-// See https://dotchain.github.io/demos/
-//
-// How it works
-//
-// The DOT project is based on *immutable* or *persistent* **values** and
-// **changes**. For example, inserting a character into a string would
-// look like this:
-//        // import "github.com/dotchain/changes/types.S8
-//        // S8 is DOT-compatible string type with UTF8 string indices
-//        initial := types.S8("hello")
-//        append := changes.Splice{5, types.S8(""), types.S8(" world")}
-//        updated := initial.Apply(append)
-//        // now updated == "hello world"
-//
-// The https://godoc.org/github.com/dotchain/dot/changes
-// package implements the core changes: Splice, Move and
-// Replace.  The logical model for these changes is to treat all
-// values as either being like arrays or like maps. The actual
-// underlying datatype can be different as long as the array/map
-// semantics is implemented.
-//
-// Composition of changes
-//
-// Changes can be composed together. A simple form of composition is
-//  just a set of changes:
-//      initial := types.S8("hello")
-//      // append " world"
-//      append1 := changes.Splice{5, types.S8(""), types.S8(" world")}
-//      // append "."
-//      append2 := changes.Splice{11, types.S8(""), types.S8(".")}
-//      // now combine the two appends and apply
-//      both := changes.ChangeSet{append1, append2}
-//      updated := initial.Apply(both)
-//
-// Another form of composition is modifying a sub-element such as an
-// array element or a dictionary path:
-//
-//      // types.A is an array type and types.M is a map type
-//      initial := types.A{types.M{"hello": types.S8("world")}}
-//      // replace "world" with "world!"
-//      replace := changes.Replace{types.S8("world"), types.S8("world!")}
-//      path := []interface{}{0, "hello"}
-//      // replace initial[0]["hello"]
-//      updated := initial.Apply(changes.PathChange{path, replace})
-//
-//
-// The https://godoc.org/github.com/dotchain/dot/changes/types package
-// implements standard value types (strings, arrays and maps) with
-// which arbitrary json-like value can be created.
-//
-// Convergence
-//
-// The core property of all changes is the ability to guarantee
-// convergence when two mutations are attempted on the same state:
-//       initial := types.S8("hello")
-//
-//       // two changes: append " world" and delete "lo"
-//       insert := changes.Splice{5, types.S8(""), types.S8(" world")}
-//       remove := changes.Splice{3, types.S8("lo"), types.S8("")}
-//
-//       // two versions
-//       inserted := initial.Apply(insert)
-//       removed := initial.Apply(remove)
-//
-//       // merge
-//       removex, insertx := insert.Merge(remove)
-//
-//       // converge
-//       final1 := inserted.Apply(removex)
-//       final2 := removed.Apply(insertx)
-//       // now final1 == final2
-//
-// The ability to merge two independent changes done to the same
-// initial state is the basis for the eventual convergence of the data
-// structures.  The
-// http://godoc.org/github.com/dotchain/dot/changes package
-// has fairly intensive tests to cover the change types defined there,
-// both individually and in composition.
-//
-// In addition to convergence, the set of change types are chosen
-// carefully to make it easy to implement Revert() (undo of the
-// change. This allows the ability to build a generic
-// undo stack (https://godoc.org/github.com/dotchain/dot/streams/undo) as
-// well as somewhat fancy features like
-//  folding (https://godoc.org/github.com/dotchain/dot/x/fold).
-//
-// The types (https://godoc.org/github.com/dotchain/dot/changes/types) package
-// implements standard value types (strings, arrays and maps) with which
-// arbitrary json-like value can be created.
-//
-// References
-//
-//
-// There are two broad cases where a JSON-like structure is not quite
-// enough.
-//
-// 1. Editors often need to track the cursor or selection which can be
-// thought of as offsets in the editor text.  When changes happen to
-// the text, for example, the offset would need to be updated.
-//
-// 2. Objects often need to refer to other parts of the JSON-tree. For
-// example, one can represent a graph using the array, map primitives
-// with the addition of references. When changes happen, these too
-// would need to be updated.
-//
-// The refs package (https://godoc.org/github.com/dotchain/dot/refs)
-// implements a set of types that help work with these.  In particular,
-// it defines a
-// Container type
-// (https://godoc.org/github.com/dotchain/dot/refs#Container)
-// that allows elements within to refer to other elements.
+// Care must be taken with custom changes to ensure that this property
+// is preserved.
 //
 // Streams
 //
-// The [streams](https://godoc.org/github.com/dotchain/dot/streams)
-// package defines the Stream type which is best thought of as a
-// "convergent persistent data structure".  It is persistent in the sense
-// that mutations simply return new values leaving the existing values as
-// is. It is convergent in the sense that all mutations from an initial
-// value are considered part of the same "family" and iterating on its
-// **Next()** values will converge all the values to an identical final
-// value:
-//     // import "github.com/dotchain/streams/text
-//     // create an UTF8 text stream
-//     useUTF16 := false
-//     initial := text.StreamFromString("hello", useUTF16)
-//     // two changes: append " world" and delete "lo"
-//     insert := changes.Splice{5, types.S8(""), types.S8(" world")}
-//     remove := changes.Splice{3, types.S8("lo"), types.S8("")}
-//     // two versions directly on top of the initial value
-//     inserted := initial.Append(insert).(*text.Stream)
-//     removed := initial.Append(remove).(*text.Stream)
-//     // like persistent types,
-//     //    inserted.Value() == "helloworld" and removed.Value() = "hel"
-//     // the converged value can be obtained from both:
-//     final1 := streams.Latest(inserted).(*text.Stream)
-//     final2 := streams.Latest(removed).(*text.Stream)
-//     // or even from the initial value
-//     final3 := streams.Latest(initial).(*text.Stream)
-//     // all three are: "helworld"
+// Streams represent the sequence of changes associated with a single
+// value. Stream instances behave like they are immutable: when a
+// change happens, a new stream instance captures the change.  Streams
+// also support multiple-writers: it is possible for two independent
+// changes to the same stream instance. In this case, the
+// newly-created  stream instances only capture the respective
+// changes but these both have a "Next" value that converges to the
+// same value.  That is, the two separate streams implicitly have the
+// changes from each other (but after transforming through the Merge)
+// method.
 //
-// The example above uses text.Stream which tracks not just the
-// changes but the effective value along with the changes. The streams
-// package (https://godoc.org/github.com/dotchain/dot/streams) defines
-// a ValueSTream type that is similar but there is also the ability to
-// work purely with a change stream with no associated value. This is
-// useful for pure transformations (such as "scoping" changes to
-// specific fields or array indices which allows applications to only
-// maintain the values needed rather than track the whole state).
+// This allows streams to perform quite nicely as convergent data
+// structures without much syntax overhead:
 //
-// Those familiar with [ReactiveX](http://reactivex.io/) will find the
-// streams approach quite similar -- except that streams are guaranteed
-// to converge.
+//	initial := streams.S8{Stream:  streams.New(), Value: "hello"}
 //
-// Branching of streams
+//	// two changes: append " world" and delete "lo"
+//      s1 := initial.Splice(5, 0, " world")
+//	s2 := initial.Splice(3, len("lo"), "")
 //
-// Streams can also be branched a la Git. Changes made in branches do not
-// affect the master or vice-versa -- until one of Pull or Push are
-// called.
-//         master := streams.New()
-//         local := streams.Branch(master)
+//	// streams automatically merge because they are both
+//      // based on initial
+//      s1 = s1.Latest()
+//      s2 = s2.Latest()
 //
-//         // changes will not be reflected on master yet
-//         local = local.Append(insert)
+//      fmt.Println(s1.Value, s1.Value == s2.Value)
+//      // Output: hel world true
 //
-//         // push local changes up to master
-//         streams.Push(local)
+// Strongly typed streams
 //
-// There are other neat benefits to the branching model: it provides a
-// fine grained control for pulling changes from the network on demand
-// and suspending it as well as providing a way for making local
-// changes.
+// The streams package provides a generic Stream implementation (via
+// the New function) which implements the idea of a sequence of
+// convergent changes. But much of the power of streams is in having
+// strongly type streams where the stream is associated with a
+// strongly typed value.  The streams package provides simple text
+// streamss (S8 and S16) as well as Bool and Counter types.  Richer
+// types like structs and slices can be converted to their stream
+// equivalent rather mechanically and  this is done by the x/dotc
+// package -- using code generation.
 //
-// Network synchronization
+//    Some day, Golang would support generics and then the code
+//    generation ugliness of x/dotc will no longer be needed.
 //
-// DOT uses a fairly simple backend
-// [Store](https://godoc.org/github.com/dotchain/dot/ops#Store)
-// interface: an append-only dumb log. Each operation that is appended in
-// the log gets an incrementing integer version (starting at zero). DOT
-// allows operation pipe-lining (i.e. it doesnt wait for acknowledgments
-// from the server before sending more operations) and to clarify the
-// exact sequence, every operation carries both the last server version
-// the client is aware of and any previous client operation.
+// Substreams are streams that refer into a particular field of a
+// parent stream.   For example, if the parent value is a struct with
+// a "Done" field, it is  possible to treat the "Done stream" as the
+// changes scoped this field. This allows code to be written much more
+// cleanly.   See the https://github.com/dotchain/dot#toggling-complete
+// section of the documentation for an example.
 //
-// The [ops](https://godoc.org/github.com/dotchain/dot/ops) package takes
-// these raw entries in the log and provides the synchronization
-// mechanism to connect it to a stream which allows much of the
-// client/app logic to be written agnostic of the network.
-//    import(
-//        "github.com/dotchain/dot/ops/nw"
-//        "github.com/dotchain/dot/ops"
-//        "github.com/dotchain/dot/streams"
-//        "github.com/dotchain/dot/x/idgen"
-//    )
+// Other features
 //
-//    func connect() streams.Straem {
-//      c := nw.Client{URL: ...}
-//      defer c.Close()
+// Streams support branching (a la Git) and folding.  See the examples!
 //
-//    // the following two can be used to restart a session
-//    initialVersion := -1
-//    unacknowledgedOps := []ops.Op(nil)
-//    conn := ops.NewConnector(initialVersion, unacknowledgedOps, c, rand.Float64)
-//    stream := conn.Stream
-//    conn.Connect()
-//    defer conn.Disconnect()
-//    // ... now stream starts receiving updates from the network
-//    // ... and local changes can also be applied to  it
-//   }
+// Streams also support references. A typical use case is maintaining
+// the user cursor within a region of text.  When remote changes
+// happen to the text, the cursor needs to be updated.  In fact, when
+// one takes a substream of an element of an array, the array index
+// needs to be automatically  managed (i.e. insertions into the array
+// before the index should automatically update the index etc).  This
+// is managed within streams using references.
 //
 //
-// Backend storage implementations
+// Server implementations
 //
-// There are two storage implementations: a local file-system option
-// based on BoltDB and a Postgres solution.  See
-// https://godoc.org/github.com/dotchain/dot/ops/boltdb and
-// https://godoc.org/github.com/dotchain/dot/ops/pg
+// A particular value can be reconstituted from the sequence of
+// changes to that value. In DOT, only these changes are stored and
+// that too in an append-only log.  This make the backend rather
+// simple and generally agnostic of application types to a large
+// extent.
 //
-// A simple HTTP server can be created using the bolt/pg store implementations.
-//      import "github.com/dotchain/dot/ops/bolt"
-//      import "github.com/dotchain/dot/ops/nw"
-//      store, _ := bolt.New("file.bolt", "instance", nil)
-//      defer  store.Close()
-//      handler := &nw.Handler{Store: store}
-//      h := func(w http.ResponseWriter, req  *http.Request) {
-//              // Enable CORS
-//              w.Header().Set("Access-Control-Allow-Origin", "*")
-//              w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-//              if req.Method == "OPTIONS" {
-//                    return
-//              }
-//              handler.ServeHTTP(w, req)
-//      }
-//      http.HandleFunc("/api/", h)
-//      http.ListenAndServe()
-// Undo log, folding and extras
-//
-// The streams abstraction provides the basis for implementing
-// system-wide
-// [undo](https://godoc.org/github.com/dotchain/dot/streams/undo).
-//
-// More interestingly, there is the ability to implement **Folding**. A
-// client can have a set of temporary changes (such as config or view
-// etc) which is not committed.  And then more changes can be made on top
-// of it which **are committed**.  These types of shenanigans is possible
-// with the use of a small fixed set of well-behaved changes.
-//
-// Not yet implemented
-//
-// There is no native JS version.
-//
-// The async scheduler and the way it interacts with ops Connector are
-// still a bit awkward to use.
-//
-// There is no snapshot storage mechanism (for operations as well as full
-// values) which would require replaying the log each time.
-//
-// It is also possible to implement cross-object merging (i.e. sharing a
-// sub-object between two instances by using the OT merge approach to the
-// shared instance).  This is not implemented here but
+// See https://github.com/dotchain/dot#server for example code.
 package dot
 
 //go:generate go get github.com/tvastar/test/cmd/testmd
