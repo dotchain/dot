@@ -20,12 +20,9 @@ persistent datastrutures.
 Most of the code here is quite stable at this point but the project is
 not yet ready for production:
 
-1. Comprehensive end-to-end stress tests to validate runtime stability
-are needed.
-2. Some interfaces (particularly connecting to the network) are still
-awkward.
-3. TODO MVC demo is needed.
-
+1. Comprehensive end-to-end **stress** tests are missing.
+2. The ops/nw package and how it integrates with streams.Async is a
+bit wonky.
 
 ## Features
 
@@ -38,6 +35,240 @@ awkward.
 7. Folding (committed changes on top of uncommitted changes)
 8. Customizable rich types for values and changes
 
+## Contents
+1. [Status](#status)
+2. [Features](#features)
+3. [TODO Example](#todo-example)
+    1. [Server](#server)
+    2. [Types](#types)
+    3. [Type registration](#type-registration)
+    4. [Toggling Complete](#toggling-complete)
+    5. [Changing description](#changing-description)
+    6. [Adding Todos](#adding-todos)
+    7. [Client connection](#client-connection)
+4. [Walkthrough of the project](#walkthrough-of-the-project)
+    1. [Composition of changes](#composition-of-changes)
+    2. [Convergence](#convergence)
+    3. [References](#references)
+5. [Streams](#streams)
+    1. [Branching of streams](#branching-of-streams)
+    2. [Network synchronization](#network-synchronization)
+6. [Backend storage implementations](#backend-storage-implementations)
+7. [Undo log, folding and extras](#undo-log-folding-and-extras)
+8. [Not yet implemented](#not-yet-implemented)
+9. [Contributing](#contributing)
+
+## TODO Example
+
+The following walkthrough demonstrates the project by means of the
+standard TODO-MVC example except that in this case, the application is
+collaborative -- multiple clients can modify the same data and all
+client UIs are expected to converge to the same data/visuals.
+
+### Server
+
+The DOT backend is essentially a simple log store with only append
+operations and no modifications.  This is irrespective of whatever
+types are used for the application state itself:
+
+```go global
+
+func Server() {
+	// import net/http
+	// import github.com/dotchain/dot/ops/nw
+	// import github.com/dotchain/dot/ops/bolt
+
+        // uses a local-file backed bolt DB backend
+	store, _ := bolt.New("file.bolt", "instance", nil)
+        defer store.Close()
+	http.Handle("/api/", &nw.Handler{Store: store})
+        http.ListenAndServe(":8080", nil)
+}
+```
+
+The example above uses the
+[Bolt](http://godoc.org/github.com/dotchain/dot/ops/bolt)
+implementation of the store.  There is also a
+[Postgres](http://godoc.org/github.com/dotchain/dot/ops/pg) backend
+available.
+
+### Types
+
+A TODO MVC app consists of only two core types: `Todo` and `TodoList`:
+
+```go global
+
+// Todo tracks a single todo item
+type Todo struct {
+	Complete bool
+        Description string
+}
+
+// TodoList tracks a collection of todo items
+type TodoList []Todo
+
+```
+
+These types are incomplete as far as DOT is concerned because they do
+not specify how to change them.  All `values` in DOT are expected to
+be immutable and support the
+[Value](https://godoc.org/github.com/dotchain/dot/changes#Value)
+interface (or in the case of lists like `TodoList`, also implement the
+[Collection](https://godoc.org/github.com/dotchain/dot/changes#Collection)
+interface).  This allows for structured convergent mutations.
+
+For example, such an implementation would indicate that `Complete` can
+be modified independently and insertionss into `TodoList` can happen
+along with deletions etc.
+
+For the most part, these implementations are routine for structs,
+unions and sllices and so, they can be [code generated](codegen.md).
+
+### Type registration
+
+To use the types across the network, they have to be registered with
+the codec (which will be `gob` in this example)
+
+```go global
+// import encoding/gob
+
+func init() {
+	gob.Register(Todo{})
+        gob.Register(TodoList{})
+}
+```
+
+### Toggling Complete
+
+The code generation in DOT produces not only values, but also the
+associated streams which allows standard types of mutations:
+
+```go global
+func Toggle(t *TodoListStream, index int) {
+	// TodoListStream.Item() is implemented in the generated
+        // code and returns *TodoStream
+	itemStream := t.Item(index) 
+
+	// Complete() is also implemented in the generated code.
+        completeStream := itemStream.Complete()
+
+	// Update() here refers to streams.Bool.Update
+        completeStream.Update(!completeStream.Value)
+}
+```
+
+Note that the function does not return any value here but the updates
+can be fetched by calling `.Latest()` on any of the corresponding
+streams. If a single stream instance has multiple edits, the
+`Latest()` value is the merged value of all those edits.  If any
+substreams (such as those produced by `t.Item` or
+`itemStream.Complete`), then updates to the substreams gets reflected
+on their parent streams appropriately.
+
+Each stream also exposes the underlying type (such as `Todo` or
+`TodoList`) via the `Value` field.
+
+### Changing description
+
+Changing description is similar.  The string field maps to a
+`streams.S16` stream (the S16 refers  to unicode UTF16 format).
+
+But to make things interesting, lets look at **splicing** rather
+than replacing the whole string. Splicing is taking a subsequence of
+the string at a particular position and replacing it with the provided
+value.  It captures insert,  delete and replace in one operation.
+
+This probably mimics what text editors do better and a benefit of such
+low granularity edits is that when two users edit the same text, so
+long as they don't directly touch the same characters, the edits will
+merge quite cleanly even when they are simultaneous.
+
+The `Splice` method is already implemented on the underlying string
+stream and so the code here looks quite similar.
+
+```go global
+func SpliceDescription(t *TodoListStream, index, offset, count int, replacement string) {
+	// TodoListStream.Item() is implemented in the generated
+        // code and returns *TodoStream
+	itemStream := t.Item(index) 
+
+	// Description() is also implemented in the generated code.
+        descStream := itemStream.Description()
+
+	// Splice() here refers to streams.S16.Splice
+        descStream.Splice(offset, count, replacement)
+}
+```
+
+### Adding Todos
+
+Adding a Todo is relatively simple as well:
+
+```go global
+func AddTodo(t *TodoListStream, todo Todo) {
+	t.Splice(len(t.Value), 0, todo)
+}
+```
+
+The use of `Splice` in this example should give away the fact that
+items can be inserted into a specific position or deleted the same
+way.
+
+In addition to `Splice`, the oher basic operation available on
+collections is `Move` (though this is not implemented in the automatic
+code generation yet).
+
+### Client connection
+
+Setting up the client requires connecting to the URL where the server
+is hosted:
+
+```go global
+// import github.com/dotchain/dot/ops/nw
+// import github.com/dotchain/dot/ops
+// import math/rand
+
+func Client(stop chan struct{}, url string, render func(*TodoListStream)) {
+	version, pending, todos := SavedSession()
+
+	store := &nw.Client{URL: url}
+        defer store.Close()
+        client := ops.NewConnector(version, pending, ops.Transformed(store), rand.Float64)
+	stream := &TodoListStream{Stream: client.Stream, Value: todos}
+
+	// start the network processing
+	client.Connect()
+
+        // save session before shutdown
+	defer func() {
+        	SaveSession(client.Version, client.Pending, stream.Latest().Value)
+        }()
+        defer client.Disconnect()
+
+        client.Stream.Nextf("key", func() {
+        	stream = stream.Latest()
+        	render(stream)
+        })
+	defer func() {
+        	client.Stream.Nextf("key", nil)
+        }()
+
+	<- stop
+}
+
+
+func SaveSession(version int, pending []ops.Op, todos TodoList) {
+	// this is not yet implemented. if it were, then
+        // this value should be persisted locally and returned
+        // by the call to savedSession
+}
+
+func SavedSession() (version int, pending []ops.Op, todos TodoList) {
+	// this is not yet implemented. return default values
+        return -1, nil, nil
+}
+
+```
 
 ## Walkthrough of the project
 
@@ -45,8 +276,8 @@ The DOT project is based on *immutable* or *persistent* **values** and
 **changes**. For example, inserting a character into a string would
 look like this:
 
-```golang
-        // import "github.com/dotchain/changes/types.S8
+```golang skip
+        // import github.com/dotchain/changes/types.S8
         // S8 is DOT-compatible string type with UTF8 string indices
         initial := types.S8("hello")
 
@@ -61,8 +292,8 @@ look like this:
 
 A less verbose *stream* based version (preferred) would look like so:
 
-```golang
-        // import "github.com/dotchain/streams
+```golang skip
+        // import github.com/dotchain/streams
 
         initial := &streams.S8{Stream: streams.New(), Value: "hello"}
         updated := initial.Splice(5, 0, " world")
@@ -82,7 +313,7 @@ semantics is implemented.
 Changes can be *composed* together. A simple form of composition is
 just a set of changes:
 
-```golang
+```golang skip
         initial := types.S8("hello")
 
         // append " world"
@@ -99,7 +330,7 @@ just a set of changes:
 Another form of composition is modifying a sub-element such as an
 array element or a dictionary path:
 
-```golang
+```golang skip
         // types.A is an array type and types.M is a map type
         initial := types.A{types.M{"hello": types.S8("world")}}
 
@@ -121,7 +352,7 @@ arbitrary json-like value can be created.
 The core property of all changes is the ability to guarantee
 *convergence* when two mutations are attempted on the same state:
 
-```golang
+```golang skip
        initial := types.S8("hello")
 
        // two changes: append " world" and delete "lo"
@@ -185,8 +416,8 @@ value are considered part of the same "family" and iterating on its
 **Next()** values will converge all the values to an identical final
 value: 
 
-```golang
-       // import "github.com/dotchain/streams
+```golang skip
+       // import github.com/dotchain/streams
 
        // create a text stream
        initial := streams.S8{Stream: streams.New(), Value: "hello"}
@@ -239,7 +470,7 @@ Streams can also be branched a la Git. Changes made in branches do not
 affect the master or vice-versa -- until one of Pull or Push are
 called.
 
-```golang
+```golang skip
 
         // here a generic change stream is created
         master := streams.New()
@@ -274,7 +505,7 @@ these raw entries in the log and provides the synchronization
 mechanism to connect it to a stream which allows much of the
 client/app logic to be written agnostic of the network.
 
-```golang
+```golang skip
 
 import (
        "github.com/dotchain/dot/ops/nw"
@@ -311,9 +542,9 @@ solution.
 
 A simple HTTP server can be created using the bolt/pg store implementations:
 
-```golang
-        // import "github.com/dotchain/dot/ops/bolt"
-        // import "github.com/dotchain/dot/ops/nw"        
+```golang skip
+        // import github.com/dotchain/dot/ops/bolt
+        // import github.com/dotchain/dot/ops/nw       
 
         store, _ := bolt.New("file.bolt", "instance", nil)
         defer  store.Close()
