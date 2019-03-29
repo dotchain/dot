@@ -36,7 +36,7 @@ type stack struct {
 var key = struct{}{}
 
 func newStack(base streams.Stream) *stack {
-	s := &stack{base: base}
+	s := &stack{base: base, currentType: upstream}
 	base.Nextf(key, func() {
 		var c changes.Change
 		s.base, c = s.base.Next()

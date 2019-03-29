@@ -43,7 +43,11 @@ type stream struct {
 }
 
 func (s stream) Append(c changes.Change) streams.Stream {
-	return stream{s.base.Append(c), s.stack}
+	result := s
+	s.stack.changeType(local, func() {
+		result.base = s.base.Append(c)
+	})
+	return result
 }
 
 func (s stream) ReverseAppend(c changes.Change) streams.Stream {

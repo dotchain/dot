@@ -54,14 +54,13 @@ bit wonky.
     3. [Composition of changes](#composition-of-changes)
     4. [Convergence](#convergence)
     5. [Convergence using streams](#convergence-using-streams)
-    6. [Revert](#revert)
-    7. [References](#references)
+    6. [Revert and undo](#revert-and-undo)
+    7. [Folding](#folding)
     8. [Branching of streams](#branching-of-streams)
-    9. [Network synchronization](#network-synchronization)
-5. [Backend storage implementations](#backend-storage-implementations)
-6. [Undo log, folding and extras](#undo-log-folding-and-extras)
-7. [Not yet implemented](#not-yet-implemented)
-8. [Contributing](#contributing)
+    9. [References](#references)
+    10. [Network synchronization and server](#network-synchronization-and-server)
+5. [Broad Issues](#broad-issues)
+6. [Contributing](#contributing)
 
 ## TODO Example
 
@@ -524,16 +523,151 @@ structures.  The
 has fairly intensive tests to cover the change types defined there,
 both individually and in composition. 
 
-### Revert
+### Revert and undo
 
-In addition to convergence, the set of change types are chosen
-carefully to make it easy to implement *Revert()* (undo of the
-change). This allows the ability to build a generic
-[undo stack](https://godoc.org/github.com/dotchain/dot/streams/undo) as well
-as somewhat fancy features like
-[folding](https://godoc.org/github.com/dotchain/dot/x/fold).
+All the predefined types of changes in DOT (see
+[changes](https://godoc.org/github.com/dotchain/dot/changes)) are
+carefully designed so that every change can be inverted easily without
+reference to the underlying value.  For example,
+[changes.Replace](https://godoc.org/github.com/dotchain/dot/changes#Replace)
+has both the **Before** and **After** fields instead of just keeping
+the **After**.  This allows the reverse to be computed quite easily by
+swapping the two fields.  This does generally incur additional storage
+expenses but the tradeoff is that code gets much simpler  to work
+with.
 
-    Example TODO
+In particular, it is possible to build generic
+[undo](https://godoc.org/github.com/dotchain/dot/streams/undo) support
+quite easily and naturally.  The following example shows both **Undo**
+and **Redo** being invoked from an undo stack.
+
+```go dot_test.Example_undo_streams
+	// import fmt
+        // import github.com/dotchain/dot/streams
+        // import github.com/dotchain/dot/changes
+        // import github.com/dotchain/dot/changes/types
+        // import github.com/dotchain/dot/streams/undo
+
+	// create master, undoable child and the undo stack itself
+	master := &streams.S16{Stream: streams.New(), Value: "hello"}
+        s, stack := undo.New(master.Stream)
+        undoableChild := &streams.S16{Stream: s, Value: master.Value}
+
+	// change hello => Hello
+	undoableChild = undoableChild.Splice(0, len("h"), "H")
+	fmt.Println(undoableChild.Value)
+
+	// for kicks, update master hello => hello$ as if it came
+        // from the server
+        master.Splice(len("hello"), 0, "$")
+
+	// now undo this via the stack
+        stack.Undo()
+
+	// now undoableChild should be hello$
+        undoableChild = undoableChild.Latest()
+        fmt.Println(undoableChild.Value)
+
+	// now redo the last operation to get Hello$
+        stack.Redo()
+        undoableChild = undoableChild.Latest()
+        fmt.Println(undoableChild.Value)
+        
+	// Output:
+        // Hello
+        // hello$
+        // Hello$
+```
+
+### Folding
+
+In the case of editors, folding refers to a piece of text that has
+been hidden away. The difficulty with implementing this in a
+collaborative setting is that as external edits come in, the fold has
+to be maintained.
+
+The design of DOT allows for an elegant way to achieve this: consider
+the "folding" as a local change (replacing the folded region with
+say "..."). This local change is never meant to be sent out.  All
+changes to the unfolded and folded versions can be proxied quite
+nicely without much app involvement:
+
+```go dot_test.Example_folding
+	// import fmt
+        // import github.com/dotchain/dot/streams
+        // import github.com/dotchain/dot/changes
+        // import github.com/dotchain/dot/changes/types
+        // import github.com/dotchain/dot/x/fold
+
+	// create master, folded child and the folding itself
+	master := &streams.S16{Stream: streams.New(), Value: "hello world!"}
+        foldChange := changes.Splice{
+        	Offset: len("hello"),
+                Before: types.S16(" world"),
+                After: types.S16("..."),
+        }
+        foldedStream := fold.New(foldChange, master.Stream)
+        folded := &streams.S16{Stream: foldedStream, Value :"hello...!"}
+
+        // folded:  hello...! => Hello...!!!
+	folded = folded.Splice(0, len("h"), "H")
+        folded = folded.Splice(len("Hello...!"), 0, "!!")
+        fmt.Println(folded.Value)
+
+	// master: hello world => hullo world
+	master = master.Splice(len("h"), len("e"), "u")
+        fmt.Println(master.Value)
+
+        // now folded = Hullo...!!!
+        fmt.Println(folded.Latest().Value)
+
+        // master = Hullo world!!!
+        fmt.Println(master.Latest().Value)
+
+	// Output:
+        // Hello...!!!
+        // hullo world!
+        // Hullo...!!!
+        // Hullo world!!!
+```
+
+### Branching of streams
+
+Streams in DOT can also be branched *a la* Git. Changes made in
+branches do not affect the master or vice-versa -- until one of Pull
+or Push are called.
+
+```golang dot_test.Example_branching
+	// import fmt
+        // import github.com/dotchain/dot/streams
+        // import github.com/dotchain/dot/changes
+        // import github.com/dotchain/dot/changes/types        
+        
+        // local is a branch of master
+        master := &streams.S16{Stream: streams.New(), Value: "hello"}
+        local := &streams.S16{Stream: streams.Branch(master.Stream), Value: master.Value}
+
+	// edit locally: hello => hallo
+	local.Splice(len("h"), len("e"), "a")
+
+	// changes will not be reflected on master yet
+        fmt.Println(master.Latest().Value)
+
+	// push local changes up to master now
+        streams.Push(local.Stream)
+
+	// now master = hallo
+	fmt.Println(master.Latest().Value)
+
+        // Output:
+        // hello
+        // hallo
+```
+
+There are other neat benefits to the branching model: it provides a
+fine grained control for pulling changes from the network on demand
+and suspending it as well as providing a way for making local
+changes.
 
 ### References
 
@@ -554,141 +688,39 @@ it defines a
 [Container](https://godoc.org/github.com/dotchain/dot/refs#Container)
 value that allows elements within to refer to other elements.
 
-### Branching of streams
 
-Streams can also be branched *a la* Git. Changes made in branches do not
-affect the master or vice-versa -- until one of Pull or Push are
-called.
-
-```golang dot_test.Example_branching
-	// import fmt
-        // import github.com/dotchain/dot/streams
-        // import github.com/dotchain/dot/changes
-        // import github.com/dotchain/dot/changes/types        
-        
-        // here a generic change stream is created
-        master := streams.New()
-        local := streams.Branch(master)
-
-        // changes will not be reflected on master yet
-        c := changes.Replace{Before: changes.Nil, After: types.S8("hello")}
-        local = local.Append(c)
-
-	if x, c1 := master.Next(); x != nil || c1 != nil {
-        	fmt.Println("Master unexepectedly changed")
-        }
-
-	// push local changes up to master now
-        streams.Push(local)
-	if x, c2 := master.Next(); x == nil || c2 != c {
-        	fmt.Println("Master changed but unexpectedly", x, c2)
-        }
-
-	// Output:
-```
-
-There are other neat benefits to the branching model: it provides a
-fine grained control for pulling changes from the network on demand
-and suspending it as well as providing a way for making local
-changes.
-
-### Network synchronization
+### Network synchronization and server
 
 DOT uses a fairly simple backend
 [Store](https://godoc.org/github.com/dotchain/dot/ops#Store)
-interface: an append-only dumb log. Each operation that is appended in
-the log gets an incrementing integer version (starting at zero). DOT
-allows operation pipe-lining (i.e. it doesnt wait for acknowledgments
-from the server before sending more operations) and to clarify the
-exact sequence, every operation carries both the last server version
-the client is aware of and the ID of any previous client
-*unacknowledged* operation.
+interface: an append-only dumb log. The
+[Bolt](https://godoc.org/github.com/dotchain/dot/ops/bolt) and
+[Postgres](https://godoc.org/github.com/dotchain/dot/ops/pg)
+implementations are quite simple and other data backends can be
+easily added.
 
-The [ops](https://godoc.org/github.com/dotchain/dot/ops) package takes
-these raw entries in the log and provides the synchronization
-mechanism to connect it to a stream which allows much of the
-client/app logic to be written agnostic of the network.
+See [Server](#server) and [Client connection](#client-connection) for
+sample server and client applications.  Note that the journal approach
+used implies that the journal size only increases and so clients will
+eventually take a while to rebuild their state from the journal. The
+client API allows snapshotting state to make the rebuilds faster.
+There is no server support for snapshots though it is possible to
+build one rather easily
 
-```golang dot_test.skip
+## Broad Issues
 
-// github.com/dotchain/dot/ops/nw"
-// github.com/dotchain/dot/ops"
-// github.com/dotchain/dot/streams"
-// github.com/dotchain/dot/x/idgen"       
-
-func connect() streams.Straem {
-    c := nw.Client{URL: ...}
-    defer c.Close()
-
-    // the following two can be used to restart a session
-    initialVersion := -1
-    unacknowledgedOps := []ops.Op(nil)
-    conn := ops.NewConnector(initialVersion, unacknowledgedOps, c, rand.Float64)
-    stream := conn.Stream
-    conn.Connect()
-    defer conn.Disconnect()
-
-    // ... now stream starts receiving updates from the network
-    // ... and local changes can also be applied to  it
-}
-    
-```
-
-## Backend storage implementations
-
-There are two storage implementations: [a local filesystem based
-solution (using
-BoltDB)](https://github.com/dotchain/dot/tree/master/ops/bolt) and a
-[Postgres](https://github.com/dotchain/dot/tree/master/ops/pg)
-solution.
-
-A simple HTTP server can be created using the bolt/pg store implementations:
-
-```golang dot_test.skip
-        // import github.com/dotchain/dot/ops/bolt
-        // import github.com/dotchain/dot/ops/nw       
-
-        store, _ := bolt.New("file.bolt", "instance", nil)
-        defer  store.Close()
-        handler := &nw.Handler{Store: store}
-        h := func(w http.ResponseWriter, req  *http.Request) {
-                // Enable CORS
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-		if req.Method == "OPTIONS" {
-			return
-		}
-		handler.ServeHTTP(w, req)
-	}
-        http.HandleFunc("/api/", h)
-        http.ListenAndServe()
-```
-
-## Undo log, folding and extras
-
-The streams abstraction provides the basis for implementing
-system-wide
-[undo](https://godoc.org/github.com/dotchain/dot/streams/undo).
-
-More interestingly, there is the ability to implement **Folding**. A
-client can have a set of temporary changes (such as config or view
-etc) which is not committed.  And then more changes can be made on top
-of it which **are committed**.  These types of shenanigans is possible
-with the use of a small fixed set of well-behaved changes.
-
-## Not yet implemented
-
-There is no native JS version though the [browser
-demo](https://dotchain.github.io/demos/) uses a GopherJS
-transpiled version.  At some point, this will be packaged for native
-JS consumption.
-
-The async scheduler and the way it interacts with ops Connector are
-still a bit awkward to use.
-
-It is also possible to implement cross-object merging (i.e. sharing a
-sub-object between two instances by using the OT merge approach to the
-shared instance).  This is not implemented here but 
+1. Add changes.Canonical to remove empty changes or empty path in PathChange
+2. changes.Context/changes.Meta are not fully integrated
+3. streams.Async forces code complexity
+    1. streams/undo does not work well with streams.Async
+    2. ops/nw has odd signatures because of async
+4. gob-encoding makes it harder to deal with other languages but JSON
+encodindg wont work with interfaces.
+5. Cross-object merging and persisted branches need more platform support
+6. Full rich-text support with collaborative cursors still needs work
+with references and reference containers
+7. Code generation can infer types from regular go declarations
+8. Snapshots and transient states
 
 ## Contributing
 

@@ -8,6 +8,8 @@ import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/streams"
+	"github.com/dotchain/dot/streams/undo"
+	"github.com/dotchain/dot/x/fold"
 )
 
 func Example_applying_changes() {
@@ -142,30 +144,109 @@ func Example_convergence_streams() {
 
 }
 
+func Example_undo_streams() {
+	// import fmt
+	// import github.com/dotchain/dot/streams
+	// import github.com/dotchain/dot/changes
+	// import github.com/dotchain/dot/changes/types
+	// import github.com/dotchain/dot/streams/undo
+
+	// create master, undoable child and the undo stack itself
+	master := &streams.S16{Stream: streams.New(), Value: "hello"}
+	s, stack := undo.New(master.Stream)
+	undoableChild := &streams.S16{Stream: s, Value: master.Value}
+
+	// change hello => Hello
+	undoableChild = undoableChild.Splice(0, len("h"), "H")
+	fmt.Println(undoableChild.Value)
+
+	// for kicks, update master hello => hello$ as if it came
+	// from the server
+	master.Splice(len("hello"), 0, "$")
+
+	// now undo this via the stack
+	stack.Undo()
+
+	// now undoableChild should be hello$
+	undoableChild = undoableChild.Latest()
+	fmt.Println(undoableChild.Value)
+
+	// now redo the last operation to get Hello$
+	stack.Redo()
+	undoableChild = undoableChild.Latest()
+	fmt.Println(undoableChild.Value)
+
+	// Output:
+	// Hello
+	// hello$
+	// Hello$
+
+}
+
+func Example_folding() {
+	// import fmt
+	// import github.com/dotchain/dot/streams
+	// import github.com/dotchain/dot/changes
+	// import github.com/dotchain/dot/changes/types
+	// import github.com/dotchain/dot/x/fold
+
+	// create master, folded child and the folding itself
+	master := &streams.S16{Stream: streams.New(), Value: "hello world!"}
+	foldChange := changes.Splice{
+		Offset: len("hello"),
+		Before: types.S16(" world"),
+		After:  types.S16("..."),
+	}
+	foldedStream := fold.New(foldChange, master.Stream)
+	folded := &streams.S16{Stream: foldedStream, Value: "hello...!"}
+
+	// folded:  hello...! => Hello...!!!
+	folded = folded.Splice(0, len("h"), "H")
+	folded = folded.Splice(len("Hello...!"), 0, "!!")
+	fmt.Println(folded.Value)
+
+	// master: hello world => hullo world
+	master = master.Splice(len("h"), len("e"), "u")
+	fmt.Println(master.Value)
+
+	// now folded = Hullo...!!!
+	fmt.Println(folded.Latest().Value)
+
+	// master = Hullo world!!!
+	fmt.Println(master.Latest().Value)
+
+	// Output:
+	// Hello...!!!
+	// hullo world!
+	// Hullo...!!!
+	// Hullo world!!!
+
+}
+
 func Example_branching() {
 	// import fmt
 	// import github.com/dotchain/dot/streams
 	// import github.com/dotchain/dot/changes
 	// import github.com/dotchain/dot/changes/types
 
-	// here a generic change stream is created
-	master := streams.New()
-	local := streams.Branch(master)
+	// local is a branch of master
+	master := &streams.S16{Stream: streams.New(), Value: "hello"}
+	local := &streams.S16{Stream: streams.Branch(master.Stream), Value: master.Value}
+
+	// edit locally: hello => hallo
+	local.Splice(len("h"), len("e"), "a")
 
 	// changes will not be reflected on master yet
-	c := changes.Replace{Before: changes.Nil, After: types.S8("hello")}
-	local = local.Append(c)
-
-	if x, c1 := master.Next(); x != nil || c1 != nil {
-		fmt.Println("Master unexepectedly changed")
-	}
+	fmt.Println(master.Latest().Value)
 
 	// push local changes up to master now
-	streams.Push(local)
-	if x, c2 := master.Next(); x == nil || c2 != c {
-		fmt.Println("Master changed but unexpectedly", x, c2)
-	}
+	streams.Push(local.Stream)
+
+	// now master = hallo
+	fmt.Println(master.Latest().Value)
 
 	// Output:
+	// hello
+	// hallo
 
 }

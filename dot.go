@@ -296,3 +296,10 @@
 // sub-object between two instances by using the OT merge approach to the
 // shared instance).  This is not implemented here but
 package dot
+
+//go:generate go get github.com/tvastar/test/cmd/testmd
+//go:generate go get github.com/tvastar/toc
+//go:generate testmd -pkg dot_test -o dot_test.go README.md
+//go:generate toc -h Contents -o README.md README.md
+//go:generate testmd -pkg example -o example/todo.go README.md
+//go:generate testmd -pkg main codegen.md
