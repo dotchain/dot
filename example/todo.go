@@ -40,28 +40,45 @@ func init() {
 	gob.Register(TodoList{})
 }
 func Toggle(t *TodoListStream, index int) {
-	// TodoListStream.Item() is implemented in the generated
-	// code and returns *TodoStream
-	itemStream := t.Item(index)
+	// TodoListStream.Item() is generated code. It returns
+	// a stream of the n'th element of the slice so that
+	// particular stream can be modified. When that stream is
+	// modified, the effect is automatically merged into the
+	// parent (and available via .Next of the parent stream)
+	todoStream := t.Item(index)
 
-	// Complete() is also implemented in the generated code.
-	completeStream := itemStream.Complete()
+	// TodoStream.Complete is generated code. It returns a stream
+	// for the Todo.Complete field so that it can be modified. As
+	// with slices above, mutations on the field's stream are
+	// reflected on the struct stream (via .Next or .Latest())
+	completeStream := todoStream.Complete()
 
-	// Update() here refers to streams.Bool.Update
+	// completeStream is of type streams.Bool. All streams
+	// implement the simple Update(newValue) method that replaces
+	// the current value with a new value.
 	completeStream.Update(!completeStream.Value)
 }
 func SpliceDescription(t *TodoListStream, index, offset, count int, replacement string) {
-	// TodoListStream.Item() is implemented in the generated
-	// code and returns *TodoStream
-	itemStream := t.Item(index)
+	// TodoListStream.Item() is generated code. It returns
+	// a stream of the n'th element of the slice so that
+	// particular stream can be modified. When that stream is
+	// modified, the effect is automatically merged into the
+	// parent (and available via .Next of the parent stream)
+	todoStream := t.Item(index)
 
-	// Description() is also implemented in the generated code.
-	descStream := itemStream.Description()
+	// TodoStream.Description is generated code. It returns a
+	// stream for the Todo.Description field so that it can be
+	// modified. As with slices above, mutations on the field's
+	// stream are reflected on the struct stream (via .Next or
+	// .Latest())
+	// TodoStream.Description() returns streams.S16 type
+	descStream := todoStream.Description()
 
-	// Splice() here refers to streams.S16.Splice
+	// streams.S16 implements Splice(offset, removeCount, replacement)
 	descStream.Splice(offset, count, replacement)
 }
 func AddTodo(t *TodoListStream, todo Todo) {
+	// All slice streams implement Splice(offset, removeCount, replacement)
 	t.Splice(len(t.Value), 0, todo)
 }
 
@@ -69,10 +86,10 @@ func AddTodo(t *TodoListStream, todo Todo) {
 // import github.com/dotchain/dot/ops
 // import math/rand
 
-func Client(stop chan struct{}, url string, render func(*TodoListStream)) {
+func Client(stop chan struct{}, render func(*TodoListStream)) {
 	version, pending, todos := SavedSession()
 
-	store := &nw.Client{URL: url}
+	store := &nw.Client{URL: "http://localhost:8080/api/"}
 	defer store.Close()
 	client := ops.NewConnector(version, pending, ops.Transformed(store), rand.Float64)
 	stream := &TodoListStream{Stream: client.Stream, Value: todos}

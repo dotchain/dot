@@ -28,7 +28,7 @@ func main() {
 			}
 		}
 	}()
-	example.Client(nil, "http://localhost:8080/api/", func(s *example.TodoListStream) {
+	example.Client(nil, func(s *example.TodoListStream) {
 		stream = s
 		for kk, todo := range s.Value {
 			fmt.Printf("%d %s\n", kk, todo.Description)
