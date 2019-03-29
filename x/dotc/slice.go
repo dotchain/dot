@@ -94,9 +94,16 @@ func ({{.Recv}} {{.Type}}) ApplyCollection(ctx changes.Context, c changes.Change
 `))
 
 var sliceSetters = template.Must(template.New("slice_setter").Parse(`
+// Splice replaces [offset:offset+count] with insert...
 func ({{.Recv}} {{.Type}}) Splice(offset, count int, insert ...{{.ElemType}}) {{.Type}} {
 	{{.Recv}}Insert := {{.RawType}}(insert)
 	return {{.Recv}}.splice(offset, count, {{if .Pointer}}&{{end}}{{.Recv}}Insert).({{.Type}})
+}
+
+// Move shuffles [offset:offset+count] by distance.
+func ({{.Recv}} {{.Type}}) Move(offset, count, distance int) {{.Type}} {
+	c := changes.Move{Offset: offset, Count: count, Distance: distance}
+	return {{.Recv}}.ApplyCollection(nil, c).({{.Type}})
 }
 
 `))

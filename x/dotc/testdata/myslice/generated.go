@@ -44,9 +44,16 @@ func (my MySlice) ApplyCollection(ctx changes.Context, c changes.Change) changes
 	return (types.Generic{Get: my.get, Set: my.set, Splice: my.splice}).ApplyCollection(ctx, c, my)
 }
 
+// Splice replaces [offset:offset+count] with insert...
 func (my MySlice) Splice(offset, count int, insert ...bool) MySlice {
 	myInsert := MySlice(insert)
 	return my.splice(offset, count, myInsert).(MySlice)
+}
+
+// Move shuffles [offset:offset+count] by distance.
+func (my MySlice) Move(offset, count, distance int) MySlice {
+	c := changes.Move{Offset: offset, Count: count, Distance: distance}
+	return my.ApplyCollection(nil, c).(MySlice)
 }
 
 // MySliceStream implements a stream of MySlice values
@@ -94,12 +101,19 @@ func (s *MySliceStream) Item(index int) *streams.Bool {
 	return &streams.Bool{Stream: streams.Substream(s.Stream, index), Value: (s.Value)[index]}
 }
 
-// Splice splices the items
+// Splice splices the items replacing Value[offset:offset+count] with replacement
 func (s *MySliceStream) Splice(offset, count int, replacement ...bool) *MySliceStream {
 	after := MySlice(replacement)
-	c := changes.Replace{Before: s.Value.Slice(offset, count), After: after}
+	c := changes.Splice{Offset: offset, Before: s.Value.Slice(offset, count), After: after}
 	str := s.Stream.Append(c)
 	return &MySliceStream{Stream: str, Value: s.Value.Splice(offset, count, replacement...)}
+}
+
+// Move shuffles Value[offset:offset+count] over by distance
+func (s *MySliceStream) Move(offset, count, distance int) *MySliceStream {
+	c := changes.Move{Offset: offset, Count: count, Distance: distance}
+	str := s.Stream.Append(c)
+	return &MySliceStream{Stream: str, Value: s.Value.Move(offset, count, distance)}
 }
 
 func (my mySlice2) get(key interface{}) changes.Value {
@@ -139,9 +153,16 @@ func (my mySlice2) ApplyCollection(ctx changes.Context, c changes.Change) change
 	return (types.Generic{Get: my.get, Set: my.set, Splice: my.splice}).ApplyCollection(ctx, c, my)
 }
 
+// Splice replaces [offset:offset+count] with insert...
 func (my mySlice2) Splice(offset, count int, insert ...MySlice) mySlice2 {
 	myInsert := mySlice2(insert)
 	return my.splice(offset, count, myInsert).(mySlice2)
+}
+
+// Move shuffles [offset:offset+count] by distance.
+func (my mySlice2) Move(offset, count, distance int) mySlice2 {
+	c := changes.Move{Offset: offset, Count: count, Distance: distance}
+	return my.ApplyCollection(nil, c).(mySlice2)
 }
 
 // mySlice2Stream implements a stream of mySlice2 values
@@ -189,12 +210,19 @@ func (s *mySlice2Stream) Item(index int) *MySliceStream {
 	return &MySliceStream{Stream: streams.Substream(s.Stream, index), Value: (s.Value)[index]}
 }
 
-// Splice splices the items
+// Splice splices the items replacing Value[offset:offset+count] with replacement
 func (s *mySlice2Stream) Splice(offset, count int, replacement ...MySlice) *mySlice2Stream {
 	after := mySlice2(replacement)
-	c := changes.Replace{Before: s.Value.Slice(offset, count), After: after}
+	c := changes.Splice{Offset: offset, Before: s.Value.Slice(offset, count), After: after}
 	str := s.Stream.Append(c)
 	return &mySlice2Stream{Stream: str, Value: s.Value.Splice(offset, count, replacement...)}
+}
+
+// Move shuffles Value[offset:offset+count] over by distance
+func (s *mySlice2Stream) Move(offset, count, distance int) *mySlice2Stream {
+	c := changes.Move{Offset: offset, Count: count, Distance: distance}
+	str := s.Stream.Append(c)
+	return &mySlice2Stream{Stream: str, Value: s.Value.Move(offset, count, distance)}
 }
 
 func (my mySlice3) get(key interface{}) changes.Value {
@@ -234,9 +262,16 @@ func (my mySlice3) ApplyCollection(ctx changes.Context, c changes.Change) change
 	return (types.Generic{Get: my.get, Set: my.set, Splice: my.splice}).ApplyCollection(ctx, c, my)
 }
 
+// Splice replaces [offset:offset+count] with insert...
 func (my mySlice3) Splice(offset, count int, insert ...*bool) mySlice3 {
 	myInsert := mySlice3(insert)
 	return my.splice(offset, count, myInsert).(mySlice3)
+}
+
+// Move shuffles [offset:offset+count] by distance.
+func (my mySlice3) Move(offset, count, distance int) mySlice3 {
+	c := changes.Move{Offset: offset, Count: count, Distance: distance}
+	return my.ApplyCollection(nil, c).(mySlice3)
 }
 
 // mySlice3Stream implements a stream of mySlice3 values
@@ -284,12 +319,19 @@ func (s *mySlice3Stream) Item(index int) *boolStream {
 	return &boolStream{Stream: streams.Substream(s.Stream, index), Value: (s.Value)[index]}
 }
 
-// Splice splices the items
+// Splice splices the items replacing Value[offset:offset+count] with replacement
 func (s *mySlice3Stream) Splice(offset, count int, replacement ...*bool) *mySlice3Stream {
 	after := mySlice3(replacement)
-	c := changes.Replace{Before: s.Value.Slice(offset, count), After: after}
+	c := changes.Splice{Offset: offset, Before: s.Value.Slice(offset, count), After: after}
 	str := s.Stream.Append(c)
 	return &mySlice3Stream{Stream: str, Value: s.Value.Splice(offset, count, replacement...)}
+}
+
+// Move shuffles Value[offset:offset+count] over by distance
+func (s *mySlice3Stream) Move(offset, count, distance int) *mySlice3Stream {
+	c := changes.Move{Offset: offset, Count: count, Distance: distance}
+	str := s.Stream.Append(c)
+	return &mySlice3Stream{Stream: str, Value: s.Value.Move(offset, count, distance)}
 }
 
 func (my *MySliceP) get(key interface{}) changes.Value {
@@ -329,9 +371,16 @@ func (my *MySliceP) ApplyCollection(ctx changes.Context, c changes.Change) chang
 	return (types.Generic{Get: my.get, Set: my.set, Splice: my.splice}).ApplyCollection(ctx, c, my)
 }
 
+// Splice replaces [offset:offset+count] with insert...
 func (my *MySliceP) Splice(offset, count int, insert ...bool) *MySliceP {
 	myInsert := MySliceP(insert)
 	return my.splice(offset, count, &myInsert).(*MySliceP)
+}
+
+// Move shuffles [offset:offset+count] by distance.
+func (my *MySliceP) Move(offset, count, distance int) *MySliceP {
+	c := changes.Move{Offset: offset, Count: count, Distance: distance}
+	return my.ApplyCollection(nil, c).(*MySliceP)
 }
 
 // MySlicePStream implements a stream of *MySliceP values
@@ -379,12 +428,19 @@ func (s *MySlicePStream) Item(index int) *streams.Bool {
 	return &streams.Bool{Stream: streams.Substream(s.Stream, index), Value: (*s.Value)[index]}
 }
 
-// Splice splices the items
+// Splice splices the items replacing Value[offset:offset+count] with replacement
 func (s *MySlicePStream) Splice(offset, count int, replacement ...bool) *MySlicePStream {
 	after := MySliceP(replacement)
-	c := changes.Replace{Before: s.Value.Slice(offset, count), After: &after}
+	c := changes.Splice{Offset: offset, Before: s.Value.Slice(offset, count), After: &after}
 	str := s.Stream.Append(c)
 	return &MySlicePStream{Stream: str, Value: s.Value.Splice(offset, count, replacement...)}
+}
+
+// Move shuffles Value[offset:offset+count] over by distance
+func (s *MySlicePStream) Move(offset, count, distance int) *MySlicePStream {
+	c := changes.Move{Offset: offset, Count: count, Distance: distance}
+	str := s.Stream.Append(c)
+	return &MySlicePStream{Stream: str, Value: s.Value.Move(offset, count, distance)}
 }
 
 func (my *mySlice2P) get(key interface{}) changes.Value {
@@ -424,9 +480,16 @@ func (my *mySlice2P) ApplyCollection(ctx changes.Context, c changes.Change) chan
 	return (types.Generic{Get: my.get, Set: my.set, Splice: my.splice}).ApplyCollection(ctx, c, my)
 }
 
+// Splice replaces [offset:offset+count] with insert...
 func (my *mySlice2P) Splice(offset, count int, insert ...*MySliceP) *mySlice2P {
 	myInsert := mySlice2P(insert)
 	return my.splice(offset, count, &myInsert).(*mySlice2P)
+}
+
+// Move shuffles [offset:offset+count] by distance.
+func (my *mySlice2P) Move(offset, count, distance int) *mySlice2P {
+	c := changes.Move{Offset: offset, Count: count, Distance: distance}
+	return my.ApplyCollection(nil, c).(*mySlice2P)
 }
 
 // mySlice2PStream implements a stream of *mySlice2P values
@@ -474,12 +537,19 @@ func (s *mySlice2PStream) Item(index int) *MySlicePStream {
 	return &MySlicePStream{Stream: streams.Substream(s.Stream, index), Value: (*s.Value)[index]}
 }
 
-// Splice splices the items
+// Splice splices the items replacing Value[offset:offset+count] with replacement
 func (s *mySlice2PStream) Splice(offset, count int, replacement ...*MySliceP) *mySlice2PStream {
 	after := mySlice2P(replacement)
-	c := changes.Replace{Before: s.Value.Slice(offset, count), After: &after}
+	c := changes.Splice{Offset: offset, Before: s.Value.Slice(offset, count), After: &after}
 	str := s.Stream.Append(c)
 	return &mySlice2PStream{Stream: str, Value: s.Value.Splice(offset, count, replacement...)}
+}
+
+// Move shuffles Value[offset:offset+count] over by distance
+func (s *mySlice2PStream) Move(offset, count, distance int) *mySlice2PStream {
+	c := changes.Move{Offset: offset, Count: count, Distance: distance}
+	str := s.Stream.Append(c)
+	return &mySlice2PStream{Stream: str, Value: s.Value.Move(offset, count, distance)}
 }
 
 func (my *mySlice3P) get(key interface{}) changes.Value {
@@ -519,9 +589,16 @@ func (my *mySlice3P) ApplyCollection(ctx changes.Context, c changes.Change) chan
 	return (types.Generic{Get: my.get, Set: my.set, Splice: my.splice}).ApplyCollection(ctx, c, my)
 }
 
+// Splice replaces [offset:offset+count] with insert...
 func (my *mySlice3P) Splice(offset, count int, insert ...*bool) *mySlice3P {
 	myInsert := mySlice3P(insert)
 	return my.splice(offset, count, &myInsert).(*mySlice3P)
+}
+
+// Move shuffles [offset:offset+count] by distance.
+func (my *mySlice3P) Move(offset, count, distance int) *mySlice3P {
+	c := changes.Move{Offset: offset, Count: count, Distance: distance}
+	return my.ApplyCollection(nil, c).(*mySlice3P)
 }
 
 // mySlice3PStream implements a stream of *mySlice3P values
@@ -569,10 +646,17 @@ func (s *mySlice3PStream) Item(index int) *boolStream {
 	return &boolStream{Stream: streams.Substream(s.Stream, index), Value: (*s.Value)[index]}
 }
 
-// Splice splices the items
+// Splice splices the items replacing Value[offset:offset+count] with replacement
 func (s *mySlice3PStream) Splice(offset, count int, replacement ...*bool) *mySlice3PStream {
 	after := mySlice3P(replacement)
-	c := changes.Replace{Before: s.Value.Slice(offset, count), After: &after}
+	c := changes.Splice{Offset: offset, Before: s.Value.Slice(offset, count), After: &after}
 	str := s.Stream.Append(c)
 	return &mySlice3PStream{Stream: str, Value: s.Value.Splice(offset, count, replacement...)}
+}
+
+// Move shuffles Value[offset:offset+count] over by distance
+func (s *mySlice3PStream) Move(offset, count, distance int) *mySlice3PStream {
+	c := changes.Move{Offset: offset, Count: count, Distance: distance}
+	str := s.Stream.Append(c)
+	return &mySlice3PStream{Stream: str, Value: s.Value.Move(offset, count, distance)}
 }

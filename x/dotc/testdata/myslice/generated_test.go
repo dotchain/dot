@@ -60,6 +60,22 @@ func TestStreamMySliceStreamSplice(t *testing.T) {
 	}
 }
 
+func TestStreamMySliceStreamMove(t *testing.T) {
+	s := streams.New()
+	values := valuesForMySliceStream()
+	strong := &MySliceStream{Stream: s, Value: values[1]}
+	v2 := values[2]
+	strong1 := strong.Splice(strong.Value.Count(), 0, v2[len(v2)-1])
+	strong2 := strong1.Move(0, 1, 1)
+	if reflect.DeepEqual(strong1.Value, strong2.Value) {
+		t.Error("Move did the unexpected", strong1.Value, strong2.Value)
+	}
+	strong2 = strong2.Move(0, 1, 1)
+	if !reflect.DeepEqual(strong1.Value, strong2.Value) {
+		t.Error("Move did the unexpected", strong1.Value, strong2.Value)
+	}
+}
+
 func TestStreamMySliceStreamItem(t *testing.T) {
 	s := streams.New()
 	values := valuesForMySliceStream()
@@ -140,6 +156,22 @@ func TestStreammySlice2StreamSplice(t *testing.T) {
 	strong1 := strong.Splice(0, strong.Value.Count(), values[2]...)
 	if !reflect.DeepEqual(strong1.Value, values[2]) {
 		t.Error("Splice did the unexpected", strong1.Value)
+	}
+}
+
+func TestStreammySlice2StreamMove(t *testing.T) {
+	s := streams.New()
+	values := valuesFormySlice2Stream()
+	strong := &mySlice2Stream{Stream: s, Value: values[1]}
+	v2 := values[2]
+	strong1 := strong.Splice(strong.Value.Count(), 0, v2[len(v2)-1])
+	strong2 := strong1.Move(0, 1, 1)
+	if reflect.DeepEqual(strong1.Value, strong2.Value) {
+		t.Error("Move did the unexpected", strong1.Value, strong2.Value)
+	}
+	strong2 = strong2.Move(0, 1, 1)
+	if !reflect.DeepEqual(strong1.Value, strong2.Value) {
+		t.Error("Move did the unexpected", strong1.Value, strong2.Value)
 	}
 }
 
@@ -226,6 +258,22 @@ func TestStreammySlice3StreamSplice(t *testing.T) {
 	}
 }
 
+func TestStreammySlice3StreamMove(t *testing.T) {
+	s := streams.New()
+	values := valuesFormySlice3Stream()
+	strong := &mySlice3Stream{Stream: s, Value: values[1]}
+	v2 := values[2]
+	strong1 := strong.Splice(strong.Value.Count(), 0, v2[len(v2)-1])
+	strong2 := strong1.Move(0, 1, 1)
+	if reflect.DeepEqual(strong1.Value, strong2.Value) {
+		t.Error("Move did the unexpected", strong1.Value, strong2.Value)
+	}
+	strong2 = strong2.Move(0, 1, 1)
+	if !reflect.DeepEqual(strong1.Value, strong2.Value) {
+		t.Error("Move did the unexpected", strong1.Value, strong2.Value)
+	}
+}
+
 func TestStreammySlice3StreamItem(t *testing.T) {
 	s := streams.New()
 	values := valuesFormySlice3Stream()
@@ -306,6 +354,22 @@ func TestStreamMySlicePStreamSplice(t *testing.T) {
 	strong1 := strong.Splice(0, strong.Value.Count(), *values[2]...)
 	if !reflect.DeepEqual(strong1.Value, values[2]) {
 		t.Error("Splice did the unexpected", strong1.Value)
+	}
+}
+
+func TestStreamMySlicePStreamMove(t *testing.T) {
+	s := streams.New()
+	values := valuesForMySlicePStream()
+	strong := &MySlicePStream{Stream: s, Value: values[1]}
+	v2 := *values[2]
+	strong1 := strong.Splice(strong.Value.Count(), 0, v2[len(v2)-1])
+	strong2 := strong1.Move(0, 1, 1)
+	if reflect.DeepEqual(strong1.Value, strong2.Value) {
+		t.Error("Move did the unexpected", strong1.Value, strong2.Value)
+	}
+	strong2 = strong2.Move(0, 1, 1)
+	if !reflect.DeepEqual(strong1.Value, strong2.Value) {
+		t.Error("Move did the unexpected", strong1.Value, strong2.Value)
 	}
 }
 
@@ -392,6 +456,22 @@ func TestStreammySlice2PStreamSplice(t *testing.T) {
 	}
 }
 
+func TestStreammySlice2PStreamMove(t *testing.T) {
+	s := streams.New()
+	values := valuesFormySlice2PStream()
+	strong := &mySlice2PStream{Stream: s, Value: values[1]}
+	v2 := *values[2]
+	strong1 := strong.Splice(strong.Value.Count(), 0, v2[len(v2)-1])
+	strong2 := strong1.Move(0, 1, 1)
+	if reflect.DeepEqual(strong1.Value, strong2.Value) {
+		t.Error("Move did the unexpected", strong1.Value, strong2.Value)
+	}
+	strong2 = strong2.Move(0, 1, 1)
+	if !reflect.DeepEqual(strong1.Value, strong2.Value) {
+		t.Error("Move did the unexpected", strong1.Value, strong2.Value)
+	}
+}
+
 func TestStreammySlice2PStreamItem(t *testing.T) {
 	s := streams.New()
 	values := valuesFormySlice2PStream()
@@ -472,6 +552,22 @@ func TestStreammySlice3PStreamSplice(t *testing.T) {
 	strong1 := strong.Splice(0, strong.Value.Count(), *values[2]...)
 	if !reflect.DeepEqual(strong1.Value, values[2]) {
 		t.Error("Splice did the unexpected", strong1.Value)
+	}
+}
+
+func TestStreammySlice3PStreamMove(t *testing.T) {
+	s := streams.New()
+	values := valuesFormySlice3PStream()
+	strong := &mySlice3PStream{Stream: s, Value: values[1]}
+	v2 := *values[2]
+	strong1 := strong.Splice(strong.Value.Count(), 0, v2[len(v2)-1])
+	strong2 := strong1.Move(0, 1, 1)
+	if reflect.DeepEqual(strong1.Value, strong2.Value) {
+		t.Error("Move did the unexpected", strong1.Value, strong2.Value)
+	}
+	strong2 = strong2.Move(0, 1, 1)
+	if !reflect.DeepEqual(strong1.Value, strong2.Value) {
+		t.Error("Move did the unexpected", strong1.Value, strong2.Value)
 	}
 }
 

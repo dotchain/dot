@@ -88,12 +88,19 @@ func (s *{{.StreamType}}) Item(index int) *{{.Elem.ToStreamType}} {
 	return &{{.Elem.ToStreamType}}{Stream: streams.Substream(s.Stream, index), Value: ({{if .Pointer}}*{{end}}s.Value)[index]}
 }
 
-// Splice splices the items
+// Splice splices the items replacing Value[offset:offset+count] with replacement
 func (s *{{.StreamType}}) Splice(offset, count int, replacement ...{{.ElemType}}) *{{.StreamType}} {
 	after := {{.RawType}}(replacement)
-	c := changes.Replace{Before: s.Value.Slice(offset, count), After: {{if .Pointer}}&{{end}}after}
+	c := changes.Splice{Offset: offset, Before: s.Value.Slice(offset, count), After: {{if .Pointer}}&{{end}}after}
 	str := s.Stream.Append(c)
 	return &{{.StreamType}}{Stream: str, Value: s.Value.Splice(offset, count, replacement...)}
+}
+
+// Move shuffles Value[offset:offset+count] over by distance
+func (s *{{.StreamType}}) Move(offset, count, distance int) *{{.StreamType}} {
+	c := changes.Move{Offset: offset, Count: count, Distance: distance}
+	str := s.Stream.Append(c)
+	return &{{.StreamType}}{Stream: str, Value: s.Value.Move(offset, count, distance)}
 }
 `))
 
@@ -146,6 +153,22 @@ func TestStream{{.StreamType}}Splice(t *testing.T) {
 	strong1 := strong.Splice(0, strong.Value.Count(), {{if .Pointer}}*{{end}}values[2]...)
 	if !reflect.DeepEqual(strong1.Value, values[2]) {
 		t.Error("Splice did the unexpected", strong1.Value)
+	}
+}
+
+func TestStream{{.StreamType}}Move(t *testing.T) {
+	s := streams.New()
+	values := valuesFor{{.StreamType}}()
+	strong := &{{.StreamType}}{Stream: s, Value: values[1]}
+	v2 := {{if .Pointer}}*{{end}}values[2]
+	strong1 := strong.Splice(strong.Value.Count(), 0, v2[len(v2)-1])
+	strong2 := strong1.Move(0, 1, 1)
+	if reflect.DeepEqual(strong1.Value, strong2.Value) {
+		t.Error("Move did the unexpected", strong1.Value, strong2.Value)
+	}
+	strong2 = strong2.Move(0, 1, 1)
+	if !reflect.DeepEqual(strong1.Value, strong2.Value) {
+		t.Error("Move did the unexpected", strong1.Value, strong2.Value)
 	}
 }
 
