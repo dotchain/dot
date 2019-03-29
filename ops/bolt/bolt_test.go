@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/ops"
@@ -150,6 +151,25 @@ func TestDecodeError(t *testing.T) {
 		t.Fatal("GetSince fail", err, result)
 	}
 
+}
+
+func TestPollBlocks(t *testing.T) {
+	defer os.Remove(fname)
+	s, err := bolt.New(fname, "hello", nil)
+	if err != nil {
+		t.Fatal("failed to initialize", err)
+	}
+	defer s.Close()
+
+	start := time.Now()
+	interval := time.Millisecond * 10
+	ctx, cancel := context.WithTimeout(context.Background(), 2*interval)
+	defer cancel()
+	err = s.Poll(ctx, -1)
+	delay := time.Since(start)
+	if err == nil || err != ctx.Err() || delay < interval {
+		t.Error("Poll didnt block long enough", err, delay)
+	}
 }
 
 type myChange struct{}

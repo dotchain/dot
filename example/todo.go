@@ -19,6 +19,7 @@ func Server() {
 
 	// uses a local-file backed bolt DB backend
 	store, _ := bolt.New("file.bolt", "instance", nil)
+	store = nw.MemPoller(store)
 	defer store.Close()
 	http.Handle("/api/", &nw.Handler{Store: store})
 	http.ListenAndServe(":8080", nil)
