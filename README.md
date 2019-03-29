@@ -93,7 +93,7 @@ func Server() {
 
 The example above uses the
 [Bolt](http://godoc.org/github.com/dotchain/dot/ops/bolt)
-for the actual storage of the operations.  There is also a
+backend for the actual storage of the operations.  There is also a
 [Postgres](http://godoc.org/github.com/dotchain/dot/ops/pg) backend
 available.
 
@@ -158,7 +158,7 @@ implements mutation methods to easily modify the value associated with
 a stream.
 
 What makes the streams interesting is that two different modifications
-from the same state cause both **Latest** of both to be the same with
+from the same state cause the **Latest** of both to be the same with
 the effect of both *merged*.  (This is done using the magic of
 operational transformations)
 
@@ -206,9 +206,9 @@ the string at a particular position and replacing it with the provided
 value.  It captures insert,  delete and replace in one operation.
 
 This probably better mimics what text editors do and a benefit of such
-high granularity edits is that when two users edit the same text, so
-long as they don't directly touch the same characters, the edits will
-merge quite cleanly.
+high granularity edits is that when two users edit the same text, the
+edits will merge quite cleanly so
+long as they don't directly touch the same characters.
 
 ```go example.global
 func SpliceDescription(t *TodoListStream, index, offset, count int, replacement string) {
@@ -362,7 +362,7 @@ same value.
 The following example illustrates how to edit a string with values and
 changes
 
-```golang dot_test.Example_applying_changes
+```golang dot_test.Example_applyingChanges
 	// import fmt
         // import github.com/dotchain/dot/changes
         // import github.com/dotchain/dot/changes/types
@@ -387,7 +387,7 @@ changes
 
 A less verbose *stream* based version (preferred) would look like so:
 
-```golang dot_test.Example_apply_stream
+```golang dot_test.Example_applyingChangesUsingStreams
 	// import fmt
         // import github.com/dotchain/dot/streams
 
@@ -410,7 +410,7 @@ semantics is implemented.
 Changes can be *composed* together. A simple form of composition is
 just a set of changes:
 
-```golang dot_test.Example_changeset_composition
+```golang dot_test.Example_changesetComposition
 	// import fmt
         // import github.com/dotchain/dot/changes
         // import github.com/dotchain/dot/changes/types
@@ -442,7 +442,7 @@ just a set of changes:
 Another form of composition is modifying a sub-element such as an
 array element or a dictionary path:
 
-```golang dot_test.Example_path_composition
+```golang dot_test.Example_pathComposition
 	// import fmt
         // import github.com/dotchain/dot/changes
         // import github.com/dotchain/dot/changes/types
@@ -497,7 +497,7 @@ The core property of all changes is the ability to guarantee
 
 The same convergence example is a lot easier to read with streams:
 
-```golang dot_test.Example_convergence_streams
+```golang dot_test.Example_convergenceUsingStreams
 	// import fmt
         // import github.com/dotchain/dot/streams
 
@@ -541,7 +541,7 @@ In particular, it is possible to build generic
 quite easily and naturally.  The following example shows both **Undo**
 and **Redo** being invoked from an undo stack.
 
-```go dot_test.Example_undo_streams
+```go dot_test.Example_undoStreams
 	// import fmt
         // import github.com/dotchain/dot/streams
         // import github.com/dotchain/dot/changes
