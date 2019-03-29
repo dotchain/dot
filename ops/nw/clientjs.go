@@ -9,10 +9,11 @@ package nw
 import (
 	"bytes"
 	"context"
+	"time"
+
 	"github.com/dotchain/dot/ops"
 	"github.com/gopherjs/gopherjs/js"
 	"honnef.co/go/js/xhr"
-	"time"
 )
 
 // Client implements the ops.Store interface by making network calls

@@ -5,8 +5,10 @@
 package nw
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"log"
 	"net/http"
 	"time"
 
@@ -71,8 +73,13 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		res.Error = strError(res.Error.Error())
 	}
 
-	w.Header().Add("Content-Type", ct)
-	if err := codec.Encode(&res, w); err != nil {
+	var buf bytes.Buffer
+	if err := codec.Encode(&res, &buf); err != nil {
 		http.Error(w, err.Error(), 400)
+		return
+	}
+	w.Header().Add("Content-Type", ct)
+	if _, err := w.Write(buf.Bytes()); err != nil {
+		log.Println("Unexpected write error", err)
 	}
 }

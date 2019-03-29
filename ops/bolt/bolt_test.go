@@ -128,9 +128,13 @@ func TestDecodeError(t *testing.T) {
 		err = db.Update(func(tx *bbolt.Tx) error {
 			root, err := tx.CreateBucketIfNotExists([]byte("hello"))
 			if err == nil {
-				root.NextSequence()
-				root.Put([]byte("one"), []byte{0})
-				root.Put([]byte(strconv.FormatUint(0, 16)), []byte{1, 2, 3})
+				_, err = root.NextSequence()
+			}
+			if err == nil {
+				err = root.Put([]byte("one"), []byte{0})
+			}
+			if err == nil {
+				err = root.Put([]byte(strconv.FormatUint(0, 16)), []byte{1, 2, 3})
 			}
 			return err
 		})
