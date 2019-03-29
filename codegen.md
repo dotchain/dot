@@ -13,7 +13,7 @@ For example, the following code generates the
 interfaces.  In addition, the corresponding **Stream** implementations
 are produced as well.
 
-TODO MVC app, the following code generates the required Value
+For the TODO MVC app, the following code generates the required Value
 types and Stream implementations.
 
 ```go global
@@ -50,7 +50,7 @@ var info = dotc.Info{
 }
 ```
 
-As the example aboce shows, code generation requires explicitly
+As the example above shows, code generation requires explicitly
 specifying the types needed.  It is possible to guess these directly
 from the sources but that is not yet implemented
 
