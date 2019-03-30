@@ -19,7 +19,7 @@ func main() {
 	count := 1
 	go func() {
 		for {
-			time.Sleep(time.Second * 10)
+			time.Sleep(time.Second * 2)
 			todo := example.Todo{Description: fmt.Sprintf("Heyaaa %d", count)}
 			if stream != nil {
 				example.AddTodo(stream.Latest(), todo)

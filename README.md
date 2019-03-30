@@ -79,14 +79,10 @@ authentication or CORs for example).
 
 func Server() {
 	// import net/http
-	// import github.com/dotchain/dot/ops/nw
-	// import github.com/dotchain/dot/ops/bolt
+	// import github.com/dotchain/dot
 
         // uses a local-file backed bolt DB backend
-	store, _ := bolt.New("file.bolt", "instance", nil)
-	store = nw.MemPoller(store)
-        defer store.Close()
-	http.Handle("/api/", &nw.Handler{Store: store})
+	http.Handle("/dot/", dot.BoltServer("file.bolt"))
         http.ListenAndServe(":8080", nil)
 }
 ```
@@ -256,36 +252,28 @@ is hosted.  In addition, the code below illustrations how sessions
 could be saved and restarted if needed.
 
 ```go example.global
-// import github.com/dotchain/dot/ops/nw
-// import github.com/dotchain/dot/ops
-// import math/rand
+// import github.com/dotchain/dot
 
 func Client(stop chan struct{}, render func(*TodoListStream)) {
-	version, pending, todos := SavedSession()
+	url := "http://localhost:8080/dot/"
+        version, pending, todos := SavedSession()
 
-	store := &nw.Client{URL: "http://localhost:8080/api/"}
-        defer store.Close()
-        client := ops.NewConnector(version, pending, ops.Transformed(store), rand.Float64)
-	stream := &TodoListStream{Stream: client.Stream, Value: todos}
-
-	// start the network processing
-	client.Connect()
+	session, s := dot.Reconnect(url, version, pending)
+	todosStream := &TodoListStream{Stream: s, Value: todos}
 
         // save session before shutdown
 	defer func() {
-        	SaveSession(client.Version, client.Pending, stream.Latest().Value)
+        	todosStream.Stream.Nextf("key", nil)
+        	version, pending = session.Close()
+        	todos = todosStream.Latest().Value
+        	SaveSession(version, pending, todos)
         }()
-        defer client.Disconnect()
 
-        client.Stream.Nextf("key", func() {
-        	stream = stream.Latest()
-        	render(stream)
+        render(todosStream)
+        todosStream.Stream.Nextf("key", func() {
+        	todosStream = todosStream.Latest()
+        	render(todosStream)
         })
-        render(stream)
-	defer func() {
-        	client.Stream.Nextf("key", nil)
-        }()
-
 	<- stop
 }
 

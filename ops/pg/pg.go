@@ -39,10 +39,16 @@ import (
 	"github.com/lib/pq"
 )
 
+// MaxPoll limits the maximum poll interval for the PG instance.
+//
+// This is mostly to make integration tests take less time
+var MaxPoll = time.Minute
+
 // New returns a store connected to the provided data stource
 func New(dataSourceName, id string, codec nw.Codec) (ops.Store, error) {
 	s := &store{id: id, Codec: codec}
 	if err := s.init(dataSourceName); err != nil {
+		log.Println("Error connecting to data source", err)
 		return nil, err
 	}
 	return s, nil
@@ -105,6 +111,10 @@ func Setup(dataSourceName string) error {
 	db, err := sql.Open("postgres", dataSourceName)
 	if err == nil {
 		_, err = db.Exec(createTableCommand)
+	}
+
+	if err != nil {
+		log.Println("Error setting up db", err)
 	}
 
 	if err != nil && db != nil {
@@ -198,7 +208,7 @@ func (s *store) Poll(ctx context.Context, version int) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-ch:
-	case <-time.After(time.Minute): // max wait is 1min
+	case <-time.After(MaxPoll):
 	}
 	return nil
 }
