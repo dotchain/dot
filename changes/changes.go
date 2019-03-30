@@ -8,35 +8,42 @@
 // replaces a value altogether while Splice replaces a sub-sequence in
 // an array-like object and Move shuffles a sub-sequence.
 //
-// Both Slice and Move work on strings as well -- strings are treated
-// like arrays as far as OT is concerned. The actual representation
-// of strings is abstracted away.  See
+// Both Slice and Move work on strings as well. The actual type for
+// Slice and Move is represented by the Collection interface (while
+// Replace uses a much more lax Value interface)
+//
+// See
 // https://godoc.org/github.com/dotchain/dot/changes/types#S16 for an
 // implementation of an OT-compatible string type.
 //
-//
 // Composition
-//
 //
 // ChangeSet allows a set of mutations to be grouped together.
 //
-// PathChange allows a mutation to refer to a "path".  This is useful
-// when mutating a JSON-like object composed of arrays and maps. The
-// path is simply how a particular node is to be traversed, with keys
-// and indices in the order in which they appear.
+// PathChange allows a mutation to refer to a "path".  For example, a
+// field in a "struct type" can be thought of as having the path of
+// "field name".  An element of a collection can be thought  of as
+// having the path of the index in that array.
 //
+// The type of the elements in the path is not specified but it is
+// assumed that they are comparable for equality.  Collections are
+// required to use the index of type int for the path elements.
 //
 // Custom Changes
-//
 //
 // Custom change types can be defined. They should implement the
 // Custom interface. See
 // https://godoc.org/github.com/dotchain/dot/changes/x/rt#Run for an
 // example custom change type.
 //
+// The general asssumption underlying OT is that the Merge method
+// produces convergence:
+//
+//    if: c1, c2 = changes on top of "initial"
+//    and: c1x, c2x := c1.Merge(c2)
+//    then: initial + c1 + c1x == initial + c2 + c2x
 //
 // Notes
-//
 //
 // Replace and Splice change both expect the Before and After fields
 // to be non-nil Value implementations. Replace can use changes.Nil
@@ -59,6 +66,10 @@
 //
 // See https://godoc.org/github.com/dotchain/dot/x/rt for a custom
 // type that has a specific custom change associated with it.
+//
+// It is common to have a value type (say *Node) that is meant as an
+// atomic value. In that case, one can use the Atomic{} type to hold
+// such values.
 package changes
 
 // Change represents an OT-compatible mutation
@@ -94,6 +105,9 @@ type Change interface {
 
 // Custom is the interface that custom change types should implement.
 // This allows the "known" types to interact with custom types.
+//
+// Custom changes might also need to implement the refs.PathMerger
+// interface (see https://godoc.org/github.com/dotchain/dot/refs)
 type Custom interface {
 	Change
 
@@ -138,7 +152,7 @@ type Value interface {
 	Apply(ctx Context, c Change) Value
 }
 
-// Collection represents array-like values
+// Collection represents an immutable array-like value
 type Collection interface {
 	// must also implement Value
 	Value
