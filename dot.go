@@ -18,7 +18,7 @@
 //      import "github.com/dotchain/dot"
 //      ...
 //      gob.Register(..) // register any non-standard OT types used
-//      http.Handle("/dot/", dot.BoltServer("file.bolt", "instance", nil))
+//      http.Handle("/dot/", dot.BoltServer("file.bolt"))
 //      http.ListenAndServer(":8080", nil)
 //
 //
@@ -29,7 +29,7 @@
 //      import "github.com/dotchain/dot"
 //      ...
 //      gob.Register(..) // register any non-standard OT types used
-//      clientStream := dot.Client(-1, nil) // start from scratch
+//      session, stream := dot.Connect("http://localhost:8080/dot/")
 //
 //
 // Immutable values
