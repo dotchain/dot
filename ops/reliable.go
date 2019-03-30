@@ -11,9 +11,9 @@ import (
 
 // ReliableStore takes a store that can fail and converts it to a
 // reliable store. All Append() calls return success immediately with
-// backaground attempts to deliver/retry.
+// background attempts to deliver/retry.
 //
-// Note that the GetSince is not modified by this -- it can still be
+// Note that GetSince is not modified by this -- it can still be
 // unreliable.
 //
 // Poll is modified to retry up to the specified timeout.

@@ -7,9 +7,9 @@ package streams
 import "github.com/dotchain/dot/changes"
 
 // Branch returns a new stream based on the provided stream. All
-// changes made on the branch are only merged upstream when an
-// an explicit call Push and all changes made upstream are only
-// brought into the local branch on an explicit call to Pull.
+// changes made on the branch are only merged upstream when Push
+// is called explicitly and all changes made upstream are only
+// brought into the local branch when Pull is called explicitly.
 func Branch(upstream Stream) Stream {
 	downstream := New()
 	b := &branchInfo{upstream, downstream, false}
