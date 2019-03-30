@@ -28,7 +28,7 @@ type Store interface {
 	Append(ctx context.Context, ops []Op) error
 
 	// GetSince returns all operations with version atleast equal
-	// the specified parameter. If the number of operations is
+	// to the specified parameter. If the number of operations is
 	// larger than the limit, it is truncated.
 	//
 	// It is not an error if the version does not exist -- an
@@ -43,7 +43,7 @@ type Store interface {
 	// Poll is an opportunistic performance mechanism -- it can
 	// have both false positives and false negatives. A trivial
 	// implementation can simply use timeouts. A slightly more
-	// interesting implementation use long polls while a more
+	// interesting implementation uses long polls while a more
 	// sophisticated implementation can use a dedicated
 	// notification channel (websockets or such).
 	Poll(ctx context.Context, version int) error

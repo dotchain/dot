@@ -23,7 +23,7 @@
 //
 //     s1Next, c1Next := s1.Next()
 //     s2Next, c2Next := s2.Next()
-//     initialValue.Apply(c1).Apply(c1Next) == initialValue.Apply(c2).Apply(c2Next)
+//     initial.Apply(nil, c1).Apply(nil, c1Next) == initial.Apply(nil, c2).Apply(nil, c2Next)
 //
 // Basically, just chasing the sequence of changes from a particular
 // stream instance is guaranteed to end with the same value as any
@@ -32,9 +32,11 @@
 // A "family" is any stream derived from another in by means of any
 // number of "Append" calls.
 //
-// A branch is just a derived stream with ability to Commit and Cancel
-// local changes.
 //
+// Branching
+//
+// Streams support Git-like branching with local changes not
+// automatically appearing on the parent until a call to Push.
 //
 // Substream
 //
@@ -53,11 +55,17 @@
 // underlying values but most applications also need to track the
 // current value. See Int, Bool, S16 or S8 for an example stream that
 // tracks an underlying value backed by a Stream.
+//
+// Custom stream implementations
+//
+// The dotc package (https://godoc.org/github.com/dotchain/dot/x/dotc)
+// defines a mechanism to automatically generate the Stream related
+// types for structs, slices and unions.
 package streams
 
 import "github.com/dotchain/dot/changes"
 
-// Stream is an immutable type to manage a sequence of changes.
+// Stream is an immutable type to track a sequence of changes.
 //
 // A change can be "applied" to a stream instance via the Append
 // method. This results in a new stream instance.  The old and the new

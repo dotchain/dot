@@ -8,6 +8,7 @@ package ops
 
 import (
 	"encoding/base64"
+
 	"github.com/gopherjs/gopherjs/js"
 )
 

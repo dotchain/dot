@@ -10,11 +10,11 @@ import "context"
 // operations.
 //
 // The regular sequence of operations stored cannot be directly
-// applied one on top of another because they may have different basis
+// applied on top of one another because they may have different basis
 // and parent values.
 //
 // The transformed store returns the same operations but modifies the
-// changes so that it these change have the same effect as the
+// changes so that these changes have the same effect as the
 // original but can be applied in sequence.
 func Transformed(raw Store) Store {
 	return transformer{raw, nullCache{}}
