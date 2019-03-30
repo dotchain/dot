@@ -5,6 +5,8 @@
 package undo
 
 import (
+	"sync"
+
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/streams"
 )
@@ -27,48 +29,53 @@ type Stack interface {
 }
 
 type stack struct {
-	currentType cType
-	base        streams.Stream
-	changes     []changes.Change
-	types       []cType
+	sync.Mutex
+	base    streams.Stream
+	changes []changes.Change
+	types   []cType
 }
-
-var key = struct{}{}
 
 func newStack(base streams.Stream) *stack {
-	s := &stack{base: base, currentType: upstream}
-	base.Nextf(key, func() {
-		var c changes.Change
-		s.base, c = s.base.Next()
-		s.changes = append(s.changes, c)
-		s.types = append(s.types, s.currentType)
-	})
-	return s
+	return &stack{base: base}
 }
 
-func (s *stack) changeType(newType cType, fn func()) {
-	oldType := s.currentType
-	s.currentType = newType
+func (s *stack) pullChanges(t cType) {
+	for base, c := s.base.Next(); base != nil; base, c = s.base.Next() {
+		s.base = base
+		if c != nil {
+			s.changes = append(s.changes, c)
+			s.types = append(s.types, t)
+		}
+	}
+}
+
+func (s *stack) withLock(fn func()) {
+	s.Lock()
+	defer s.Unlock()
+	s.pullChanges(upstream)
 	fn()
-	s.currentType = oldType
 }
 
 func (s *stack) Close() {
-	s.base.Nextf(key, nil)
-	s.changes = nil
-	s.types = nil
+	*s = stack{}
 }
 
 func (s *stack) Undo() {
-	if c, ok := s.getUndoChange(); ok {
-		s.changeType(undo, func() { s.base.Append(c) })
-	}
+	s.withLock(func() {
+		if c, ok := s.getUndoChange(); ok {
+			s.base.Append(c)
+			s.pullChanges(undo)
+		}
+	})
 }
 
 func (s *stack) Redo() {
-	if c, ok := s.getRedoChange(); ok {
-		s.changeType(redo, func() { s.base.Append(c) })
-	}
+	s.withLock(func() {
+		if c, ok := s.getRedoChange(); ok {
+			s.base.Append(c)
+			s.pullChanges(redo)
+		}
+	})
 }
 
 func (s *stack) getUndoChange() (changes.Change, bool) {

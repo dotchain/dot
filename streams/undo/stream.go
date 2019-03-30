@@ -44,18 +44,15 @@ type stream struct {
 
 func (s stream) Append(c changes.Change) streams.Stream {
 	result := s
-	s.stack.changeType(local, func() {
+	s.stack.withLock(func() {
 		result.base = s.base.Append(c)
+		s.pullChanges(local)
 	})
 	return result
 }
 
 func (s stream) ReverseAppend(c changes.Change) streams.Stream {
-	result := s
-	s.stack.changeType(upstream, func() {
-		result.base = s.base.Append(c)
-	})
-	return result
+	return stream{s.base.Append(c), s.stack}
 }
 
 func (s stream) Next() (streams.Stream, changes.Change) {
