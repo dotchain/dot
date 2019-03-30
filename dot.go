@@ -8,7 +8,29 @@
 // how to use DOT.
 //
 // The core functionality is spread out between dot/changes,
-// dot/refs, dot/streams and dot/x.
+// dot/refs, dot/streams and dot/x but this package exposes simple
+// client and server implementations:
+//
+// Server example
+//
+//      import "encoding/gob"
+//      import "net/http"
+//      import "github.com/dotchain/dot"
+//      ...
+//      gob.Register(..) // register any non-standard OT types used
+//      http.Handle("/dot/", dot.BoltServer("file.bolt", "instance", nil))
+//      http.ListenAndServer(":8080", nil)
+//
+//
+// Client example
+//
+//      import "encoding/gob"
+//      import "net/http"
+//      import "github.com/dotchain/dot"
+//      ...
+//      gob.Register(..) // register any non-standard OT types used
+//      clientStream := dot.Client(-1, nil) // start from scratch
+//
 //
 // Immutable values
 //
