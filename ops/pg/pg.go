@@ -156,9 +156,9 @@ func (s *store) Append(ctx context.Context, ops []ops.Op) error {
 
 		l := len(args)
 		if kk > 0 {
-			cmd = cmd + ", "
+			cmd += ", "
 		}
-		cmd = cmd + fmt.Sprintf("($%d, $%d, $%d)", l+1, l+2, l+3)
+		cmd += fmt.Sprintf("($%d, $%d, $%d)", l+1, l+2, l+3)
 		args = append(args, []byte(s.id), id, data)
 	}
 
