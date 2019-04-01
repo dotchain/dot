@@ -48,6 +48,7 @@ bit wonky.
     7. [Adding Todos](#adding-todos)
     8. [Client connection](#client-connection)
     9. [Running the demo](#running-the-demo)
+    10. [In browser demo](#in-browser-demo)
 4. [How it all works](#how-it-all-works)
     1. [Applying changes](#applying-changes)
     2. [Applying changes with streams](#applying-changes-with-streams)
@@ -320,6 +321,15 @@ $ go run client.go
 
 The provide client.go stub file simply appends a task every 10
 seconds.
+
+### In browser demo
+
+The [fuss](https://github.com/dotchain/fuss) project has demos of a
+TODO-MVC app built on top of this framework using
+[gopherjs](https://github.com/gopherjs/gopherjs).  In particular, the
+[collab](https://github.com/dotchain/fuss/tree/master/todo/html)
+folder illustrates how simple the code is to make something work
+collaboratively.
 
 ## How it all works
 
