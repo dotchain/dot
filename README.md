@@ -5,10 +5,10 @@
 [![codecov](https://codecov.io/gh/dotchain/dot/branch/master/graph/badge.svg)](https://codecov.io/gh/dotchain/dot)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dotchain/dot)](https://goreportcard.com/report/github.com/dotchain/dot)
 
-The DOT project is a blend of [Operational
-Transformation](https://en.wikipedia.org/wiki/Operational_transformation),
-[Persistent
-Datastructures](https://en.wikipedia.org/wiki/Persistent_data_structure)
+The DOT project is a blend of [operational
+transformation](https://en.wikipedia.org/wiki/Operational_transformation),
+[persistent/immutable
+datastructures](https://en.wikipedia.org/wiki/Persistent_data_structure)
 and [reactive](https://en.wikipedia.org/wiki/Reactive_programming)
 stream processing.
 
@@ -18,11 +18,15 @@ persistent datastrutures.
 ## Status
 
 Most of the code here is quite stable at this point but the project is
-not yet ready for production:
+not yet ready for production.
 
-1. Comprehensive end-to-end **stress** tests are missing.
-2. The ops/nw package and how it integrates with streams.Async is a
-bit wonky.
+1. There are comprehensive unit tests and a fair number of integration
+tests but still needs end-to-end stress tests and benchmarks
+2. Need better logging
+3. The dot/ops/nw package and how it integrates with streams.Async is
+a bit wonky. The public methods exposed via the dot package itself
+does not suffer from this but this should still be cleaned up
+4. The gopher JS builds need to be optimized for bloat.
 
 ## Features
 
@@ -327,9 +331,10 @@ seconds.
 The [fuss](https://github.com/dotchain/fuss) project has demos of a
 TODO-MVC app built on top of this framework using
 [gopherjs](https://github.com/gopherjs/gopherjs).  In particular, the
-[collab](https://github.com/dotchain/fuss/tree/master/todo/html)
+[collab](https://github.com/dotchain/fuss/tree/master/todo/collab)
 folder illustrates how simple the code is to make something work
-collaboratively.
+collaboratively (the rest of the code base is not even aware of
+whether things are collaborative).
 
 ## How it all works
 
