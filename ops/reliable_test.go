@@ -9,6 +9,7 @@ import (
 	"errors"
 	"math/rand"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -17,12 +18,15 @@ import (
 
 // Fake unreliable store
 type unreliable struct {
+	sync.Mutex
 	err   error
 	ops   []ops.Op
 	count int
 }
 
 func (u *unreliable) Append(ctx context.Context, ops []ops.Op) error {
+	u.Lock()
+	defer u.Unlock()
 	err := u.err
 	if err == nil {
 		u.ops = append(u.ops, ops...)
@@ -32,11 +36,15 @@ func (u *unreliable) Append(ctx context.Context, ops []ops.Op) error {
 }
 
 func (u *unreliable) Poll(ctx context.Context, version int) error {
+	u.Lock()
+	defer u.Unlock()
 	u.count++
 	return u.err
 }
 
 func (u *unreliable) GetSince(ctx context.Context, version, limit int) ([]ops.Op, error) {
+	u.Lock()
+	defer u.Unlock()
 	err := u.err
 	u.count++
 	if err == nil {
@@ -53,6 +61,8 @@ func TestReliableAppend(t *testing.T) {
 	r := ops.ReliableStore(u, rand.Float64, time.Millisecond, 10*time.Millisecond)
 	go func() {
 		time.Sleep(50 * time.Millisecond)
+		u.Lock()
+		defer u.Unlock()
 		u.err = nil
 	}()
 	opx := []ops.Op{ops.Operation{OpID: "one"}}
@@ -64,6 +74,9 @@ func TestReliableAppend(t *testing.T) {
 	}
 	time.Sleep(100 * time.Millisecond)
 	expected := append(append([]ops.Op(nil), opx...), opx...)
+
+	u.Lock()
+	defer u.Unlock()
 	if u.count < 10 || !reflect.DeepEqual(u.ops, expected) {
 		t.Error("Unexpected state", u.count, u.ops)
 	}
