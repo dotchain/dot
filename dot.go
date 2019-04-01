@@ -19,7 +19,7 @@
 //      ...
 //      gob.Register(..) // register any non-standard OT types used
 //      http.Handle("/dot/", dot.BoltServer("file.bolt"))
-//      http.ListenAndServer(":8080", nil)
+//      http.ListenAndServe(":8080", nil)
 //
 //
 // Client example
