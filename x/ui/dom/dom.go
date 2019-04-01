@@ -122,16 +122,20 @@ func (r *reconciler) reconcileChildren(m MutableNode, n Node) {
 func (r *reconciler) handleChild(child Node, key interface{}) bool {
 	defer r.removeDeleted()
 
-	if stashed, ok := r.stash[key]; ok {
+	stashed, ok := r.stash[key]
+	_, existed := r.before[key]
+
+	switch {
+	case ok:
 		r.nodes.Insert(stashed.(MutableNode))
 		r.Reconcile(stashed.(MutableNode), child)
-	} else if _, ok := r.before[key]; !ok {
+	case !existed:
 		r.nodes.Insert(r.clone(child))
-	} else if len(r.keys) > 0 && r.keys[0] == key {
+	case len(r.keys) > 0 && r.keys[0] == key:
 		r.keys = r.keys[1:]
 		own := r.nodes.Next()
 		r.Reconcile(own.(MutableNode), child)
-	} else {
+	default:
 		node := r.nodes.Remove()
 		r.stash[r.keys[0]] = node
 		r.keys = r.keys[1:]

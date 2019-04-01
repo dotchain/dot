@@ -67,7 +67,7 @@ func (r *reliable) deliver(pending []Op) {
 		max := current + delta
 		next := min + r.rand()*(max-min+1)
 		time.Sleep(time.Duration(next))
-		current = current * 1.5
+		current *= 1.5
 		if current > r.max {
 			current = r.max
 		}
@@ -104,7 +104,7 @@ func (r *reliable) retry(ctx context.Context, fn func() error) error {
 		case <-timer.C:
 			timer.Stop()
 		}
-		current = current * 1.5
+		current *= 1.5
 		if current > r.max {
 			current = r.max
 		}

@@ -27,12 +27,7 @@ func (c Counter) Count() int {
 
 // ApplyCollection implements Collection interface
 func (c Counter) ApplyCollection(ctx changes.Context, cx changes.Change) changes.Collection {
-	switch cx := cx.(type) {
-	case changes.Splice:
-		after := cx.After.(Counter)
-		return c + after
-	}
-	panic("Unexpected change on Apply")
+	return c + cx.(changes.Splice).After.(Counter)
 }
 
 // Apply only supports Replace and Inserts

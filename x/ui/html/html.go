@@ -132,7 +132,8 @@ func (n Node) RemoveAttribute(key string) {
 		attr := n.Node.Attr
 		for kk := range attr {
 			if attr[kk].Key == key {
-				n.Node.Attr = append(attr[:kk], attr[kk+1:]...)
+				attr = append(attr[:kk], attr[kk+1:]...)
+				n.Node.Attr = attr
 				return
 			}
 		}
