@@ -26,8 +26,7 @@ type Handler struct {
 // encode back the response
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer func() {
-		err := r.Body.Close()
-		_ = err
+		ignore(r.Body.Close())
 	}()
 
 	ct := r.Header.Get("Content-Type")
@@ -39,6 +38,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	codec := codecs[ct]
 	if codec == nil {
+		log.Println("Client used an unknown type", ct)
 		http.Error(w, "Invalid content-type", 400)
 		return
 	}
@@ -46,6 +46,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var req request
 	err := codec.Decode(&req, r.Body)
 	if err != nil {
+		log.Println("Decoding error (see https://github.com/dotchain/dot/wiki/Gob-error)")
+		log.Println(err)
 		http.Error(w, err.Error(), 400)
 		return
 	}
@@ -54,6 +56,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if req.Duration != 0 {
 		duration = req.Duration
 	}
+
 	ctx, done := context.WithTimeout(context.Background(), duration)
 	defer done()
 
@@ -70,11 +73,17 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// do this hack since we can't be sure what error types are possible
 	if res.Error != nil {
+		if res.Error != ctx.Err() {
+			log.Println(req.Name, "failed", res.Error)
+		}
 		res.Error = strError(res.Error.Error())
 	}
 
 	var buf bytes.Buffer
 	if err := codec.Encode(&res, &buf); err != nil {
+		log.Println("Encoding error (see https://github.com/dotchain/dot/wiki/Gob-error)")
+		log.Println(err)
+
 		http.Error(w, err.Error(), 400)
 		return
 	}
@@ -83,3 +92,5 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Println("Unexpected write error", err)
 	}
 }
+
+func ignore(err error) {}

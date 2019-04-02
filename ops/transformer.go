@@ -74,15 +74,17 @@ func (t *transformer) xform(ctx context.Context, op Op) (opInfo, error) {
 		return result.(opInfo), nil
 	}
 
-	if version == basis+1 {
+	gap := version - basis - 1
+	if gap == 0 {
 		return opInfo{op, nil}, nil
 	}
 
-	ops, err := t.Store.GetSince(ctx, basis+1, version-basis-1)
+	ops, err := t.Store.GetSince(ctx, basis+1, gap)
 	if err != nil {
 		return opInfo{}, err
 	}
 
+	mergedCount := 0
 	if parent != nil {
 		for ops[0].ID() != parent {
 			ops = ops[1:]
@@ -91,20 +93,26 @@ func (t *transformer) xform(ctx context.Context, op Op) (opInfo, error) {
 		if err != nil {
 			return opInfo{}, err
 		}
-		for len(info.merge) > 0 && info.merge[0].Version() <= basis {
-			info.merge = info.merge[1:]
+		merge := info.merge
+		for len(merge) > 0 && merge[0].Version() <= basis {
+			merge = merge[1:]
 		}
-		ops = append(info.merge, ops[1:]...)
+		mergedCount = len(merge)
+		ops = append(append([]Op(nil), merge...), ops[1:]...)
 	}
 
 	mergeChain := make([]Op, len(ops))
 
 	for kk, opx := range ops {
-		info, err := t.xform(ctx, opx)
-		if err != nil {
-			return opInfo{}, err
+		xformed := opx
+		if kk >= mergedCount {
+			info, err := t.xform(ctx, opx)
+			if err != nil {
+				return opInfo{}, err
+			}
+			xformed = info.xformed
 		}
-		op, mergeChain[kk] = t.merge(info.xformed, op)
+		op, mergeChain[kk] = t.merge(xformed, op)
 	}
 
 	result := opInfo{op, mergeChain[:len(mergeChain):len(mergeChain)]}

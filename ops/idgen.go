@@ -14,7 +14,7 @@ import (
 // NewID returns a unique ID using crypto/rand
 func NewID() interface{} {
 	var b [32]byte
-	_, err := rand.Read(b[0:32])
+	_, err := rand.Read(b[:])
 	must(err)
-	return hex.EncodeToString(b[0:32])
+	return hex.EncodeToString(b[:])
 }

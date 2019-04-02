@@ -74,13 +74,13 @@ func (c *Connector) Disconnect() {
 // to the ops store. note that write does not update c.Stream as
 // c.Stream tracks the last upstream version
 func (c *Connector) write(ctx context.Context) {
-	c.Lock()
-	idx, ver := 0, c.Version
-	ops := []Op(nil)
+	var idx int
+	var ops []Op
 
+	c.Lock()
 	for next, ch := c.Stream.Next(); next != nil; next, ch = next.Next() {
 		if idx >= len(c.Pending) {
-			op := Operation{OpID: NewID(), BasisID: ver, Change: ch}
+			op := Operation{OpID: NewID(), BasisID: c.Version, Change: ch}
 			if len(c.Pending) > 0 {
 				op.ParentID = c.Pending[len(c.Pending)-1].ID()
 			}

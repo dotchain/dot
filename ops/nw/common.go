@@ -62,6 +62,7 @@ var standardTypes = []interface{}{
 	types.S8(""),
 	types.S16(""),
 	types.M{},
+	types.Counter(0),
 	ops.Operation{},
 	refs.Update{},
 	refs.Range{},
