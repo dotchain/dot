@@ -16,7 +16,7 @@ import (
 
 // BoltServer returns a http.Handler serving DOT requests backed by the db
 func BoltServer(fileName string) http.Handler {
-	store, err := bolt.New("file.bolt", "dot_root", nil)
+	store, err := bolt.New(fileName, "dot_root", nil)
 	must(err)
 	store = nw.MemPoller(store)
 	return &nw.Handler{Store: store}
