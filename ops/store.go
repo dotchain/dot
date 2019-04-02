@@ -34,6 +34,9 @@ type Store interface {
 	// It is not an error if the version does not exist -- an
 	// empty result is returned in that case.   Poll can be used
 	// to wait for a version
+	//
+	// Fewer than limit entries are returned if and only if there
+	// are no further entries aavailable
 	GetSince(ctx context.Context, version, limit int) ([]Op, error)
 
 	// Poll waits for an operation at the specified version or

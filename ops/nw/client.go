@@ -51,6 +51,8 @@ func (c *Client) call(ctx context.Context, r *request) ([]ops.Op, error) {
 	var buf bytes.Buffer
 	err := codec.Encode(r, &buf)
 	if err != nil {
+		log.Println("Encoding error (see https://github.com/dotchain/dot/wiki/Gob-error)")
+		log.Println(err)
 		return nil, err
 	}
 
@@ -78,6 +80,8 @@ func (c *Client) call(ctx context.Context, r *request) ([]ops.Op, error) {
 
 	err = codec.Decode(&res, resp.Body)
 	if err != nil {
+		log.Println("Decoding error (see https://github.com/dotchain/dot/wiki/Gob-error)")
+		log.Println(err)
 		return nil, err
 	}
 	return res.Ops, res.Error
