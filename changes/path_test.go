@@ -38,6 +38,19 @@ func TestPathChangeReverseMergeSimple(t *testing.T) {
 	}
 }
 
+func TestPathChangeReverseMergeSimpleEmpty(t *testing.T) {
+	pc := changes.PathChange{}
+	o := changes.Move{1, 1, -1}
+
+	lx, rx := pc.Merge(o)
+	lx = simplify(lx)
+	rx = simplify(rx)
+
+	if lx != o && rx != nil {
+		t.Error("Reverse merge of empty misbehaved", lx, rx)
+	}
+}
+
 func TestPathChangeDifferentPaths(t *testing.T) {
 	left := changes.Replace{Before: S("a"), After: S("b")}
 	right := changes.Replace{Before: S("c"), After: S("d")}

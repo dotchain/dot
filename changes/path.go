@@ -72,6 +72,8 @@ func (pc PathChange) prefixMerge(prefix []interface{}, l, r Change, reverse bool
 		r, l = r.Merge(l)
 	case l != nil:
 		l, r = l.Merge(r)
+	case !reverse && l == nil:
+		l, r = r, l
 	}
 	return PathChange{prefix, l}, PathChange{prefix, r}
 }
