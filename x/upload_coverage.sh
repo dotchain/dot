@@ -2,6 +2,12 @@
 
 set -e
 
+if [ "$TRAVIS_EVENT_TYPE" == "cron" ]
+then
+    echo skipping coverage for cron jobs
+    exit 0
+fi
+
 for d in $(go list ./... | grep -v vendor | grep -v /cmd/ | grep -v /tools/ ); do
     out=$(echo $d | cut -c21- | sed "s/\//_/g")
     file=coverage$out
