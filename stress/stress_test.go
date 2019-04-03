@@ -18,7 +18,7 @@ import (
 )
 
 var rounds = flag.Int("rounds", 10, "number of rounds")
-var iterations =  flag.Int("iterations", 20, "number of iterations per round")
+var iterations = flag.Int("iterations", 20, "number of iterations per round")
 var clients = flag.Int("clients", 2, "number of clients per round")
 
 func TestStress(t *testing.T) {
