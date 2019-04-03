@@ -2,14 +2,15 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-// Package dot is a container for operational transformations
+// Package dot implements data synchronization of user defined types
+// using operational transformation/OT.
 //
 // Please see https://github.com/dotchain/dot for a tutorial on
 // how to use DOT.
 //
 // The core functionality is spread out between dot/changes,
-// dot/refs, dot/streams and dot/x but this package exposes simple
-// client and server implementations:
+// dot/streams, dot/refs and dot/ops but this package exposes simple
+// client and server implementations for common use cases:
 //
 // Server example
 //
@@ -17,8 +18,8 @@
 //      import "net/http"
 //      import "github.com/dotchain/dot"
 //      ...
-//      gob.Register(..) // register any non-standard OT types used
-//      http.Handle("/dot/", dot.BoltServer("file.bolt"))
+//      gob.Register(..) // register any user-standard OT types used
+//      http.Handle("/api/", dot.BoltServer("file.bolt"))
 //      http.ListenAndServe(":8080", nil)
 //
 //
@@ -28,8 +29,8 @@
 //      import "net/http"
 //      import "github.com/dotchain/dot"
 //      ...
-//      gob.Register(..) // register any non-standard OT types used
-//      session, stream := dot.Connect("http://localhost:8080/dot/")
+//      gob.Register(..) // register any user-standard OT types used
+//      session, stream := dot.Connect("http://localhost:8080/api/")
 //
 //
 // Immutable values
@@ -118,12 +119,15 @@
 //    Some day, Golang would support generics and then the code
 //    generation ugliness of x/dotc will no longer be needed.
 //
+// Substreams
+//
 // Substreams are streams that refer into a particular field of a
 // parent stream.   For example, if the parent value is a struct with
 // a "Done" field, it is  possible to treat the "Done stream" as the
-// changes scoped this field. This allows code to be written much more
-// cleanly.   See the https://github.com/dotchain/dot#toggling-complete
-// section of the documentation for an example.
+// changes scoped to this field. This allows code to be written much
+// more cleanly.   See the
+// https://github.com/dotchain/dot#toggling-complete section of the
+// documentation for an example.
 //
 // Other features
 //

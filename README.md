@@ -1,4 +1,4 @@
-# Operational Transforms Package
+# DOT
 
 [![Status](https://travis-ci.com/dotchain/dot.svg?branch=master)](https://travis-ci.com/dotchain/dot?branch=master)
 [![GoDoc](https://godoc.org/github.com/dotchain/dot?status.svg)](https://godoc.org/github.com/dotchain/dot)
@@ -12,8 +12,19 @@ datastructures](https://en.wikipedia.org/wiki/Persistent_data_structure)
 and [reactive](https://en.wikipedia.org/wiki/Reactive_programming)
 stream processing.
 
-The project marries conflict-free merging with eventually convergent
-persistent datastrutures.
+This is an implementation of distributed data synchronization of rich
+custom data structures with conflict-free merging.
+
+## Features
+
+1. Small, well tested mutations and immutable persistent values
+2. Support for rich user-defined types, not just collaborative text
+3. Streams and **Git-like** branching, merging support
+4. Simple network support (Gob serialization) and storage support
+5. Strong references support that are automatically updated with changes
+6. Rich builtin undo support for any type and mutation
+7. Folding (committed changes on top of uncommitted changes)
+
 
 ## Status
 
@@ -28,20 +39,9 @@ a bit wonky. The public methods exposed via the dot package itself
 does not suffer from this but this should still be cleaned up
 4. The gopher JS builds need to be optimized for bloat.
 
-## Features
-
-1. Small, well tested mutations that compose for rich JSON-like values
-2. Immutable, Persistent types for ease of use
-3. Strong references support that are automatically updated with changes
-4. Streams and **Git-like** branching, merging support
-5. Simple network support (Gob serialization)
-6. Rich builtin undo support
-7. Folding (committed changes on top of uncommitted changes)
-8. Customizable rich types for values and changes
-
 ## Contents
-1. [Status](#status)
-2. [Features](#features)
+1. [Features](#features)
+2. [Status](#status)
 3. [TODO Example](#todo-example)
     1. [Server](#server)
     2. [Types](#types)
