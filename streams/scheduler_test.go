@@ -85,3 +85,18 @@ func TestAsyncForever(t *testing.T) {
 	wg.Wait()
 	async.Close()
 }
+
+func TestAsyncSchedule(t *testing.T) {
+	async := streams.NewAsync(1)
+	go async.Loop(1)
+	s := async.Wrap(streams.New())
+	var wg sync.WaitGroup
+	wg.Add(1)
+	s.(scheduler).Schedule(wg.Done)
+	wg.Wait()
+	async.Close()
+}
+
+type scheduler interface {
+	Schedule(func())
+}
