@@ -1,7 +1,7 @@
 //+build stress
 
 // Generated.  DO NOT EDIT.
-package stress_test
+package stress
 
 import (
 	"github.com/dotchain/dot/changes"

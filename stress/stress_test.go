@@ -6,46 +6,17 @@
 
 package stress_test
 
-//go:generate go run codegen.go
-
 import (
-	"log"
-	"net/http"
-	"os"
+	"math/rand"
 	"testing"
 	"time"
 
-	"github.com/dotchain/dot"
-	"github.com/dotchain/dot/changes/types"
+	"github.com/dotchain/dot/stress"
 )
 
-func Server() {
-	// uses a local-file backed bolt DB backend
-	http.Handle("/stress/", dot.BoltServer("stress.bolt"))
-	http.ListenAndServe(":8083", nil)
-}
-
-func Client() {
-	streams := make([]*StateStream, 4)
-	sessions := make([]*dot.Session, 4)
-	initial := State{Text: "hello world", Count: types.Counter(0)}
-	for kk := range streams {
-		session, str := dot.Connect("http://localhost:8083/stress/")
-		sessions[kk] = session
-		streams[kk] = &StateStream{Stream: str, Value: initial}
-	}
-	rounds(streams, 5, 100)
-}
-
 func TestStress(t *testing.T) {
-	if err := os.Remove("stress.bolt"); err != nil {
-		log.Println("Didnt remove stress.bolt file", err)
-	}
+	rand.Seed(time.Now().UTC().UnixNano())
 
-	go Server()
-	time.Sleep(time.Second * 2)
-	Client()
-	if err := os.Remove("stress.bolt"); err != nil {
-		log.Println("Didnt remove stress.bolt file", err)
-	}
+	// rounds, iterations, clients
+	stress.Run(12, 10, 4)
 }
