@@ -113,7 +113,9 @@ func (s *store) GetSince(ctx context.Context, version, limit int) ([]ops.Op, err
 		}
 
 		for kk := uint64(version); kk < count; kk++ {
-			datas = append(datas, root.Get([]byte(strconv.FormatUint(kk, 16))))
+			d := root.Get([]byte(strconv.FormatUint(kk, 16)))
+			d = append([]byte(nil), d...)
+			datas = append(datas, d)
 		}
 		return nil
 	})
