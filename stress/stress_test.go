@@ -7,7 +7,9 @@
 package stress_test
 
 import (
+	"log"
 	"math/rand"
+	"os"
 	"testing"
 	"time"
 
@@ -15,8 +17,36 @@ import (
 )
 
 func TestStress(t *testing.T) {
+	if err := os.Remove("stress.bolt"); err != nil {
+		log.Println("Couldn't delete stress.bolt file", err)
+	}
+
+	defer func() {
+		if err := os.Remove("stress.bolt"); err != nil {
+			log.Println("Couldn't delete stress.bolt file")
+		}
+	}()
+
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	// rounds, iterations, clients
-	stress.Run(12, 10, 4)
+	stress.Run(nil, 12, 10, 4)
+}
+
+func TestStressAndReconnect(t *testing.T) {
+	if err := os.Remove("stress.bolt"); err != nil {
+		log.Println("Couldn't delete stress.bolt file", err)
+	}
+
+	defer func() {
+		if err := os.Remove("stress.bolt"); err != nil {
+			log.Println("Couldn't delete stress.bolt file")
+		}
+	}()
+
+	rand.Seed(time.Now().UTC().UnixNano())
+
+	// rounds, iterations, clients
+	states := stress.Run(nil, 12, 10, 4)
+	stress.Run(states, 12, 10, 4)
 }

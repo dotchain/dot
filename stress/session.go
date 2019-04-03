@@ -13,7 +13,36 @@ import (
 	"sync"
 
 	"github.com/dotchain/dot"
+	"github.com/dotchain/dot/ops"
 )
+
+// SessionState is the state associated with a previous session
+type SessionState struct {
+	State   State
+	Version int
+	Pending []ops.Op
+}
+
+// Reconnnect creates a new session from this state
+func (ss SessionState) Reconnect(serverUrl string, numClients int, wg *sync.WaitGroup) *Session {
+	session, s := dot.Reconnect("http://localhost:8083/stress/", ss.Version, ss.Pending)
+	result := &Session{
+		Session:     session,
+		StateStream: &StateStream{Stream: s, Value: ss.State},
+		scheduler:   s.(scheduler),
+	}
+	last := int32(ss.State.Count) / int32(numClients)
+	s.Nextf(session, func() {
+		result.StateStream = result.StateStream.Latest()
+		current := int32(result.StateStream.Value.Count) / int32(numClients)
+		if current > last {
+			wg.Add(int(last - current))
+		}
+		last = current
+	})
+	return result
+
+}
 
 // Session represents a single session
 type Session struct {
@@ -43,12 +72,17 @@ func NewSession(serverUrl string, numClients int, wg *sync.WaitGroup) *Session {
 }
 
 // Close releases all resources
-func (s *Session) Close() {
+func (s *Session) Close() SessionState {
+	var ss SessionState
+	closed := make(chan interface{}, 1)
 	s.scheduler.Schedule(func() {
 		s.StateStream.Stream.Nextf(s.Session, nil)
-		// TODO: return saved state for use with creating a session continuation
-		s.Session.Close()
+		ss.Version, ss.Pending = s.Session.Close()
+		ss.State = s.StateStream.Latest().Value
+		closed <- nil
 	})
+	<-closed
+	return ss
 }
 
 // MakeSomeRandomChanges does exactly that but also increments the count

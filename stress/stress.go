@@ -10,7 +10,6 @@ package stress
 import (
 	"log"
 	"net/http"
-	"os"
 	"sync"
 
 	"github.com/dotchain/dot"
@@ -21,14 +20,8 @@ import (
 // It uses /stress/ as the path to serve.
 // The returned function can be used to shutdown the server
 func StartServer(addr string) func() {
-	if err := os.Remove("stress.bolt"); err != nil {
-		log.Println("Couldn't delete stress.bolt file", err)
-	}
-
 	bolt := dot.BoltServer("stress.bolt")
-	http.Handle("/stress/", bolt)
-
-	srv := &http.Server{Addr: addr}
+	srv := &http.Server{Addr: ":8083", Handler: bolt}
 	go func() {
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 			log.Fatalf("ListenAndServe(): %s", err)
@@ -39,24 +32,25 @@ func StartServer(addr string) func() {
 		//srv.Shutdown(context.Background())
 		srv.Close()
 		dot.CloseServer(bolt)
-		if err := os.Remove("stress.bolt"); err != nil {
-			log.Println("Couldn't delete stress.bolt file")
-		}
 	}
 
 	return close
 }
 
 // Run runs the required number of rounds of test
-func Run(rounds, iterations, clients int) {
+func Run(oldStates []SessionState, rounds, iterations, clients int) []SessionState {
 	defer StartServer(":8083")()
 	log.Println("Started server...")
 	sessions := make([]*Session, clients)
-	url := "http://localhost:8083/stress/"
+	url := "http://localhost:8083/"
 
 	var wg sync.WaitGroup
 	for kk := range sessions {
-		sessions[kk] = NewSession(url, clients, &wg)
+		if oldStates != nil {
+			sessions[kk] = oldStates[kk].Reconnect(url, clients, &wg)
+		} else {
+			sessions[kk] = NewSession(url, clients, &wg)
+		}
 	}
 
 	for rr := 0; rr < rounds; rr++ {
@@ -69,7 +63,9 @@ func Run(rounds, iterations, clients int) {
 		log.Println("Finished round", rr+1)
 	}
 
+	states := make([]SessionState, len(sessions))
 	for kk := range sessions {
-		sessions[kk].Close()
+		states[kk] = sessions[kk].Close()
 	}
+	return states
 }
