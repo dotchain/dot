@@ -20,7 +20,7 @@ _cgo_export.*
 _testmain.go
 
 coverage.txt
-file.bolt
+*.bolt
 
 *.exe
 *.test

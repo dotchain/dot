@@ -7,6 +7,7 @@
 package stress_test
 
 import (
+	"flag"
 	"log"
 	"math/rand"
 	"os"
@@ -15,6 +16,10 @@ import (
 
 	"github.com/dotchain/dot/stress"
 )
+
+var rounds = flag.Int("rounds", 10, "number of rounds")
+var iterations =  flag.Int("iterations", 20, "number of iterations per round")
+var clients = flag.Int("clients", 2, "number of clients per round")
 
 func TestStress(t *testing.T) {
 	if err := os.Remove("stress.bolt"); err != nil {
@@ -29,8 +34,7 @@ func TestStress(t *testing.T) {
 
 	rand.Seed(time.Now().UTC().UnixNano())
 
-	// rounds, iterations, clients
-	stress.Run(nil, 12, 10, 4)
+	stress.Run(nil, *rounds, *iterations, *clients)
 }
 
 func TestStressAndReconnect(t *testing.T) {
@@ -46,7 +50,6 @@ func TestStressAndReconnect(t *testing.T) {
 
 	rand.Seed(time.Now().UTC().UnixNano())
 
-	// rounds, iterations, clients
-	states := stress.Run(nil, 12, 10, 4)
-	stress.Run(states, 12, 10, 4)
+	states := stress.Run(nil, *rounds, *iterations, *clients)
+	stress.Run(states, *rounds, *iterations, *clients)
 }
