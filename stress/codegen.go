@@ -18,14 +18,14 @@ func main() {
 		panic(err)
 	}
 	code = "//+build stress\n\n" + code
-	err = ioutil.WriteFile("generated_test.go", []byte(code), 0644)
+	err = ioutil.WriteFile("generated.go", []byte(code), 0644)
 	if err != nil {
 		panic(err)
 	}
 }
 
 var info = dotc.Info{
-	Package: "stress_test",
+	Package: "stress",
 	Structs: []dotc.Struct{{
 		Recv: "s",
 		Type: "State",
