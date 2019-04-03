@@ -87,8 +87,8 @@ func TestAsyncForever(t *testing.T) {
 }
 
 func TestAsyncSchedule(t *testing.T) {
-	async := streams.NewAsync(1)
-	go async.Loop(1)
+	async := streams.NewAsync(0)
+	async.LoopForever()
 	s := async.Wrap(streams.New())
 	var wg sync.WaitGroup
 	wg.Add(1)
