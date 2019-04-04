@@ -40,6 +40,14 @@ type Connector struct {
 func NewConnector(version int, pending []Op, store Store, rand func() float64) *Connector {
 	async := streams.NewAsync(0)
 	s := async.Wrap(streams.New())
+
+	// add fake entries for each pending as an entry is expected
+	// per pending request. See the ack behvior in readLoop
+	clientStream := s
+	for range pending {
+		clientStream = clientStream.Append(nil)
+	}
+
 	async.LoopForever()
 	store = ReliableStore(store, rand, time.Second/2, time.Minute)
 	return &Connector{Version: version, Pending: pending, Stream: s, Async: async, Store: store}
@@ -60,6 +68,7 @@ func (c *Connector) Connect() {
 	go func() {
 		c.readLoop(ctx)
 		c.Stream.Nextf(c, nil)
+		c.updatePending(ctx)
 		close(closed)
 	}()
 }
@@ -74,10 +83,18 @@ func (c *Connector) Disconnect() {
 // to the ops store. note that write does not update c.Stream as
 // c.Stream tracks the last upstream version
 func (c *Connector) write(ctx context.Context) {
+	ops := c.updatePending(ctx)
+	if len(ops) > 0 {
+		must(c.Store.Append(ctx, ops))
+	}
+}
+
+func (c *Connector) updatePending(ctx context.Context) []Op {
 	var idx int
 	var ops []Op
 
 	c.Lock()
+	defer c.Unlock()
 	for next, ch := c.Stream.Next(); next != nil; next, ch = next.Next() {
 		if idx >= len(c.Pending) {
 			op := Operation{OpID: NewID(), BasisID: c.Version, Change: ch}
@@ -89,8 +106,7 @@ func (c *Connector) write(ctx context.Context) {
 		}
 		idx++
 	}
-	c.Unlock()
-	must(c.Store.Append(ctx, ops))
+	return ops
 }
 
 // readLoop reads operations from the store and adds it to c.Stream

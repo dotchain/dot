@@ -11,7 +11,6 @@ import (
 	"log"
 	"net/http"
 	"sync"
-	"time"
 
 	"github.com/dotchain/dot"
 )
@@ -62,11 +61,6 @@ func Run(oldStates []SessionState, rounds, iterations, clients int) []SessionSta
 		log.Println("Finished round", rr+1)
 	}
 
-	// TODO: remove time.Sleep
-	// This sleep is there to prevent crashes
-	// Looks like termination of a session is not quite clean
-
-	time.Sleep(time.Second)
 	states := make([]SessionState, len(sessions))
 	for kk := range sessions {
 		states[kk] = sessions[kk].Close()
