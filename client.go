@@ -25,6 +25,7 @@ type Session struct {
 // that state.
 func (s *Session) Close() (version int, pending []ops.Op) {
 	s.c.Disconnect()
+	s.c.Async.Close()
 	s.store.Close()
 	return s.c.Version, s.c.Pending
 }
