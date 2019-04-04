@@ -97,7 +97,3 @@ func (a *async) Next() (Stream, changes.Change) {
 	}
 	return n, c
 }
-
-func (a *async) Schedule(fn func()) {
-	a.as.c <- fn
-}

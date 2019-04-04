@@ -31,13 +31,11 @@ custom data structures with conflict-free merging.
 Most of the code here is quite stable at this point but the project is
 not yet ready for production.
 
-1. There are comprehensive unit tests and a fair number of integration
-tests but still needs end-to-end stress tests and benchmarks
-2. Need better logging
-3. The dot/ops/nw package and how it integrates with streams.Async is
+1. Need better logging.
+2. The dot/ops/nw package and how it integrates with streams.Async is
 a bit wonky. The public methods exposed via the dot package itself
-does not suffer from this but this should still be cleaned up
-4. The gopher JS builds need to be optimized for bloat.
+does not suffer from this but this should still be cleaned up.
+3. The gopher JS builds need to be optimized for size.
 
 ## Contents
 1. [Features](#features)

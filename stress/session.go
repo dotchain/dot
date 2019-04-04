@@ -30,7 +30,7 @@ func (ss SessionState) Reconnect(serverUrl string, numClients int, wg *sync.Wait
 	session, s := dot.Reconnect("http://localhost:8083/stress/", ss.Version-1, ss.Pending)
 	stateStream := &StateStream{Stream: s, Value: ss.State}
 	countStream := stateStream.Count()
-	result := &Session{stateStream, session, s.(scheduler)}
+	result := &Session{stateStream, session}
 
 	last := int32(countStream.Value) / int32(numClients)
 	s.Nextf(session, func() {
@@ -49,7 +49,6 @@ func (ss SessionState) Reconnect(serverUrl string, numClients int, wg *sync.Wait
 type Session struct {
 	*StateStream
 	*dot.Session
-	scheduler
 }
 
 // NewSession creates a new session
@@ -60,17 +59,12 @@ func NewSession(serverUrl string, numClients int, wg *sync.WaitGroup) *Session {
 // Close releases all resources
 func (s *Session) Close() SessionState {
 	var ss SessionState
-	closed := make(chan interface{}, 1)
-	s.scheduler.Schedule(func() {
-		s.StateStream.Stream.Nextf(s.Session, nil)
-		ss.Version, ss.Pending = s.Session.Close()
-		// Verision is 1 + actual version so that zero value
-		// corresponds to no previous state
-		ss.Version++
-		ss.State = s.StateStream.Latest().Value
-		closed <- nil
-	})
-	<-closed
+	ss.Version, ss.Pending = s.Session.Close()
+	s.StateStream.Stream.Nextf(s.Session, nil)
+	// Verision is 1 + actual version so that zero value
+	// corresponds to no previous state
+	ss.Version++
+	ss.State = s.StateStream.Latest().Value
 	return ss
 }
 
@@ -108,8 +102,4 @@ func (s *Session) randString(n int) string {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(b)
-}
-
-type scheduler interface {
-	Schedule(fn func())
 }
