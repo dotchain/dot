@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/dotchain/dot"
 )
@@ -39,8 +40,6 @@ func StartServer(addr string) func() {
 
 // Run runs the required number of rounds of test
 func Run(oldStates []SessionState, rounds, iterations, clients int) []SessionState {
-	defer StartServer(":8083")()
-	log.Println("Started server...")
 	sessions := make([]*Session, clients)
 	url := "http://localhost:8083/"
 
@@ -63,6 +62,11 @@ func Run(oldStates []SessionState, rounds, iterations, clients int) []SessionSta
 		log.Println("Finished round", rr+1)
 	}
 
+	// TODO: remove time.Sleep
+	// This sleep is there to prevent crashes
+	// Looks like termination of a session is not quite clean
+
+	time.Sleep(time.Second)
 	states := make([]SessionState, len(sessions))
 	for kk := range sessions {
 		states[kk] = sessions[kk].Close()

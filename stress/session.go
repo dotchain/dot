@@ -29,12 +29,13 @@ type SessionState struct {
 func (ss SessionState) Reconnect(serverUrl string, numClients int, wg *sync.WaitGroup) *Session {
 	session, s := dot.Reconnect("http://localhost:8083/stress/", ss.Version-1, ss.Pending)
 	stateStream := &StateStream{Stream: s, Value: ss.State}
+	countStream := stateStream.Count()
 	result := &Session{stateStream, session, s.(scheduler)}
 
-	last := int32(stateStream.Value.Count) / int32(numClients)
+	last := int32(countStream.Value) / int32(numClients)
 	s.Nextf(session, func() {
-		stateStream = stateStream.Latest()
-		current := int32(stateStream.Value.Count) / int32(numClients)
+		countStream = countStream.Latest()
+		current := int32(countStream.Value) / int32(numClients)
 		if current > last {
 			wg.Add(int(last - current))
 		}

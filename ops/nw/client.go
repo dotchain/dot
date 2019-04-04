@@ -67,6 +67,10 @@ func (c *Client) call(ctx context.Context, r *request) ([]ops.Op, error) {
 	}
 
 	resp, err := client.Do(req.WithContext(ctx))
+	if err == nil {
+		defer func() { must(resp.Body.Close()) }()
+	}
+
 	if err != nil || resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if err == nil {
 			err = errors.New(resp.Status)
@@ -75,9 +79,7 @@ func (c *Client) call(ctx context.Context, r *request) ([]ops.Op, error) {
 		return nil, err
 	}
 
-	defer func() { must(resp.Body.Close()) }()
 	var res response
-
 	err = codec.Decode(&res, resp.Body)
 	if err != nil {
 		log.Println("Decoding error (see https://github.com/dotchain/dot/wiki/Gob-error)")
@@ -109,4 +111,7 @@ func (c *Client) Close() {
 }
 
 func must(err error) {
+	if err != nil {
+		log.Println("client unexpected error", err)
+	}
 }
