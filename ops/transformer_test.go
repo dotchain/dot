@@ -20,7 +20,7 @@ type S = types.S8
 
 func TestTransformerBasic(t *testing.T) {
 	store := MemStore(nil)
-	xformed := ops.Transformed(store)
+	xformed := ops.Transformed(store, nullCache{})
 	results, err := xformed.GetSince(context.Background(), 0, 100)
 	if err != nil || len(results) > 0 {
 		t.Error("Unexpected results", err, results)
@@ -54,7 +54,7 @@ func TestTransformerBasic(t *testing.T) {
 
 func TestTransformerBranched(t *testing.T) {
 	store := MemStore(nil)
-	xformed := ops.Transformed(store)
+	xformed := ops.Transformed(store, nullCache{})
 
 	initial, final, items := getBranchedOps()
 	if err := xformed.Append(context.Background(), items); err != nil {
@@ -85,14 +85,14 @@ func TestTransformedBranchedErrors(t *testing.T) {
 
 	_, _, items := getBranchedOps()
 	store := MemStore(items)
-	xformed := ops.Transformed(store)
+	xformed := ops.Transformed(store, nullCache{})
 	expectedItems, _ := xformed.GetSince(context.Background(), 0, 100)
 	lastOp := expectedItems[len(expectedItems)-1]
 
 	for {
 		store = MemStore(items)
 		f := &failNthGetSince{n, errors.New("My error"), store}
-		xformed = ops.Transformed(f)
+		xformed = ops.Transformed(f, nullCache{})
 		n++
 
 		x, err := xformed.GetSince(context.Background(), len(items)-1, 100)
@@ -112,10 +112,10 @@ func TestTransformedBranchedErrors(t *testing.T) {
 func TestTransformedOpByOp(t *testing.T) {
 	_, _, items := getBranchedOps()
 	store := MemStore(items)
-	xformed := ops.Transformed(store)
+	xformed := ops.Transformed(store, nullCache{})
 	expectedItems, _ := xformed.GetSince(context.Background(), 0, 100)
 	for kk, op := range expectedItems {
-		xformed = ops.Transformed(MemStore(items))
+		xformed = ops.Transformed(MemStore(items), nullCache{})
 		x, err := xformed.GetSince(context.Background(), kk, 1)
 		if err != nil || !reflect.DeepEqual(x, []ops.Op{op}) {
 			t.Error("Unexpected behavior", kk, x, err, op)
@@ -126,11 +126,11 @@ func TestTransformedOpByOp(t *testing.T) {
 func TestTransformedOpByOpWithCache(t *testing.T) {
 	_, _, items := getBranchedOps()
 	store := MemStore(items)
-	xformed := ops.Transformed(store)
+	xformed := ops.Transformed(store, &sync.Map{})
 	expectedItems, _ := xformed.GetSince(context.Background(), 0, 100)
 	cache := &sync.Map{}
 	for kk, op := range expectedItems {
-		xformed = ops.TransformedWithCache(MemStore(items), cache)
+		xformed = ops.Transformed(MemStore(items), cache)
 		x, err := xformed.GetSince(context.Background(), kk, 1)
 		if err != nil || !reflect.DeepEqual(x, []ops.Op{op}) {
 			t.Error("Unexpected behavior with cache", kk, x, err, op)
@@ -179,4 +179,13 @@ func (f *failNthGetSince) GetSince(ctx context.Context, version, limit int) ([]o
 		return nil, f.err
 	}
 	return f.Store.GetSince(ctx, version, limit)
+}
+
+type nullCache struct{}
+
+func (nc nullCache) Load(key interface{}) (interface{}, bool) {
+	return nil, false
+}
+
+func (nc nullCache) Store(key, value interface{}) {
 }

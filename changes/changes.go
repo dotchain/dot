@@ -178,62 +178,39 @@ type ChangeSet []Change
 
 // Merge implements Change.Merge.
 func (c ChangeSet) Merge(other Change) (otherx, cx Change) {
-	idx, results := 0, make([]Change, len(c))
+	idx, results := 0, make(ChangeSet, len(c))
 	for _, elt := range c {
-		if elt != nil {
-			other, results[idx] = elt.Merge(other)
-			if results[idx] != nil {
-				idx++
-			}
+		other, results[idx] = Merge(elt, other)
+		if results[idx] != nil {
+			idx++
 		}
 	}
-	switch idx {
-	case 0:
-		return other, nil
-	case 1:
-		return other, results[0]
-	}
-	return other, ChangeSet(results[:idx])
+	return other, results.Simplify()
 }
 
 // ReverseMerge is like merge except with receiver and args inverted
 func (c ChangeSet) ReverseMerge(other Change) (otherx, cx Change) {
-	idx, results := 0, make([]Change, len(c))
+	idx, results := 0, make(ChangeSet, len(c))
 	for _, elt := range c {
-		l, r := elt, other
-		if other != nil {
-			l, r = other.Merge(elt)
-		}
-		results[idx], other = l, r
-		if l != nil {
+		results[idx], other = Merge(other, elt)
+		if results[idx] != nil {
 			idx++
 		}
 	}
-	switch idx {
-	case 0:
-		return other, nil
-	case 1:
-		return other, results[0]
-	}
-	return other, ChangeSet(results[:idx])
+
+	return other, results.Simplify()
 }
 
 // Revert implements Change.Revert.
 func (c ChangeSet) Revert() Change {
-	idx, results := 0, make([]Change, len(c))
+	idx, results := 0, make(ChangeSet, len(c))
 	for kk := range c {
 		if elt := c[len(c)-kk-1]; elt != nil {
 			results[idx] = elt.Revert()
 			idx++
 		}
 	}
-	switch idx {
-	case 0:
-		return nil
-	case 1:
-		return results[0]
-	}
-	return ChangeSet(results[:idx])
+	return results.Simplify()
 }
 
 // ApplyTo simply walks through the individual changes and applies
@@ -244,6 +221,21 @@ func (c ChangeSet) ApplyTo(ctx Context, v Value) Value {
 
 	}
 	return v
+}
+
+// Simplify converts an empty or single element change-set
+// into a simpler version
+func (c ChangeSet) Simplify() Change {
+	var inner Change
+	for _, cx := range c {
+		if cx != nil {
+			if inner != nil {
+				return c
+			}
+			inner = cx
+		}
+	}
+	return inner
 }
 
 // Context defines the context in which a change is being
@@ -268,4 +260,15 @@ func change(x, y changeable) (Change, Change) {
 
 func swap(x, y Change) (Change, Change) {
 	return y, x
+}
+
+// Merge is effectively c1.Merge(c2) except that c1 can be nil.
+//
+// As with individual merge implementations, applying c1+c1x is
+// effectively the same as applying c2+c2x.
+func Merge(c1, c2 Change) (c1x, c2x Change) {
+	if c1 == nil {
+		return c2, c1
+	}
+	return c1.Merge(c2)
 }
