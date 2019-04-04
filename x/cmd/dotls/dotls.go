@@ -57,7 +57,7 @@ func main() {
 	defer store.Close()
 
 	if !*raw {
-		store = ops.TransformedWithCache(store, &sync.Map{})
+		store = ops.Transformed(store, &sync.Map{})
 	}
 
 	ver := *version

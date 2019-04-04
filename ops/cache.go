@@ -10,12 +10,3 @@ type Cache interface {
 	Load(key interface{}) (interface{}, bool)
 	Store(key, value interface{})
 }
-
-type nullCache struct{}
-
-func (nc nullCache) Load(key interface{}) (interface{}, bool) {
-	return nil, false
-}
-
-func (nc nullCache) Store(key, value interface{}) {
-}

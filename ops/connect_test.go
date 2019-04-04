@@ -16,7 +16,7 @@ import (
 
 func TestConnect(t *testing.T) {
 	store := MemStore(nil)
-	xformed := ops.Transformed(store)
+	xformed := ops.Transformed(store, nullCache{})
 	c1 := ops.NewConnector(-1, nil, xformed, rand.Float64)
 	c2 := ops.NewConnector(-1, nil, xformed, rand.Float64)
 	c1.Connect()

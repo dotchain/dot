@@ -39,7 +39,7 @@ func Connect(url string) (*Session, streams.Stream) {
 func Reconnect(url string, version int, pending []ops.Op) (*Session, streams.Stream) {
 	store := &nw.Client{URL: url}
 	cache := &sync.Map{}
-	xformed := ops.TransformedWithCache(store, cache)
+	xformed := ops.Transformed(store, cache)
 	connector := ops.NewConnector(version, pending, xformed, rand.Float64)
 	stream := connector.Stream
 	connector.Connect()

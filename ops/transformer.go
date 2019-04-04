@@ -4,30 +4,42 @@
 
 package ops
 
-import "context"
+import (
+	"context"
 
-// Transformed creates a new Store which returns transformed
-// operations.
+	"github.com/dotchain/dot/changes"
+)
+
+// opInfo contains the transformed op (remote master) as well as the
+// sequence of merged operations (local branch).
 //
-// The regular sequence of operations stored cannot be directly
-// applied on top of one another because they may have different basis
-// and parent values.
+// The transformed op is based on the op with the previous version and
+// can be applied on top of that to get the same effect as the Op
+// provided.
 //
-// The transformed store returns the same operations but modifies the
-// changes so that these changes have the same effect as the
-// original but can be applied in sequence.
-func Transformed(raw Store) Store {
-	return transformer{raw, nullCache{}}
+// The sequence of merge operations can be applied on top of the
+// current Op to get it to the same state as one would end up applying
+// the transformed op on top of all previous operations.
+type opInfo struct {
+	xformed Op
+	merge   []Op
 }
 
-// TransformedWithCache is the same as Transformed but with the
-// addition of an internal cache for performance.  The cache
-// interfaace is compatible with sync.Map.  The keys in the map are
-// the version numbers of the ops in the store -- the caller can
-// implement their eviction strategy based on this if needed (such as
-// evicting old version numbers). Custom caches can be implemented for
-// more sophisticated use cases.
-func TransformedWithCache(raw Store, cache Cache) Store {
+// Transformed takes a store of raw operations and converts them to a
+// transformed version that can be applied in sequence.
+//
+// Raw operations can have different basis and so cannot be applied on
+// top of each other.  Transformed operations have all the same
+// metadata as regular operations but replace the changes with the
+// "rebased" version (in git terms)
+//
+// The Cache interface matches sync.Map and is required for
+// efficiency.  It does not need to be a synchronized map if all calls
+// to Transformed are guaranteed to be non-concurrent which is
+// generally the case for client uses (as with Connect)
+//
+// The transformed Store only modifies the GetSince method.
+func Transformed(raw Store, cache Cache) Store {
 	return transformer{raw, cache}
 }
 
@@ -52,23 +64,9 @@ func (t transformer) GetSince(ctx context.Context, version, count int) ([]Op, er
 	return result, nil
 }
 
-// opInfo contains the transformed op (remote master) as well as the
-// sequence of merged operations (local branch).
-//
-// The transformed op is based on the op with the previous version and
-// can be applied on top of that to get the same effect as the Op
-// provided.
-//
-// The sequence of merge operations can be applied on top of the
-// current Op to get it to the same state as one would end up applying
-// the transformed op on top of all previous operations.
-type opInfo struct {
-	xformed Op
-	merge   []Op
-}
-
+// xform transforms a single operation
 func (t *transformer) xform(ctx context.Context, op Op) (opInfo, error) {
-	basis, version, parent := op.Basis(), op.Version(), op.Parent()
+	basis, version := op.Basis(), op.Version()
 
 	if result, ok := t.Cache.Load(version); ok {
 		return result.(opInfo), nil
@@ -84,47 +82,59 @@ func (t *transformer) xform(ctx context.Context, op Op) (opInfo, error) {
 		return opInfo{}, err
 	}
 
-	mergedCount := 0
-	if parent != nil {
-		for ops[0].ID() != parent {
-			ops = ops[1:]
-		}
-		info, err := t.xform(ctx, ops[0])
+	ops, result, err := t.getMergeChain(ctx, op, ops)
+	if err != nil {
+		return result, err
+	}
+
+	for _, opx := range ops {
+		info, err := t.xform(ctx, opx)
 		if err != nil {
 			return opInfo{}, err
 		}
-		merge := info.merge
-		for len(merge) > 0 && merge[0].Version() <= basis {
-			merge = merge[1:]
-		}
-		mergedCount = len(merge)
-		ops = append(append([]Op(nil), merge...), ops[1:]...)
+		result.xformed, opx = t.merge(info.xformed, result.xformed)
+		result.merge = append(result.merge, opx)
 	}
 
-	mergeChain := make([]Op, len(ops))
-
-	for kk, opx := range ops {
-		xformed := opx
-		if kk >= mergedCount {
-			info, err := t.xform(ctx, opx)
-			if err != nil {
-				return opInfo{}, err
-			}
-			xformed = info.xformed
-		}
-		op, mergeChain[kk] = t.merge(xformed, op)
-	}
-
-	result := opInfo{op, mergeChain[:len(mergeChain):len(mergeChain)]}
 	t.Cache.Store(version, result)
 	return result, nil
 }
 
-func (t transformer) merge(left, right Op) (Op, Op) {
-	leftChanges := left.Changes()
-	if leftChanges == nil {
-		return right, left
+// getMergeChain gets the merge chain for the op and transforms the
+// current op against that to get the updated current op as well as
+// its merge chain
+func (t transformer) getMergeChain(ctx context.Context, op Op, ops []Op) ([]Op, opInfo, error) {
+	parent, basis := op.Parent(), op.Basis()
+
+	if parent == nil {
+		return ops, opInfo{op, nil}, nil
 	}
-	lx, rx := leftChanges.Merge(right.Changes())
+
+	for ops[0].ID() != parent {
+		ops = ops[1:]
+	}
+
+	info, err := t.xform(ctx, ops[0])
+	if err != nil {
+		return nil, opInfo{}, err
+	}
+
+	merge := info.merge
+	for len(merge) > 0 && merge[0].Version() <= basis {
+		merge = merge[1:]
+	}
+
+	mergeChain := []Op(nil)
+	for _, opx := range merge {
+		op, opx = t.merge(opx, op)
+		mergeChain = append(mergeChain, opx)
+	}
+
+	return ops[1:], opInfo{op, mergeChain}, nil
+}
+
+// merge merges the changes in two operations
+func (t transformer) merge(left, right Op) (Op, Op) {
+	lx, rx := changes.Merge(left.Changes(), right.Changes())
 	return right.WithChanges(lx), left.WithChanges(rx)
 }
