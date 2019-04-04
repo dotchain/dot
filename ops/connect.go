@@ -49,7 +49,7 @@ func NewConnector(version int, pending []Op, store Store, rand func() float64) *
 	}
 
 	async.LoopForever()
-	store = ReliableStore(store, rand, time.Second/2, time.Minute)
+	store = ReliableStore(store, rand, time.Second*2, time.Minute)
 	return &Connector{Version: version, Pending: pending, Stream: s, Async: async, Store: store}
 }
 

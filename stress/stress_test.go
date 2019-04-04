@@ -11,6 +11,8 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -21,7 +23,7 @@ var rounds = flag.Int("rounds", 10, "number of rounds")
 var iterations = flag.Int("iterations", 20, "number of iterations per round")
 var clients = flag.Int("clients", 2, "number of clients per round")
 
-func TestStressSimple(t *testing.T) {
+func TestSimple(t *testing.T) {
 	if err := os.Remove("stress.bolt"); err != nil {
 		log.Println("Couldn't delete stress.bolt file", err)
 	}
@@ -38,7 +40,45 @@ func TestStressSimple(t *testing.T) {
 	stress.Run(nil, *rounds, *iterations, *clients)
 }
 
-func TestStressAndReconnect(t *testing.T) {
+func TestServerRestarts(t *testing.T) {
+	var done int32
+	var wg sync.WaitGroup
+
+	if err := os.Remove("stress.bolt"); err != nil {
+		log.Println("Couldn't delete stress.bolt file", err)
+	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		first := true
+		for atomic.LoadInt32(&done) != 1 {
+			close := stress.StartServer(":8083")
+			log.Println("Started server")
+			if first {
+				time.Sleep(time.Second * 10)
+				first = false
+			} else {
+				// must give atleeast 30s of server up time to let
+				// the last call succeed
+				time.Sleep(time.Second * 60)
+			}
+			close()
+			log.Println("Stopped server")
+		}
+
+		if err := os.Remove("stress.bolt"); err != nil {
+			log.Println("Couldn't delete stress.bolt file")
+		}
+	}()
+
+	rand.Seed(time.Now().UTC().UnixNano())
+	stress.Run(nil, *rounds, *iterations, *clients)
+	atomic.StoreInt32(&done, 1)
+	wg.Wait()
+}
+
+func TestReconnect(t *testing.T) {
 	if err := os.Remove("stress.bolt"); err != nil {
 		log.Println("Couldn't delete stress.bolt file", err)
 	}

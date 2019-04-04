@@ -53,6 +53,7 @@ func (r *reliable) deliver(pending []Op) {
 	for {
 		err := r.Store.Append(context.Background(), pending)
 		if err == nil {
+			// log.Println("Delivered", len(pending), "ops")
 			r.jobs <- func() {
 				r.pending = r.pending[len(pending):]
 				if size := len(r.pending); size > 0 {
@@ -66,6 +67,8 @@ func (r *reliable) deliver(pending []Op) {
 		min := current - delta
 		max := current + delta
 		next := min + r.rand()*(max-min+1)
+
+		//log.Println("Retrying delivery after", time.Duration(next))
 		time.Sleep(time.Duration(next))
 		current *= 1.5
 		if current > r.max {
@@ -76,9 +79,18 @@ func (r *reliable) deliver(pending []Op) {
 
 func (r *reliable) Poll(ctx context.Context, version int) error {
 	fn := func() error {
-		ctx2, cancel := context.WithTimeout(ctx, time.Second*30)
-		defer cancel()
-		return r.Store.Poll(ctx2, version)
+		if _, ok := ctx.Deadline(); !ok {
+			ctx2, cancel := context.WithTimeout(ctx, time.Second*30)
+			defer cancel()
+			ctx = ctx2
+		}
+
+		err := r.Store.Poll(ctx, version)
+		if ctx.Err() != nil {
+			// if canceled due to timeouts, try GetSince again
+			return nil
+		}
+		return err
 	}
 	return r.retry(ctx, fn)
 }
