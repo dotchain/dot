@@ -57,7 +57,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		duration = req.Duration
 	}
 
-	ctx, done := context.WithTimeout(context.Background(), duration)
+	ctx, done := context.WithTimeout(r.Context(), duration)
 	defer done()
 
 	var res response
@@ -89,7 +89,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Add("Content-Type", ct)
 	if _, err := w.Write(buf.Bytes()); err != nil {
-		log.Println("Unexpected write error", err)
+		log.Println("Unexpected write error", err, req.Name, res)
 	}
 }
 

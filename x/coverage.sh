@@ -4,7 +4,7 @@ set -e
 
 if [ "$TRAVIS_EVENT_TYPE" == "cron" ]
 then
-    go test -v ./stress -race -tags stress -run TestStressAndReconnect -rounds 100 -clients 5 -iterations 5
+    go test -v ./stress -race -tags stress -rounds 100 -clients 5 -iterations 5
     exit $?
 fi
 
