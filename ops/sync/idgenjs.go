@@ -4,7 +4,7 @@
 
 // +build js,!jsreflect
 
-package ops
+package sync
 
 import (
 	"encoding/base64"
@@ -12,8 +12,8 @@ import (
 	"github.com/gopherjs/gopherjs/js"
 )
 
-// NewID returns a unique ID using crypto
-func NewID() interface{} {
+// newID returns a unique ID using crypto
+func (s *session) newID() interface{} {
 	crypto := js.Global.Get("crypto")
 	array := js.Global.Get("Uint8Array").New(32)
 	crypto.Call("getRandomValues", array)
