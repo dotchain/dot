@@ -14,6 +14,7 @@ package log
 type Log interface {
 	Printf(fmt string, v ...interface{})
 	Println(v ...interface{})
+	Fatal(v ...interface{})
 }
 
 // Default returns a default logger that does not print anything
@@ -25,3 +26,4 @@ type nolog struct{}
 
 func (n nolog) Printf(fmt string, v ...interface{}) {}
 func (n nolog) Println(v ...interface{})            {}
+func (n nolog) Fatal(v ...interface{})              {}

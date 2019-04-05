@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package ops_test
+package sync_test
 
 import (
 	"context"
@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dotchain/dot/log"
 	"github.com/dotchain/dot/ops"
+	dotsync "github.com/dotchain/dot/ops/sync"
 )
 
 // Fake unreliable store
@@ -57,9 +57,14 @@ func (u *unreliable) GetSince(ctx context.Context, version, limit int) ([]ops.Op
 func (u *unreliable) Close() {
 }
 
+func reliable(store ops.Store) ops.Store {
+	return dotsync.Reliable(store, dotsync.WithBackoff(rand.Float64, time.Millisecond, 10*time.Millisecond))
+}
+
 func TestReliableAppend(t *testing.T) {
 	u := &unreliable{err: errors.New("something")}
-	r := ops.Reliable(u, rand.Float64, time.Millisecond, 10*time.Millisecond, log.Default())
+	r := reliable(u)
+	defer r.Close()
 	go func() {
 		time.Sleep(50 * time.Millisecond)
 		u.Lock()
@@ -85,7 +90,7 @@ func TestReliableAppend(t *testing.T) {
 
 func TestReliablePoll(t *testing.T) {
 	u := &unreliable{err: errors.New("something")}
-	r := ops.Reliable(u, rand.Float64, time.Millisecond, 10*time.Millisecond, log.Default())
+	r := reliable(u)
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	err := r.Poll(ctx, 100)
 	if err != ctx.Err() || u.count < 10 {
@@ -105,10 +110,10 @@ func TestReliablePoll(t *testing.T) {
 func TestReliableGetSince(t *testing.T) {
 	u := &unreliable{err: errors.New("something")}
 	u.ops = []ops.Op{ops.Operation{OpID: "one"}}
-	r := ops.Reliable(u, rand.Float64, time.Millisecond, 10*time.Millisecond, log.Default())
+	r := reliable(u)
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	result, err := r.GetSince(ctx, 100, 102)
-	if err != u.err || ctx.Err() != nil || u.count != 1 || len(result) != 0 {
+	if err != ctx.Err() || u.count <= 1 || len(result) != 0 {
 		t.Fatal("Unexpected err", u.count, len(result), err, ctx.Err())
 	}
 	cancel()
