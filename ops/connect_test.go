@@ -42,7 +42,4 @@ func TestConnect(t *testing.T) {
 	if !reflect.DeepEqual(c1ops, expected) {
 		t.Fatal("Unexpected merge", c1ops)
 	}
-
-	c1.Async.Close()
-	c2.Async.Close()
 }

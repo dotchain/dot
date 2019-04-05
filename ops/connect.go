@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dotchain/dot/log"
 	"github.com/dotchain/dot/streams"
 )
 
@@ -23,51 +24,85 @@ import (
 // date with remote changes.  For concurrency control, the stream
 // should be wrapped with streams.Async.  The convenience function
 // NewConnector takes care of this book-keeping though if multiple
-// stores are in play, the same Async object is recommended.
+// stores are in play, the same Async object is recommended for all
+// stores.
 type Connector struct {
 	Version int
 	Pending []Op
 	streams.Stream
 	*streams.Async
 	Store
+	log.Log
 	close func()
 	sync.Mutex
 }
 
 // NewConnector creates a new connection between the store and a
-// stream. It creates an Async object as well as the  stream taking
+// stream. It creates an Async object as well as the stream taking
 // care to wrap the stream via Async.Wrap.
+//
+// Connector works with a reliable store, so it creates one using
+// Reliable(store) (using the provided rand function for binary
+// exponential backoff).
+//
+// The provided store parameter is expected to be already transformed
+// (via Transformed(store) for instance).
+//
+// The version refers to the version of the last operation received
+// from the server before.  In case of a fresh start, this should be
+// -1.
+//
+// Pending refers to any prior operations that were not acknowledged
+// by the store.  These may have been sent before but sending them
+// again is harmless as the store will drop duplicates.
 func NewConnector(version int, pending []Op, store Store, rand func() float64) *Connector {
-	async := streams.NewAsync(0)
-	s := async.Wrap(streams.New())
+	c := &Connector{
+		Version: version,
+		Pending: pending,
+		Log:     log.Default(),
+		Async:   streams.NewAsync(0),
+	}
+
+	c.Stream = c.Async.Wrap(streams.New())
 
 	// add fake entries for each pending as an entry is expected
-	// per pending request. See the ack behvior in readLoop
-	clientStream := s
+	// per pending request. See the ack behavior in readLoop
+	clientStream := c.Stream
 	for range pending {
 		clientStream = clientStream.Append(nil)
 	}
 
-	async.LoopForever()
-	store = ReliableStore(store, rand, time.Second*2, time.Minute)
-	return &Connector{Version: version, Pending: pending, Stream: s, Async: async, Store: store}
+	c.Store = Reliable(store, rand, time.Second*2, time.Minute, log.Default())
+	return c
 }
 
 // Connect starts the synchronization process.
+//
+// If logging is desired, the Log field should be set before being
+// called.
+//
+// All the fields of the Connector object are not safe to use until a
+// Disconnenct call.
 func (c *Connector) Connect() {
+	c.Async.LoopForever()
+
+	// create a context that is canceled on close
+	// this signals all go routines to stop
 	ctx, cancel := context.WithCancel(context.Background())
+
 	closed := make(chan struct{})
 	c.close = func() {
 		cancel()
-		<-closed
+		<-closed // wait for read loop to finish
 	}
 
-	must(c.Store.Append(ctx, c.Pending))
+	c.must(c.Store.Append(ctx, c.Pending))
 	c.Stream.Nextf(c, func() { c.write(ctx) })
 
 	go func() {
 		c.readLoop(ctx)
 		c.Stream.Nextf(c, nil)
+		c.Async.Close()
 		c.updatePending(ctx)
 		close(closed)
 	}()
@@ -75,6 +110,8 @@ func (c *Connector) Connect() {
 
 // Disconnect stops the synchronization process.  The version and
 // pending are updated to the latest values when the call returns
+//
+// The Async field is automatically closed but the stores are not.
 func (c *Connector) Disconnect() {
 	c.close()
 }
@@ -85,7 +122,7 @@ func (c *Connector) Disconnect() {
 func (c *Connector) write(ctx context.Context) {
 	ops := c.updatePending(ctx)
 	if len(ops) > 0 {
-		must(c.Store.Append(ctx, ops))
+		c.must(c.Store.Append(ctx, ops))
 	}
 }
 
@@ -125,10 +162,10 @@ func (c *Connector) readLoop(ctx context.Context) {
 		if ctx.Err() != nil {
 			return
 		}
-		must(err)
+		c.must(err)
 
 		if len(ops) == 0 {
-			must(c.Store.Poll(ctx, version))
+			c.must(c.Store.Poll(ctx, version))
 			continue
 		}
 
@@ -149,4 +186,8 @@ func (c *Connector) readLoop(ctx context.Context) {
 	}
 }
 
-func must(err error) {}
+func (c *Connector) must(err error) {
+	if err != nil {
+		c.Log.Println(err)
+	}
+}

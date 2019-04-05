@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dotchain/dot/log"
 	"github.com/dotchain/dot/ops"
 )
 
@@ -58,7 +59,7 @@ func (u *unreliable) Close() {
 
 func TestReliableAppend(t *testing.T) {
 	u := &unreliable{err: errors.New("something")}
-	r := ops.ReliableStore(u, rand.Float64, time.Millisecond, 10*time.Millisecond)
+	r := ops.Reliable(u, rand.Float64, time.Millisecond, 10*time.Millisecond, log.Default())
 	go func() {
 		time.Sleep(50 * time.Millisecond)
 		u.Lock()
@@ -84,7 +85,7 @@ func TestReliableAppend(t *testing.T) {
 
 func TestReliablePoll(t *testing.T) {
 	u := &unreliable{err: errors.New("something")}
-	r := ops.ReliableStore(u, rand.Float64, time.Millisecond, 10*time.Millisecond)
+	r := ops.Reliable(u, rand.Float64, time.Millisecond, 10*time.Millisecond, log.Default())
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	err := r.Poll(ctx, 100)
 	if err != ctx.Err() || u.count < 10 {
@@ -104,7 +105,7 @@ func TestReliablePoll(t *testing.T) {
 func TestReliableGetSince(t *testing.T) {
 	u := &unreliable{err: errors.New("something")}
 	u.ops = []ops.Op{ops.Operation{OpID: "one"}}
-	r := ops.ReliableStore(u, rand.Float64, time.Millisecond, 10*time.Millisecond)
+	r := ops.Reliable(u, rand.Float64, time.Millisecond, 10*time.Millisecond, log.Default())
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	result, err := r.GetSince(ctx, 100, 102)
 	if err != u.err || ctx.Err() != nil || u.count != 1 || len(result) != 0 {

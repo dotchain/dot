@@ -28,17 +28,22 @@ type opInfo struct {
 // Transformed takes a store of raw operations and converts them to a
 // transformed version that can be applied in sequence.
 //
-// Raw operations can have different basis and so cannot be applied on
-// top of each other.  Transformed operations have all the same
-// metadata as regular operations but replace the changes with the
-// "rebased" version (in git terms)
+// Every operation has a Basis (last server acknowledged server
+// operation applied before) and a Parent (the previous client
+// operation on top of which the current operation is applied)
+//
+// The different basis/parent values imply that raw operations cannot
+// directly be applied on each other but need to be transformed. This
+// function returns a store which silently transforms the operations
+// underneath and returns that (so clients can apply them to get
+// accumulated state)
+//
+// The transformed Store only modifies the GetSince method.
 //
 // The Cache interface matches sync.Map and is required for
 // efficiency.  It does not need to be a synchronized map if all calls
 // to Transformed are guaranteed to be non-concurrent which is
 // generally the case for client uses (as with Connect)
-//
-// The transformed Store only modifies the GetSince method.
 func Transformed(raw Store, cache Cache) Store {
 	return transformer{raw, cache}
 }
@@ -53,8 +58,10 @@ func (t transformer) GetSince(ctx context.Context, version, count int) ([]Op, er
 	if err != nil || len(ops) == 0 {
 		return ops, err
 	}
+
 	result := make([]Op, len(ops))
 	for kk := range ops {
+		// Transform all the returned operations
 		opInfo, err := t.xform(ctx, ops[kk])
 		if err != nil {
 			return nil, err
@@ -64,29 +71,57 @@ func (t transformer) GetSince(ctx context.Context, version, count int) ([]Op, er
 	return result, nil
 }
 
-// xform transforms a single operation
-func (t *transformer) xform(ctx context.Context, op Op) (opInfo, error) {
+// xform transforms a single operation, recursively calling itself on
+// other operations it needs. The cache is used to "memoize" such
+// prior results to avoid redoing them.
+//
+// The returned opInfo includes the the transformed version as well as
+// the collection of merge operations. The merge operations can be
+// used to get the client state (after it had applied the raw
+// operation) to the converged state (i.e. by sequental application of
+// all the transformed operations until this raw operation).
+func (t transformer) xform(ctx context.Context, op Op) (opInfo, error) {
 	basis, version := op.Basis(), op.Version()
 
+	// if the operation is available in the cache, just return it
 	if result, ok := t.Cache.Load(version); ok {
 		return result.(opInfo), nil
 	}
 
+	// if this operation is based on the last operation in the
+	// store, there is no transformation needed
 	gap := version - basis - 1
 	if gap == 0 {
 		return opInfo{op, nil}, nil
 	}
 
+	// fetch all the operations since the basis
 	ops, err := t.Store.GetSince(ctx, basis+1, gap)
 	if err != nil {
 		return opInfo{}, err
 	}
 
-	ops, result, err := t.getMergeChain(ctx, op, ops)
+	// skip all those before the parent of the current op
+	for op.Parent() != nil && ops[0].ID() != op.Parent() {
+		ops = ops[1:]
+	}
+
+	// The current op is on top of the parent op and so
+	// the parent op should first be transformed against the
+	// "merge chain" of the parent op
+	result, err := t.getMergeChain(ctx, op, ops)
 	if err != nil {
 		return result, err
 	}
 
+	if op.Parent() != nil {
+		// skip parent op
+		ops = ops[1:]
+	}
+
+	// The residual op needs to be merged against all ops
+	// since the "parent" or "basis".  For each of these,
+	// we need the transformed version first
 	for _, opx := range ops {
 		info, err := t.xform(ctx, opx)
 		if err != nil {
@@ -96,6 +131,7 @@ func (t *transformer) xform(ctx context.Context, op Op) (opInfo, error) {
 		result.merge = append(result.merge, opx)
 	}
 
+	// stash the result to avoid calculating this again
 	t.Cache.Store(version, result)
 	return result, nil
 }
@@ -103,20 +139,16 @@ func (t *transformer) xform(ctx context.Context, op Op) (opInfo, error) {
 // getMergeChain gets the merge chain for the op and transforms the
 // current op against that to get the updated current op as well as
 // its merge chain
-func (t transformer) getMergeChain(ctx context.Context, op Op, ops []Op) ([]Op, opInfo, error) {
+func (t transformer) getMergeChain(ctx context.Context, op Op, ops []Op) (opInfo, error) {
 	parent, basis := op.Parent(), op.Basis()
 
 	if parent == nil {
-		return ops, opInfo{op, nil}, nil
-	}
-
-	for ops[0].ID() != parent {
-		ops = ops[1:]
+		return opInfo{op, nil}, nil
 	}
 
 	info, err := t.xform(ctx, ops[0])
 	if err != nil {
-		return nil, opInfo{}, err
+		return opInfo{}, err
 	}
 
 	merge := info.merge
@@ -130,7 +162,7 @@ func (t transformer) getMergeChain(ctx context.Context, op Op, ops []Op) ([]Op, 
 		mergeChain = append(mergeChain, opx)
 	}
 
-	return ops[1:], opInfo{op, mergeChain}, nil
+	return opInfo{op, mergeChain}, nil
 }
 
 // merge merges the changes in two operations

@@ -18,3 +18,6 @@ func NewID() interface{} {
 	must(err)
 	return hex.EncodeToString(b[:])
 }
+
+func must(err error) {
+}
