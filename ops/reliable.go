@@ -7,9 +7,11 @@ package ops
 import (
 	"context"
 	"time"
+
+	"github.com/dotchain/dot/log"
 )
 
-// ReliableStore takes a store that can fail and converts it to a
+// Reliable takes a store that can fail and converts it to a
 // reliable store. All Append() calls return success immediately with
 // background attempts to deliver/retry.
 //
@@ -17,12 +19,18 @@ import (
 // unreliable.
 //
 // Poll is modified to retry up to the specified timeout.
-func ReliableStore(s Store, rand func() float64, initial, max time.Duration) Store {
+func Reliable(s Store, rand func() float64, initial, max time.Duration, l log.Log) Store {
 	i, m := float64(initial), float64(max)
-	r := &reliable{s, nil, make(chan func(), 10000), rand, i, m}
+	ctx, cancel := context.WithCancel(context.Background())
+	r := &reliable{s, nil, make(chan func(), 10000), rand, i, m, ctx, cancel, l}
 	go func() {
-		for fn := range r.jobs {
-			fn()
+		for {
+			select {
+			case fn := <-r.jobs:
+				fn()
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
 	return r
@@ -34,6 +42,16 @@ type reliable struct {
 	jobs         chan func()
 	rand         func() float64
 	initial, max float64
+
+	deliverCtx    context.Context
+	cancelDeliver func()
+
+	log.Log
+}
+
+func (r *reliable) Close() {
+	r.cancelDeliver()
+	r.Store.Close()
 }
 
 func (r *reliable) Append(ctx context.Context, ops []Op) error {
@@ -53,7 +71,6 @@ func (r *reliable) deliver(pending []Op) {
 	for {
 		err := r.Store.Append(context.Background(), pending)
 		if err == nil {
-			// log.Println("Delivered", len(pending), "ops")
 			r.jobs <- func() {
 				r.pending = r.pending[len(pending):]
 				if size := len(r.pending); size > 0 {
@@ -68,8 +85,16 @@ func (r *reliable) deliver(pending []Op) {
 		max := current + delta
 		next := min + r.rand()*(max-min+1)
 
-		//log.Println("Retrying delivery after", time.Duration(next))
-		time.Sleep(time.Duration(next))
+		r.Log.Println("Retrying delivery after", time.Duration(next), err)
+		timer := time.NewTimer(time.Duration(next))
+		select {
+		case <-r.deliverCtx.Done():
+			timer.Stop()
+			return
+		case <-timer.C:
+			timer.Stop()
+		}
+
 		current *= 1.5
 		if current > r.max {
 			current = r.max
@@ -109,6 +134,7 @@ func (r *reliable) retry(ctx context.Context, fn func() error) error {
 		max := current + delta
 		next := min + r.rand()*(max-min+1)
 		timer := time.NewTimer(time.Duration(next))
+
 		select {
 		case <-ctx.Done():
 			timer.Stop()
@@ -116,6 +142,7 @@ func (r *reliable) retry(ctx context.Context, fn func() error) error {
 		case <-timer.C:
 			timer.Stop()
 		}
+
 		current *= 1.5
 		if current > r.max {
 			current = r.max

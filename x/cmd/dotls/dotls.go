@@ -21,6 +21,7 @@ import (
 
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
+	dotlog "github.com/dotchain/dot/log"
 	"github.com/dotchain/dot/ops"
 	"github.com/dotchain/dot/ops/bolt"
 	"github.com/dotchain/dot/ops/nw"
@@ -43,7 +44,8 @@ func main() {
 	switch {
 	case err == nil:
 		unreliable := &nw.Client{URL: name}
-		store = ops.ReliableStore(unreliable, rand.Float64, time.Second*2, time.Minute)
+		l := dotlog.Default()
+		store = ops.Reliable(unreliable, rand.Float64, time.Second*2, time.Minute, l)
 	case strings.HasSuffix(strings.ToLower(name), ".bolt"):
 		store, err = bolt.New(name, "dot_root", nil)
 	default:

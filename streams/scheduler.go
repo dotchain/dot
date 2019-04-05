@@ -14,7 +14,8 @@ import (
 // synchronously. These queued callbacks can be executed with a call
 // to Run()
 type Async struct {
-	c chan func()
+	c      chan func()
+	closed chan struct{}
 }
 
 // NewAsync creates a new async scheduler
@@ -22,7 +23,9 @@ func NewAsync(size int) *Async {
 	if size == 0 {
 		size = 1000
 	}
-	return &Async{make(chan func(), size)}
+	closed := make(chan struct{})
+	close(closed)
+	return &Async{make(chan func(), size), closed}
 }
 
 // Wrap wraps a stream with an updated scheduler. Any calls to Nextf
@@ -45,16 +48,19 @@ func (as *Async) Loop(count int) int {
 // LoopForever executes all pending callbacks.  Calling "Close" will
 // release the goroutine
 func (as *Async) LoopForever() {
+	as.closed = make(chan struct{})
 	go func() {
 		for fn := range as.c {
 			fn()
 		}
+		as.closed <- struct{}{}
 	}()
 }
 
 // Close releases the channel
 func (as *Async) Close() {
 	close(as.c)
+	<-as.closed
 }
 
 type async struct {
