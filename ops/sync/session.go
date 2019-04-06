@@ -34,8 +34,6 @@ func (s *session) read(ctx context.Context) {
 
 		if len(operations) > 0 {
 			ver = s.onStoreOps(operations)
-		} else {
-			err = c.Store.Poll(ctx, ver)
 		}
 	}
 

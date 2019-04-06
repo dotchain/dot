@@ -32,24 +32,12 @@ type Store interface {
 	// larger than the limit, it is truncated.
 	//
 	// It is not an error if the version does not exist -- an
-	// empty result is returned in that case.   Poll can be used
-	// to wait for a version
+	// empty result is returned in that case.   If a timeout is
+	// provided, it is used as a polling mechanism.
 	//
 	// Fewer than limit entries are returned if and only if there
-	// are no further entries aavailable
+	// are no further entries aavailable.
 	GetSince(ctx context.Context, version, limit int) ([]Op, error)
-
-	// Poll waits for an operation at the specified version or
-	// higher.  Timeouts can be specified via the context and
-	// timeouts will pass back the context error.
-	//
-	// Poll is an opportunistic performance mechanism -- it can
-	// have both false positives and false negatives. A trivial
-	// implementation can simply use timeouts. A slightly more
-	// interesting implementation uses long polls while a more
-	// sophisticated implementation can use a dedicated
-	// notification channel (websockets or such).
-	Poll(ctx context.Context, version int) error
 
 	// Close releases all resources. Any ongoing calls should not
 	// be canceled unless the caller cancels them via the context.

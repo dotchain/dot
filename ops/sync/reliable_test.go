@@ -36,13 +36,6 @@ func (u *unreliable) Append(ctx context.Context, ops []ops.Op) error {
 	return err
 }
 
-func (u *unreliable) Poll(ctx context.Context, version int) error {
-	u.Lock()
-	defer u.Unlock()
-	u.count++
-	return u.err
-}
-
 func (u *unreliable) GetSince(ctx context.Context, version, limit int) ([]ops.Op, error) {
 	u.Lock()
 	defer u.Unlock()
@@ -86,25 +79,6 @@ func TestReliableAppend(t *testing.T) {
 	if u.count < 10 || !reflect.DeepEqual(u.ops, expected) {
 		t.Error("Unexpected state", u.count, u.ops)
 	}
-}
-
-func TestReliablePoll(t *testing.T) {
-	u := &unreliable{err: errors.New("something")}
-	r := reliable(u)
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	err := r.Poll(ctx, 100)
-	if err != ctx.Err() || u.count < 10 {
-		t.Fatal("Unexpected err", u.count, err)
-	}
-	cancel()
-
-	*u = unreliable{}
-	ctx, cancel = context.WithTimeout(context.Background(), 100*time.Millisecond)
-	err = r.Poll(ctx, 100)
-	if err != nil || u.count != 1 {
-		t.Fatal("Unexpected err", u.count, err)
-	}
-	cancel()
 }
 
 func TestReliableGetSince(t *testing.T) {

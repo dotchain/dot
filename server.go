@@ -9,6 +9,7 @@ package dot
 import (
 	"net/http"
 
+	"github.com/dotchain/dot/ops"
 	"github.com/dotchain/dot/ops/bolt"
 	"github.com/dotchain/dot/ops/nw"
 	"github.com/dotchain/dot/ops/pg"
@@ -18,7 +19,7 @@ import (
 func BoltServer(fileName string) http.Handler {
 	store, err := bolt.New(fileName, "dot_root", nil)
 	must(err)
-	store = nw.MemPoller(store)
+	store = ops.Polled(store)
 	return &nw.Handler{Store: store}
 }
 

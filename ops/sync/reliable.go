@@ -19,7 +19,7 @@ import (
 // reliable store. All Append() calls return success immediately with
 // background attempts to deliver/retry.
 //
-// Poll and GetSince are modified to retry up to the specified timeout.
+// GetSince is modified to retry up to the specified timeout.
 //
 // Note: the only options that affects Reliable() are WithBackoff()
 // and WithLog()
@@ -89,27 +89,6 @@ func (r *reliable) deliver(pending []ops.Op) {
 			}
 		}
 	}
-}
-
-func (r *reliable) Poll(ctx context.Context, version int) error {
-	if _, ok := ctx.Deadline(); !ok {
-		ctx2, cancel := context.WithTimeout(ctx, time.Second*30)
-		defer cancel()
-		ctx = ctx2
-	}
-
-	fn := func() error {
-		err := r.Store.Poll(ctx, version)
-		if ctx.Err() != nil {
-			return nil
-		}
-		return err
-	}
-
-	if err := r.retry(ctx, fn); err != nil {
-		r.Log.Println("poll: ", err)
-	}
-	return ctx.Err()
 }
 
 func (r *reliable) GetSince(ctx context.Context, version, limit int) ([]ops.Op, error) {

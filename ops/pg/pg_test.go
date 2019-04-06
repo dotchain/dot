@@ -8,13 +8,14 @@ package pg_test
 import (
 	"context"
 	"database/sql"
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/ops"
 	"github.com/dotchain/dot/ops/nw"
 	"github.com/dotchain/dot/ops/pg"
-	"reflect"
-	"testing"
-	"time"
 )
 
 var sourceName = "user=postgres dbname=dot_test sslmode=disable"
@@ -65,7 +66,7 @@ func TestSimple(t *testing.T) {
 	}
 }
 
-func TestPoll(t *testing.T) {
+func TestGetSinceBlocking(t *testing.T) {
 	defer dropTable()
 	pg.Setup(sourceName)
 	s, err := pg.New(sourceName, "hello", nil)
@@ -80,21 +81,19 @@ func TestPoll(t *testing.T) {
 	}()
 
 	wait, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	before := time.Now()
-	if err := s.Poll(wait, 0); err != nil {
-		t.Error("unexpected error", err)
+	if results, err := s.GetSince(wait, 0, 1000); err != nil || len(results) != 1 {
+		t.Error("unexpected error", err, results)
 	}
-	if time.Since(before) > time.Second*2/3 {
-		t.Error("Waited too long")
+	if wait.Err() != nil {
+		t.Error("Waited timed out", wait.Err())
 	}
 	cancel()
 
-	wait, cancel = context.WithTimeout(context.Background(), time.Second)
-	before = time.Now()
-	if err := s.Poll(wait, 1); err != wait.Err() {
+	wait, cancel = context.WithTimeout(context.Background(), time.Millisecond*100)
+	if _, err := s.GetSince(wait, 1, 1000); err != nil {
 		t.Error("unexpected error", err)
 	}
-	if time.Since(before) < time.Second*2/3 {
+	if wait.Err() == nil {
 		t.Error("Waited too little")
 	}
 	cancel()
