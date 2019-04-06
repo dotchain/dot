@@ -16,7 +16,7 @@ import (
 )
 
 func Example() {
-	store := nw.MemPoller(testops.MemStore(nil))
+	store := ops.Polled(testops.MemStore(nil))
 	defer store.Close()
 	handler := &nw.Handler{Store: store}
 	srv := httptest.NewServer(handler)
@@ -35,11 +35,6 @@ func Example() {
 	}
 	if err := c.Append(ctx, []ops.Op{op2}); err != nil {
 		fmt.Println("Append2", err)
-		return
-	}
-
-	if err := c.Poll(ctx, 1); err != nil {
-		fmt.Println("Poll", err)
 		return
 	}
 

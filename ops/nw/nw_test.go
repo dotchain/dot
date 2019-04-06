@@ -17,8 +17,6 @@ import (
 	"github.com/dotchain/dot/changes/run"
 	"github.com/dotchain/dot/ops"
 	"github.com/dotchain/dot/ops/nw"
-
-	"github.com/dotchain/dot/test/testops"
 )
 
 func newOp(opID, parentID interface{}, ver, basis int, c changes.Change) ops.Operation {
@@ -88,73 +86,8 @@ func TestHeaderPasssing(t *testing.T) {
 	}
 }
 
-func TestPollerStore(t *testing.T) {
-	store := nw.MemPoller(testops.MemStore(nil))
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	defer cancel()
-
-	err := store.Poll(ctx, 0)
-	if err == nil || err != ctx.Err() {
-		t.Error("unexpected poll result", err)
-	}
-
-	ctx, cancel = context.WithTimeout(context.Background(), 100*time.Millisecond)
-	defer cancel()
-
-	// now kick off a go routine to wakeup
-	go func() {
-		time.Sleep(10 * time.Millisecond)
-		op := newOp("ID2", "", 100, -1, run.Run{})
-		_ = store.Append(context.Background(), []ops.Op{op})
-	}()
-
-	err = store.Poll(ctx, 0)
-	if err != nil {
-		t.Error("unexpected poll result", err)
-	}
-}
-
-func TestClosedPollerStore(t *testing.T) {
-	store := nw.MemPoller(testops.MemStore(nil))
-	store.Close()
-
-	err := store.Poll(context.Background(), 0)
-	if err != nil {
-		t.Error("unexpected poll result", err)
-	}
-
-	store = nw.MemPoller(testops.MemStore(nil))
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	defer cancel()
-
-	go func() {
-		time.Sleep(10 * time.Millisecond)
-		store.Close()
-	}()
-
-	err = store.Poll(ctx, 0)
-	if err != nil {
-		t.Error("unexpected poll result", err)
-	}
-}
-
-func TestStoreGetSince(t *testing.T) {
-	operations := []ops.Op{
-		newOp("ID1", "", 100, -1, run.Run{}),
-		newOp("ID2", "", 100, -1, run.Run{}),
-		newOp("ID3", "", 100, -1, run.Run{}),
-	}
-	store := testops.MemStore(operations)
-	defer store.Close()
-
-	result, err := store.GetSince(context.Background(), 0, 1)
-	if err != nil || len(result) != 1 {
-		t.Error("Unexpected results", err, len(result))
-	}
-}
-
 func TestServerErrors(t *testing.T) {
-	store := nw.MemPoller(fakeStore{})
+	store := ops.Polled(fakeStore{})
 	defer store.Close()
 	srv := httptest.NewServer(&nw.Handler{Store: store})
 	defer srv.Close()
@@ -191,10 +124,6 @@ func (f fakeStore) Append(_ context.Context, opx []ops.Op) error {
 func (f fakeStore) GetSince(_ context.Context, version, limit int) ([]ops.Op, error) {
 	unencodeable := []ops.Op{unencodeableOp{}}
 	return unencodeable, errors.New("GetSince error")
-}
-
-func (f fakeStore) Poll(_ context.Context, version int) error {
-	return errors.New("Poll error")
 }
 
 func (f fakeStore) Close() {

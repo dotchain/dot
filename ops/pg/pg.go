@@ -174,6 +174,18 @@ func (s *store) Append(ctx context.Context, ops []ops.Op) error {
 
 // GetSince implements store.GetSince
 func (s *store) GetSince(ctx context.Context, version, limit int) ([]ops.Op, error) {
+	result, err := s.getSince(ctx, version, limit)
+	if len(result) != 0 || err != nil {
+		return result, err
+	}
+	s.poll(ctx, version)
+	if ctx.Err() != nil {
+		return nil, nil
+	}
+	return s.getSince(ctx, version, limit)
+}
+
+func (s *store) getSince(ctx context.Context, version, limit int) ([]ops.Op, error) {
 	cmd := fetchCommand + fmt.Sprintf("LIMIT %d OFFSET %d;", limit, version)
 	rows, err := s.db.QueryContext(ctx, cmd, []byte(s.id))
 	if err != nil {
@@ -185,6 +197,7 @@ func (s *store) GetSince(ctx context.Context, version, limit int) ([]ops.Op, err
 		var op ops.Op
 		err := rows.Scan(&data)
 		if err == nil {
+			data := append([]byte(nil), data...)
 			op, err = s.decode(data)
 		}
 		if err != nil {
@@ -199,18 +212,16 @@ func (s *store) GetSince(ctx context.Context, version, limit int) ([]ops.Op, err
 }
 
 // Poll uses postgres LISTEN to wait get notified on changes.
-func (s *store) Poll(ctx context.Context, version int) error {
+func (s *store) poll(ctx context.Context, version int) {
 	ch := make(chan struct{}, 1)
 	s.lock.Lock()
 	s.waiters = append(s.waiters, ch)
 	s.lock.Unlock()
 	select {
 	case <-ctx.Done():
-		return ctx.Err()
 	case <-ch:
 	case <-time.After(MaxPoll):
 	}
-	return nil
 }
 
 type opdata struct {

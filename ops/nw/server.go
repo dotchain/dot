@@ -67,8 +67,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		res.Error = h.Append(ctx, req.Ops)
 	case "GetSince":
 		res.Ops, res.Error = h.GetSince(ctx, req.Version, req.Limit)
-	case "Poll":
-		res.Error = h.Poll(ctx, req.Version)
 	}
 
 	// do this hack since we can't be sure what error types are possible
