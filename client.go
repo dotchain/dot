@@ -21,6 +21,8 @@ type Session struct {
 	close   func()
 	version int
 	pending []ops.Op
+	x       map[int]ops.Op
+	merge   map[int][]ops.Op
 }
 
 // Close closes the session
@@ -32,6 +34,17 @@ func (s *Session) Close() (version int, pending []ops.Op) {
 	return s.version, s.pending
 }
 
+// Load implements the ops.Cache load interface
+func (s *Session) Load(ver int) (ops.Op, []ops.Op) {
+	return s.x[ver], s.merge[ver]
+}
+
+// Store implements the ops.Cache store interface
+func (s *Session) Store(ver int, op ops.Op, merge []ops.Op) {
+	s.x[ver] = op
+	s.merge[ver] = merge
+}
+
 // Connect creates a fresh session to the provided URL
 func Connect(url string) (*Session, streams.Stream) {
 	return Reconnect(url, -1, nil)
@@ -39,8 +52,8 @@ func Connect(url string) (*Session, streams.Stream) {
 
 // Reconnect creates a session using saved state from a prior session
 func Reconnect(url string, version int, pending []ops.Op) (*Session, streams.Stream) {
-	session := &Session{version: version, pending: pending}
-	store := ops.Transformed(&nw.Client{URL: url}, cache{})
+	session := &Session{nil, version, pending, map[int]ops.Op{}, map[int][]ops.Op{}}
+	store := ops.Transformed(&nw.Client{URL: url}, session)
 	opts := []sync.Option{
 		sync.WithNotify(func(version int, pending []ops.Op) {
 			session.version = version
@@ -57,15 +70,4 @@ func Reconnect(url string, version int, pending []ops.Op) (*Session, streams.Str
 	}
 
 	return session, stream
-}
-
-type cache map[int]interface{}
-
-func (c cache) Load(key interface{}) (interface{}, bool) {
-	v, ok := c[key.(int)]
-	return v, ok
-}
-
-func (c cache) Store(key, value interface{}) {
-	c[key.(int)] = value
 }

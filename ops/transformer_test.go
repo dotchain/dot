@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"reflect"
-	"sync"
 	"testing"
 
 	"github.com/dotchain/dot/changes"
@@ -126,9 +125,9 @@ func TestTransformedOpByOp(t *testing.T) {
 func TestTransformedOpByOpWithCache(t *testing.T) {
 	_, _, items := getBranchedOps()
 	store := MemStore(items)
-	xformed := ops.Transformed(store, &sync.Map{})
+	xformed := ops.Transformed(store, &memCache{})
 	expectedItems, _ := xformed.GetSince(context.Background(), 0, 100)
-	cache := &sync.Map{}
+	cache := &memCache{}
 	for kk, op := range expectedItems {
 		xformed = ops.Transformed(MemStore(items), cache)
 		x, err := xformed.GetSince(context.Background(), kk, 1)
@@ -183,9 +182,30 @@ func (f *failNthGetSince) GetSince(ctx context.Context, version, limit int) ([]o
 
 type nullCache struct{}
 
-func (nc nullCache) Load(key interface{}) (interface{}, bool) {
-	return nil, false
+func (nc nullCache) Load(ver int) (ops.Op, []ops.Op) {
+	return nil, nil
 }
 
-func (nc nullCache) Store(key, value interface{}) {
+func (nc nullCache) Store(key int, op ops.Op, merge []ops.Op) {
+}
+
+type memCache struct {
+	x     map[int]ops.Op
+	merge map[int][]ops.Op
+}
+
+func (mc *memCache) Load(ver int) (ops.Op, []ops.Op) {
+	return mc.x[ver], mc.merge[ver]
+}
+
+func (mc *memCache) Store(ver int, op ops.Op, merge []ops.Op) {
+	if mc.x == nil {
+		mc.x = map[int]ops.Op{}
+		mc.merge = map[int][]ops.Op{}
+	}
+	if _, ok := mc.x[ver]; ok {
+		panic("recalculaed version")
+	}
+	mc.x[ver] = op
+	mc.merge[ver] = merge
 }
