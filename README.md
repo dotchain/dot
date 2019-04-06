@@ -26,11 +26,6 @@ custom data structures with conflict-free merging.
 7. Folding (committed changes on top of uncommitted changes)
 
 
-## Status
-
-The code is almost ready for production, pending a comprehensive
-memory stress tests to confirm there is no leaks.
-
 ## Contents
 1. [Features](#features)
 2. [Status](#status)

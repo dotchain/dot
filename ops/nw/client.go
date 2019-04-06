@@ -100,12 +100,6 @@ func (c *Client) GetSince(ctx context.Context, version, limit int) ([]ops.Op, er
 	return c.call(ctx, &request{"GetSince", nil, version, limit, 0})
 }
 
-// Poll proxies the Poll call over to the url
-func (c *Client) Poll(ctx context.Context, version int) error {
-	_, err := c.call(ctx, &request{"Poll", nil, version, -1, 0})
-	return err
-}
-
 // Close proxies the Close call over to the url
 func (c *Client) Close() {
 }
