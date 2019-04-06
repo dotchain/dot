@@ -33,7 +33,10 @@ func (ss SessionState) Reconnect(serverUrl string, numClients int, wg *sync.Wait
 	result := &Session{stateStream, session}
 
 	last := int32(countStream.Value) / int32(numClients)
+	var l sync.Mutex
 	s.Nextf(session, func() {
+		l.Lock()
+		defer l.Unlock()
 		countStream = countStream.Latest()
 		current := int32(countStream.Value) / int32(numClients)
 		if current > last {
