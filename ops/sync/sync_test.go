@@ -13,11 +13,13 @@ import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/ops"
 	"github.com/dotchain/dot/ops/sync"
+
+	"github.com/dotchain/dot/test/testops"
 )
 
 func TestSync(t *testing.T) {
-	store := MemStore(nil)
-	xformed := ops.Transformed(store, nullCache{})
+	store := testops.MemStore(nil)
+	xformed := ops.Transformed(store, testops.NullCache())
 	l := log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile)
 	opts := []sync.Option{
 		sync.WithLog(l),
@@ -45,13 +47,4 @@ func TestSync(t *testing.T) {
 	if !reflect.DeepEqual(c1ops, expected) {
 		t.Fatal("Unexpected merge", c1ops)
 	}
-}
-
-type nullCache struct{}
-
-func (nc nullCache) Load(ver int) (ops.Op, []ops.Op) {
-	return nil, nil
-}
-
-func (nc nullCache) Store(key int, op ops.Op, merge []ops.Op) {
 }

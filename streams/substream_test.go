@@ -139,7 +139,7 @@ func (s subsuite) ParentAppendOwn(t *testing.T) {
 		parent.Append(pc)
 	}
 	_, nextc := child.Next()
-	if !reflect.DeepEqual(simplify(nextc), c) {
+	if !reflect.DeepEqual(changes.Simplify(nextc), c) {
 		t.Error("append parent didn't do the expected", nextc)
 	}
 
@@ -158,36 +158,4 @@ func (s subsuite) FieldAppend(t *testing.T) {
 	if !reflect.DeepEqual(nextc, changes.PathChange{Path: []interface{}{"boo"}, Change: c}) {
 		t.Error("append parent didn't do the expected", nextc)
 	}
-}
-
-func simplify(c changes.Change) changes.Change {
-	switch c := c.(type) {
-	case nil:
-		return nil
-	case changes.ChangeSet:
-		if len(c) == 0 {
-			return nil
-		}
-		if len(c) == 1 {
-			return simplify(c[0])
-		}
-	case changes.PathChange:
-		if cx := simplify(c.Change); cx == nil {
-			return nil
-		} else {
-			c.Change = cx
-		}
-
-		if len(c.Path) == 0 {
-			return c.Change
-		}
-
-		if pc, ok := c.Change.(changes.PathChange); ok {
-			c.Path = append([]interface{}(nil), c.Path...)
-			c.Path = append(c.Path, pc.Path...)
-			c.Change = pc.Change
-		}
-		return c
-	}
-	return c
 }

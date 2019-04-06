@@ -11,10 +11,12 @@ import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/ops"
 	"github.com/dotchain/dot/ops/nw"
+
+	"github.com/dotchain/dot/test/testops"
 )
 
 func Example() {
-	store := nw.MemPoller(nw.MemStore(nil))
+	store := nw.MemPoller(testops.MemStore(nil))
 	defer store.Close()
 	handler := &nw.Handler{Store: store}
 	srv := httptest.NewServer(handler)

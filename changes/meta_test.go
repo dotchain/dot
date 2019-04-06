@@ -29,7 +29,7 @@ func TestConvergenceMeta(t *testing.T) {
 			if !reflect.DeepEqual(revr, rightx) {
 				t.Error("ReverseMerge", revr, rightx)
 			}
-			if !reflect.DeepEqual(revx, simplify(leftx)) {
+			if !reflect.DeepEqual(revx, changes.Simplify(leftx)) {
 				t.Errorf("ReverseMerge %#v %#v\n", revx, leftx)
 			}
 		}

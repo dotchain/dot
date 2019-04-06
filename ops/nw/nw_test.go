@@ -17,6 +17,8 @@ import (
 	"github.com/dotchain/dot/changes/run"
 	"github.com/dotchain/dot/ops"
 	"github.com/dotchain/dot/ops/nw"
+
+	"github.com/dotchain/dot/test/testops"
 )
 
 func newOp(opID, parentID interface{}, ver, basis int, c changes.Change) ops.Operation {
@@ -87,7 +89,7 @@ func TestHeaderPasssing(t *testing.T) {
 }
 
 func TestPollerStore(t *testing.T) {
-	store := nw.MemPoller(nw.MemStore(nil))
+	store := nw.MemPoller(testops.MemStore(nil))
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
@@ -113,7 +115,7 @@ func TestPollerStore(t *testing.T) {
 }
 
 func TestClosedPollerStore(t *testing.T) {
-	store := nw.MemPoller(nw.MemStore(nil))
+	store := nw.MemPoller(testops.MemStore(nil))
 	store.Close()
 
 	err := store.Poll(context.Background(), 0)
@@ -121,7 +123,7 @@ func TestClosedPollerStore(t *testing.T) {
 		t.Error("unexpected poll result", err)
 	}
 
-	store = nw.MemPoller(nw.MemStore(nil))
+	store = nw.MemPoller(testops.MemStore(nil))
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
@@ -142,7 +144,7 @@ func TestStoreGetSince(t *testing.T) {
 		newOp("ID2", "", 100, -1, run.Run{}),
 		newOp("ID3", "", 100, -1, run.Run{}),
 	}
-	store := nw.MemStore(operations)
+	store := testops.MemStore(operations)
 	defer store.Close()
 
 	result, err := store.GetSince(context.Background(), 0, 1)

@@ -228,7 +228,7 @@ func (c ChangeSet) ApplyTo(ctx Context, v Value) Value {
 func (c ChangeSet) Simplify() Change {
 	var inner Change
 	for _, cx := range c {
-		if cx != nil {
+		if cx = Simplify(cx); cx != nil {
 			if inner != nil {
 				return c
 			}
@@ -271,4 +271,16 @@ func Merge(c1, c2 Change) (c1x, c2x Change) {
 		return c2, c1
 	}
 	return c1.Merge(c2)
+}
+
+// Simplify converts a change to a simpler form if possible
+func Simplify(c Change) Change {
+	if simp, ok := c.(simplifier); ok {
+		return simp.Simplify()
+	}
+	return c
+}
+
+type simplifier interface {
+	Simplify() Change
 }
