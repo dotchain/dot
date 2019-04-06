@@ -47,6 +47,10 @@ func Stream(store ops.Store, opts ...Option) (s streams.Stream, closefn func()) 
 		latest = latest.Append(nil)
 	}
 
+	if len(c.Pending) > 0 {
+		session.write(c.Pending)
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	closed := make(chan struct{})
 
