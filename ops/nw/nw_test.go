@@ -75,8 +75,7 @@ func TestHeaderPasssing(t *testing.T) {
 	srv := httptest.NewServer(handler)
 	defer srv.Close()
 
-	h := http.Header{}
-	h.Set("Zug", "Zug")
+	h := map[string]string{"Zug": "Zug"}
 	c := &nw.Client{URL: srv.URL, Client: srv.Client(), Header: h}
 
 	// ignore error because it is a fake server

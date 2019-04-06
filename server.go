@@ -9,6 +9,7 @@ package dot
 import (
 	"net/http"
 
+	"github.com/dotchain/dot/log"
 	"github.com/dotchain/dot/ops"
 	"github.com/dotchain/dot/ops/bolt"
 	"github.com/dotchain/dot/ops/nw"
@@ -29,6 +30,12 @@ func PostgresServer(sourceName string) http.Handler {
 	store, err := pg.New(sourceName, "dot_root", nil)
 	must(err)
 	return &nw.Handler{Store: store}
+}
+
+// WithLogger updates the logger for server
+func WithLogger(h http.Handler, l log.Log) http.Handler {
+	h.(*nw.Handler).Log = l
+	return h
 }
 
 // CloseServer closes the http.Handler returned by this package

@@ -8,10 +8,10 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"time"
 
+	"github.com/dotchain/dot/log"
 	"github.com/dotchain/dot/ops"
 )
 
@@ -20,13 +20,18 @@ import (
 type Handler struct {
 	ops.Store
 	Codecs map[string]Codec
+	log.Log
 }
 
 // ServeHTTP uses the code to unmarshal a request, apply it and then
 // encode back the response
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if h.Log == nil {
+		h.Log = log.Default()
+	}
+
 	defer func() {
-		ignore(r.Body.Close())
+		h.report("unexpected client close", r.Body.Close())
 	}()
 
 	ct := r.Header.Get("Content-Type")
@@ -38,7 +43,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	codec := codecs[ct]
 	if codec == nil {
-		log.Println("Client used an unknown type", ct)
+		h.Log.Println("Client used an unknown type", ct)
 		http.Error(w, "Invalid content-type", 400)
 		return
 	}
@@ -46,9 +51,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var req request
 	err := codec.Decode(&req, r.Body)
 	if err != nil {
-		log.Println("Decoding error (see https://github.com/dotchain/dot/wiki/Gob-error)")
-		log.Println(err)
-		http.Error(w, err.Error(), 400)
+		http.Error(w, h.codecError(err).Error(), 400)
 		return
 	}
 
@@ -70,25 +73,38 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// do this hack since we can't be sure what error types are possible
-	if res.Error != nil {
-		if res.Error != ctx.Err() {
-			log.Println(req.Name, "failed", res.Error)
-		}
-		res.Error = strError(res.Error.Error())
-	}
+	h.patchResponseError(ctx, &res)
 
 	var buf bytes.Buffer
 	if err := codec.Encode(&res, &buf); err != nil {
-		log.Println("Encoding error (see https://github.com/dotchain/dot/wiki/Gob-error)")
-		log.Println(err)
-
-		http.Error(w, err.Error(), 400)
+		http.Error(w, h.codecError(err).Error(), 400)
 		return
 	}
+
 	w.Header().Add("Content-Type", ct)
-	if _, err := w.Write(buf.Bytes()); err != nil {
-		log.Println("Unexpected write error", err, req.Name, res)
+	_, err = w.Write(buf.Bytes())
+	h.report("Unexpected write error", err)
+}
+
+func (h *Handler) codecError(err error) error {
+	h.Log.Println("Codec error (see https://github.com/dotchain/dot/wiki/Gob-error)")
+	h.Log.Println(err)
+	return err
+}
+
+func (h *Handler) report(msg string, err error) {
+	if err != nil {
+		h.Log.Println(msg, err)
 	}
 }
 
-func ignore(err error) {}
+func (h *Handler) patchResponseError(ctx context.Context, res *response) {
+	// error types are often not registered with encoding/gob and
+	// so fail to get encoded. simply convert them to string errors
+	if res.Error != nil {
+		if res.Error != ctx.Err() {
+			h.Log.Println("failed", res.Error)
+		}
+		res.Error = strError(res.Error.Error())
+	}
+}

@@ -9,103 +9,49 @@ package nw
 import (
 	"bytes"
 	"context"
-	"errors"
-	"log"
+	"io"
 	"net/http"
-	"time"
 
-	"github.com/dotchain/dot/ops"
+	"github.com/dotchain/dot/log"
 )
 
 // Client implements the ops.Store interface by making network calls
 // to the provided Url.  All other fields of the Client are optional.
 type Client struct {
-	URL string
-	*http.Client
-	http.Header
+	URL         string
+	Header      map[string]string
 	ContentType string
 	Codecs      map[string]Codec
+	log.Log
+
+	*http.Client
 }
 
-func (c *Client) call(ctx context.Context, r *request) ([]ops.Op, error) {
-	if deadline, ok := ctx.Deadline(); ok {
-		r.Duration = time.Until(deadline)
-	}
-
+func (c *Client) call(ctx context.Context, r *request, ct string, body []byte) (io.ReadCloser, error) {
 	client := c.Client
 	if client == nil {
 		client = &http.Client{}
 	}
 
-	contentType := c.ContentType
-	if contentType == "" {
-		contentType = "application/x-gob"
-	}
-
-	codecs := c.Codecs
-	if codecs == nil {
-		codecs = DefaultCodecs
-	}
-
-	codec := codecs[contentType]
-	var buf bytes.Buffer
-	err := codec.Encode(r, &buf)
-	if err != nil {
-		log.Println("Encoding error (see https://github.com/dotchain/dot/wiki/Gob-error)")
-		log.Println(err)
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", c.URL, &buf)
+	req, err := http.NewRequest("POST", c.URL, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Add("Content-Type", contentType)
-	for key := range c.Header {
-		req.Header.Add(key, c.Header.Get(key))
+	req.Header.Add("Content-Type", ct)
+	for key, value := range c.Header {
+		req.Header.Add(key, value)
 	}
 
 	resp, err := client.Do(req.WithContext(ctx))
-	if err == nil {
-		defer func() { must(resp.Body.Close()) }()
+	var resultbody io.ReadCloser
+	if resp != nil {
+		resultbody = resp.Body
 	}
 
-	if err != nil || resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if err == nil {
-			err = errors.New(resp.Status)
-		}
-		log.Println("client connect error", err)
-		return nil, err
+	if err == nil && (resp.StatusCode < 200 || resp.StatusCode >= 300) {
+		err = httpStatusError{resp.StatusCode}
 	}
 
-	var res response
-	err = codec.Decode(&res, resp.Body)
-	if err != nil {
-		log.Println("Decoding error (see https://github.com/dotchain/dot/wiki/Gob-error)")
-		log.Println(err)
-		return nil, err
-	}
-	return res.Ops, res.Error
-}
-
-// Append proxies the Append call over to the url
-func (c *Client) Append(ctx context.Context, o []ops.Op) error {
-	_, err := c.call(ctx, &request{"Append", o, -1, -1, 0})
-	return err
-}
-
-// GetSince proxies the GetSince call over to the url
-func (c *Client) GetSince(ctx context.Context, version, limit int) ([]ops.Op, error) {
-	return c.call(ctx, &request{"GetSince", nil, version, limit, 0})
-}
-
-// Close proxies the Close call over to the url
-func (c *Client) Close() {
-}
-
-func must(err error) {
-	if err != nil {
-		log.Println("client unexpected error", err)
-	}
+	return resultbody, err
 }

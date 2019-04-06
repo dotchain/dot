@@ -53,14 +53,15 @@ func Connect(url string) (*Session, streams.Stream) {
 // Reconnect creates a session using saved state from a prior session
 func Reconnect(url string, version int, pending []ops.Op) (*Session, streams.Stream) {
 	session := &Session{nil, version, pending, map[int]ops.Op{}, map[int][]ops.Op{}}
-	store := ops.Transformed(&nw.Client{URL: url}, session)
+	logger := log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile)
+	store := ops.Transformed(&nw.Client{URL: url, Log: logger}, session)
 	opts := []sync.Option{
 		sync.WithNotify(func(version int, pending []ops.Op) {
 			session.version = version
 			session.pending = pending
 		}),
 		sync.WithSession(version, pending),
-		sync.WithLog(log.New(os.Stdout, "C", log.Lshortfile|log.LstdFlags)),
+		sync.WithLog(log.New(os.Stderr, "C", log.Lshortfile|log.LstdFlags)),
 		sync.WithBackoff(rand.Float64, time.Second, time.Minute),
 	}
 	stream, closefn := sync.Stream(store, opts...)
