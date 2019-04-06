@@ -13,8 +13,13 @@ import (
 
 // Config defines the configuration options for synchronization
 type Config struct {
-	// A reliable transformed ops store
+	// A reliable ops store.
 	ops.Store
+
+	// AutoTransform is off by default but can be set to true to
+	// automatically transform the provided store
+	AutoTransform bool
+	ops.Cache
 
 	// Session state
 	Version int
@@ -69,5 +74,16 @@ func WithBackoff(rng func() float64, initial, max time.Duration) Option {
 		c.Backoff.Rand = rng
 		c.Backoff.Initial = initial
 		c.Backoff.Max = max
+	}
+}
+
+// WithAutoTransform specifies that the initial store yields
+// untransformed operations and must be automatically transformed.
+//
+// The cache is required
+func WithAutoTransform(cache ops.Cache) Option {
+	return func(c *Config) {
+		c.AutoTransform = true
+		c.Cache = cache
 	}
 }

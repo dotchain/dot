@@ -45,6 +45,11 @@ func (s *Session) Store(ver int, op ops.Op, merge []ops.Op) {
 	s.merge[ver] = merge
 }
 
+// UpdateVersion updates the version/pending info
+func (s *Session) UpdateVersion(version int, pending []ops.Op) {
+	s.version, s.pending = version, pending
+}
+
 // Connect creates a fresh session to the provided URL
 func Connect(url string) (*Session, streams.Stream) {
 	return Reconnect(url, -1, nil)
@@ -54,17 +59,15 @@ func Connect(url string) (*Session, streams.Stream) {
 func Reconnect(url string, version int, pending []ops.Op) (*Session, streams.Stream) {
 	session := &Session{nil, version, pending, map[int]ops.Op{}, map[int][]ops.Op{}}
 	logger := log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile)
-	store := ops.Transformed(&nw.Client{URL: url, Log: logger}, session)
-	opts := []sync.Option{
-		sync.WithNotify(func(version int, pending []ops.Op) {
-			session.version = version
-			session.pending = pending
-		}),
+	store := &nw.Client{URL: url, Log: logger}
+	stream, closefn := sync.Stream(
+		store,
+		sync.WithNotify(session.UpdateVersion),
 		sync.WithSession(version, pending),
 		sync.WithLog(log.New(os.Stderr, "C", log.Lshortfile|log.LstdFlags)),
 		sync.WithBackoff(rand.Float64, time.Second, time.Minute),
-	}
-	stream, closefn := sync.Stream(store, opts...)
+		sync.WithAutoTransform(session),
+	)
 	session.close = func() {
 		closefn()
 		store.Close()

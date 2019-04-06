@@ -100,8 +100,8 @@ func TestSyncMultipleInFlight(t *testing.T) {
 			flushed <- struct{}{}
 		}
 	}
-	xformed := ops.Transformed(store, testops.NullCache())
-	s, close := sync.Stream(xformed, sync.WithNotify(waitForFlush))
+	auto := sync.WithAutoTransform(testops.NullCache())
+	s, close := sync.Stream(store, sync.WithNotify(waitForFlush), auto)
 	defer close()
 
 	// append a couple of moves
