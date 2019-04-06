@@ -77,6 +77,7 @@ func (t transformer) xform(ctx context.Context, op Op) (Op, []Op, error) {
 	// store, there is no transformation needed
 	gap := version - basis - 1
 	if gap == 0 {
+		t.Cache.Store(version, op, nil)
 		return op, nil, nil
 	}
 

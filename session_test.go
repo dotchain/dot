@@ -4,6 +4,7 @@ package dot_test
 
 import (
 	"database/sql"
+	"log"
 	"net/http/httptest"
 	"os"
 	"sync"
@@ -18,7 +19,8 @@ import (
 func Example_clientServerUsingBoltDB() {
 	defer os.Remove("file.bolt")
 
-	srv := dot.BoltServer("file.bolt")
+	logger := log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile)
+	srv := dot.WithLogger(dot.BoltServer("file.bolt"), logger)
 	defer dot.CloseServer(srv)
 	httpSrv := httptest.NewServer(srv)
 	defer httpSrv.Close()
@@ -51,7 +53,8 @@ func Example_clientServerUsingPostgresDB() {
 	}()
 
 	pg.MaxPoll = time.Second
-	srv := dot.PostgresServer(sourceName)
+	logger := log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile)
+	srv := dot.WithLogger(dot.PostgresServer(sourceName), logger)
 	defer dot.CloseServer(srv)
 	httpSrv := httptest.NewServer(srv)
 	defer httpSrv.Close()

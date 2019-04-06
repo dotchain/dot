@@ -9,9 +9,10 @@ package nw
 import (
 	"bytes"
 	"context"
+	"io"
 	"time"
 
-	"github.com/dotchain/dot/ops"
+	"github.com/dotchain/dot/log"
 	"github.com/gopherjs/gopherjs/js"
 	"honnef.co/go/js/xhr"
 )
@@ -21,58 +22,28 @@ import (
 type Client struct {
 	URL         string
 	ContentType string
+	Header      map[string]string
 	Codecs      map[string]Codec
+	log.Log
 }
 
-func (c *Client) call(ctx context.Context, r *request) ([]ops.Op, error) {
-	if deadline, ok := ctx.Deadline(); ok {
-		r.Duration = time.Until(deadline)
-	}
-
-	contentType := c.ContentType
-	if contentType == "" {
-		contentType = "application/x-gob"
-	}
-
-	codecs := c.Codecs
-	if codecs == nil {
-		codecs = DefaultCodecs
-	}
-
-	codec := codecs[contentType]
-	var buf bytes.Buffer
-	err := codec.Encode(r, &buf)
-	if err != nil {
-		return nil, err
-	}
-
+func (c *Client) call(ctx context.Context, r *request, ct string, body []byte) (io.Reader, error) {
 	req := xhr.NewRequest("POST", c.URL)
 	req.Timeout = int(r.Duration / time.Millisecond)
 	req.ResponseType = xhr.ArrayBuffer
-	req.SetRequestHeader("Content-Type", contentType)
-	if err := req.Send(buf.Bytes()); err != nil {
+	req.SetRequestHeader("Content-Type", ct)
+	for key, value := range c.Header {
+		req.SetRequestHeader(key, value)
+	}
+
+	if err := req.Send(body); err != nil {
 		return nil, err
 	}
 
-	body := js.Global.Get("Uint8Array").New(req.Response).Interface().([]byte)
-	var res response
-	if err := codec.Decode(&res, bytes.NewReader(body)); err != nil {
-		return nil, err
+	if req.Status < 200 || req.Status >= 300 {
+		return nil, httpStatusError{req.Status}
 	}
-	return res.Ops, res.Error
-}
 
-// Append proxies the Append call over to the url
-func (c *Client) Append(ctx context.Context, o []ops.Op) error {
-	_, err := c.call(ctx, &request{"Append", o, -1, -1, 0})
-	return err
-}
-
-// GetSince proxies the GetSince call over to the url
-func (c *Client) GetSince(ctx context.Context, version, limit int) ([]ops.Op, error) {
-	return c.call(ctx, &request{"GetSince", nil, version, limit, 0})
-}
-
-// Close proxies the Close call over to the url
-func (c *Client) Close() {
+	body = js.Global.Get("Uint8Array").New(req.Response).Interface().([]byte)
+	return bytes.NewReader(body), nil
 }
