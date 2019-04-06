@@ -90,11 +90,14 @@ func (s *session) onAppend() {
 	}
 
 	c.Notify(c.Version, c.Pending)
+	s.write(c.Pending[before:len(c.Pending)])
+}
 
+func (s *session) write(pending []ops.Op) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	err := c.Store.Append(ctx, c.Pending[before:len(c.Pending)])
+	err := s.config.Store.Append(ctx, pending)
 	s.must(err, "reliable append failed")
 }
 

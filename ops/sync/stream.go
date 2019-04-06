@@ -18,16 +18,16 @@ type stream struct {
 }
 
 func (s stream) Append(c changes.Change) streams.Stream {
-	defer s.notify()()
 	s.Lock()
+	defer s.notify()()
 	defer s.Unlock()
 	s.inner = s.inner.Append(c)
 	return s
 }
 
 func (s stream) ReverseAppend(c changes.Change) streams.Stream {
-	defer s.notify()()
 	s.Lock()
+	defer s.notify()()
 	defer s.Unlock()
 	s.inner = s.inner.ReverseAppend(c)
 	return s
