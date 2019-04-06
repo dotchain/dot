@@ -31,8 +31,8 @@ func TestPathChangeReverseMergeSimple(t *testing.T) {
 	o := changes.PathChange{nil, changes.Move{1, 1, -1}}
 
 	lx, rx := pc.ReverseMerge(o)
-	lx = simplify(lx)
-	rx = simplify(rx)
+	lx = changes.Simplify(lx)
+	rx = changes.Simplify(rx)
 	if lx != nil || rx != (changes.Replace{Before: S("ba"), After: S("bc")}) {
 		t.Error("Unexpected merge output", lx, rx)
 	}
@@ -43,8 +43,8 @@ func TestPathChangeReverseMergeSimpleEmpty(t *testing.T) {
 	o := changes.Move{1, 1, -1}
 
 	lx, rx := pc.Merge(o)
-	lx = simplify(lx)
-	rx = simplify(rx)
+	lx = changes.Simplify(lx)
+	rx = changes.Simplify(rx)
 
 	if lx != o && rx != nil {
 		t.Error("Reverse merge of empty misbehaved", lx, rx)
@@ -152,10 +152,10 @@ func validateMergeResults(t *testing.T, l, r, lexpected, rexpected changes.Chang
 	validateMergeResults1(t, changes.PathChange{nil, l}, changes.PathChange{nil, r}, lexpected, rexpected)
 	validateMergeResults1(t, changes.PathChange{nil, l}, r, lexpected, rexpected)
 	validateMergeResults1(t, l, changes.PathChange{nil, r}, lexpected, rexpected)
-	lx := simplify(changes.PathChange{Path{"hello"}, lexpected})
-	rx := simplify(changes.PathChange{Path{"hello"}, rexpected})
-	left := simplify(changes.PathChange{Path{"hello"}, l})
-	right := simplify(changes.PathChange{Path{"hello"}, r})
+	lx := changes.Simplify(changes.PathChange{Path{"hello"}, lexpected})
+	rx := changes.Simplify(changes.PathChange{Path{"hello"}, rexpected})
+	left := changes.Simplify(changes.PathChange{Path{"hello"}, l})
+	right := changes.Simplify(changes.PathChange{Path{"hello"}, r})
 	validateMergeResults1(t, left, right, lx, rx)
 	validateMergeResults1(t, changes.PathChange{nil, left}, right, lx, rx)
 	validateMergeResults1(t, changes.ChangeSet{left}, right, lx, rx)
@@ -163,7 +163,7 @@ func validateMergeResults(t *testing.T, l, r, lexpected, rexpected changes.Chang
 
 func validateMergeResults1(t *testing.T, l, r, lexpected, rexpected changes.Change) {
 	lx, rx := l.Merge(r)
-	if !reflect.DeepEqual(simplify(lx), lexpected) || !reflect.DeepEqual(simplify(rx), rexpected) {
+	if !reflect.DeepEqual(changes.Simplify(lx), lexpected) || !reflect.DeepEqual(changes.Simplify(rx), rexpected) {
 		t.Error("Unexpected l, r", lx, rx)
 	}
 
@@ -172,46 +172,14 @@ func validateMergeResults1(t *testing.T, l, r, lexpected, rexpected changes.Chan
 	}
 
 	rx, lx = r.Merge(l)
-	if !reflect.DeepEqual(simplify(lx), lexpected) || !reflect.DeepEqual(simplify(rx), rexpected) {
+	if !reflect.DeepEqual(changes.Simplify(lx), lexpected) || !reflect.DeepEqual(changes.Simplify(rx), rexpected) {
 		t.Error("Unexpected l, r", lx, rx)
 	}
 
 	if rev, ok := r.(changes.Custom); ok {
 		rx, lx := rev.ReverseMerge(l)
-		if !reflect.DeepEqual(simplify(lx), lexpected) || !reflect.DeepEqual(simplify(rx), rexpected) {
+		if !reflect.DeepEqual(changes.Simplify(lx), lexpected) || !reflect.DeepEqual(changes.Simplify(rx), rexpected) {
 			t.Error("Unexpected l, r", lx, rx)
 		}
 	}
-}
-
-func simplify(c changes.Change) changes.Change {
-	switch c := c.(type) {
-	case nil:
-		return nil
-	case changes.ChangeSet:
-		if len(c) == 0 {
-			return nil
-		}
-		if len(c) == 1 {
-			return simplify(c[0])
-		}
-	case changes.PathChange:
-		if cx := simplify(c.Change); cx == nil {
-			return nil
-		} else {
-			c.Change = cx
-		}
-
-		if len(c.Path) == 0 {
-			return c.Change
-		}
-
-		if pc, ok := c.Change.(changes.PathChange); ok {
-			c.Path = append([]interface{}(nil), c.Path...)
-			c.Path = append(c.Path, pc.Path...)
-			c.Change = pc.Change
-		}
-		return c
-	}
-	return c
 }

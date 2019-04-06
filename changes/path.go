@@ -134,3 +134,21 @@ func (pc PathChange) commonPrefixLen(a, b []interface{}) int {
 	}
 	return len(a)
 }
+
+// Simplify returns a simpler version of this change removing empty
+// paths or coalescing paths as needed
+func (pc PathChange) Simplify() Change {
+	cx := Simplify(pc.Change)
+
+	if cx == nil || len(pc.Path) == 0 {
+		return cx
+	}
+
+	pc.Change = cx
+	if c, ok := cx.(PathChange); ok {
+		pc.Path = append([]interface{}(nil), pc.Path...)
+		pc.Path = append(pc.Path, c.Path...)
+		pc.Change = c.Change
+	}
+	return pc
+}
