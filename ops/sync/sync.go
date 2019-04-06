@@ -13,15 +13,20 @@ import (
 	"github.com/dotchain/dot/streams"
 )
 
-// Sync creates a synchronized stream out of a reliable transformed
-// store.
+// Stream converts an ops Store into a stream.
 //
-// Updating the stream locally updates the store and vice-versa. A raw
-// store can be made into a transformed store with Transformed() and
-// made more reliable using Reliable().  Sync does not do either of
-// these automatically
+// Calling Append() on the Stream is asynchronously appended to the
+// Store and remote changes are also automatically merged into the
+// returned stream.
+//
+// Sync works with a Transformed store.  A raw store can be converted
+// to a transformed store using ops.Transformed(rawStore).
 //
 // Additional sync options can be used to configure the behavior
+//
+// The returned close function can be used to shutdown the
+// synchronization but the underlying store still needs to be
+// separately released.
 func Stream(store ops.Store, opts ...Option) (s streams.Stream, closefn func()) {
 	notify := func(version int, pending []ops.Op) {}
 	c := &Config{Store: store, Log: log.Default(), Notify: notify, Version: -1}
@@ -55,6 +60,9 @@ func Stream(store ops.Store, opts ...Option) (s streams.Stream, closefn func()) 
 	closefn = func() {
 		cancel()
 		<-closed
+		// clean up the reliable store only
+		// leaving the original store as is
+		c.Store.(*reliable).cancelDeliver()
 	}
 
 	return latest, closefn

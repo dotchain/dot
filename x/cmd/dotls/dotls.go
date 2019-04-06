@@ -95,40 +95,11 @@ func formatChanges(path []interface{}, c changes.Change, prefix string) string {
 		path = append(append([]interface{}(nil), path...), c.Path...)
 		return formatChanges(path, c.Change, prefix+"  ")
 	case changes.ChangeSet:
-		result := ""
-		for _, cx := range c {
-			if cx != nil {
-				if result != "" {
-					result += ",\n" + prefix
-				}
-				result += formatChanges(path, cx, prefix+"  ")
-			}
-		}
-		return result
+		return formatChangeSet(path, c, prefix)
 	case changes.Splice:
-		if b, ok := c.Before.(types.Counter); ok {
-			a, _ := c.After.(types.Counter)
-			return formatPath(path, fmt.Sprintf("%d", a-b))
-		}
-
-		switch {
-		case c.Before.Count() == 0 && c.After.Count() == 0:
-			return formatPath(path, "<empty splice>")
-		case c.Before.Count() == 0:
-			return formatPath(path, fmt.Sprintf("insert %v at %d", c.After, c.Offset))
-		case c.After.Count() == 0:
-			return formatPath(path, fmt.Sprintf("delete %v at %d", c.Before, c.Offset))
-		}
-		return formatPath(path, fmt.Sprintf("%v => %v at %d", c.Before, c.After, c.Offset))
-
+		return formatSplice(path, c, prefix)
 	case changes.Replace:
-		switch {
-		case c.Before == changes.Nil:
-			return formatPath(path, fmt.Sprintf("set %v", c.After))
-		case c.After == changes.Nil:
-			return formatPath(path, fmt.Sprintf("remove %v", c.Before))
-		}
-		return formatPath(path, fmt.Sprintf("%v => %v", c.Before, c.After))
+		return formatReplace(path, c, prefix)
 	}
 	b, err := json.Marshal(c)
 	if err != nil {
@@ -136,6 +107,46 @@ func formatChanges(path []interface{}, c changes.Change, prefix string) string {
 	}
 
 	return formatPath(path, string(b))
+}
+
+func formatChangeSet(path []interface{}, c changes.ChangeSet, prefix string) string {
+	result := ""
+	for _, cx := range c {
+		if cx != nil {
+			if result != "" {
+				result += ",\n" + prefix
+			}
+			result += formatChanges(path, cx, prefix+"  ")
+		}
+	}
+	return result
+}
+
+func formatSplice(path []interface{}, c changes.Splice, prefix string) string {
+	if b, ok := c.Before.(types.Counter); ok {
+		a, _ := c.After.(types.Counter)
+		return formatPath(path, fmt.Sprintf("%d", a-b))
+	}
+
+	switch {
+	case c.Before.Count() == 0 && c.After.Count() == 0:
+		return formatPath(path, "<empty splice>")
+	case c.Before.Count() == 0:
+		return formatPath(path, fmt.Sprintf("insert %v at %d", c.After, c.Offset))
+	case c.After.Count() == 0:
+		return formatPath(path, fmt.Sprintf("delete %v at %d", c.Before, c.Offset))
+	}
+	return formatPath(path, fmt.Sprintf("%v => %v at %d", c.Before, c.After, c.Offset))
+}
+
+func formatReplace(path []interface{}, c changes.Replace, prefix string) string {
+	switch {
+	case c.Before == changes.Nil:
+		return formatPath(path, fmt.Sprintf("set %v", c.After))
+	case c.After == changes.Nil:
+		return formatPath(path, fmt.Sprintf("remove %v", c.Before))
+	}
+	return formatPath(path, fmt.Sprintf("%v => %v", c.Before, c.After))
 }
 
 func formatPath(path []interface{}, s string) string {

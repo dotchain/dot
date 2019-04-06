@@ -13,6 +13,8 @@ import (
 	"github.com/dotchain/dot/ops"
 )
 
+// Reliable is used by Stream() to work with a reliable store.
+//
 // Reliable takes a store that can fail and converts it to a
 // reliable store. All Append() calls return success immediately with
 // background attempts to deliver/retry.

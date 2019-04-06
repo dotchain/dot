@@ -63,7 +63,7 @@ func WithLog(l log.Log) Option {
 	}
 }
 
-// Backoff configures the binary-exponential backoff settings
+// WithBackoff configures the binary-exponential backoff settings
 func WithBackoff(rng func() float64, initial, max time.Duration) Option {
 	return func(c *Config) {
 		c.Backoff.Rand = rng
