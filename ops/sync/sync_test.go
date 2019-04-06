@@ -49,9 +49,9 @@ func TestSync(t *testing.T) {
 
 type nullCache struct{}
 
-func (nc nullCache) Load(key interface{}) (interface{}, bool) {
-	return nil, false
+func (nc nullCache) Load(ver int) (ops.Op, []ops.Op) {
+	return nil, nil
 }
 
-func (nc nullCache) Store(key, value interface{}) {
+func (nc nullCache) Store(key int, op ops.Op, merge []ops.Op) {
 }

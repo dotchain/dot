@@ -32,6 +32,7 @@ func Stream(store ops.Store, opts ...Option) (s streams.Stream, closefn func()) 
 	c.Store = Reliable(store, opts...)
 
 	session := &session{config: c, stream: streams.New()}
+	session.id = session.newID()
 	session.stream = &stream{streams.New(), map[interface{}]func(){}, &sync.Mutex{}}
 
 	// add fake entries for each pending as an entry is expected

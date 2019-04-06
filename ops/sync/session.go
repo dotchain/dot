@@ -18,6 +18,7 @@ type session struct {
 	sync.Mutex
 	config *Config
 	stream streams.Stream
+	id     interface{}
 }
 
 func (s *session) read(ctx context.Context) {

@@ -15,7 +15,6 @@ import (
 	"log"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/dotchain/dot/changes"
@@ -55,7 +54,7 @@ func main() {
 	defer store.Close()
 
 	if !*raw {
-		store = ops.Transformed(store, &sync.Map{})
+		store = ops.Transformed(store, &cache{map[int]ops.Op{}, map[int][]ops.Op{}})
 	}
 
 	ver := *version
@@ -145,4 +144,18 @@ func formatPath(path []interface{}, s string) string {
 	}
 
 	return fmt.Sprintf("%v: %s", path, s)
+}
+
+type cache struct {
+	x     map[int]ops.Op
+	merge map[int][]ops.Op
+}
+
+func (c cache) Load(ver int) (ops.Op, []ops.Op) {
+	return c.x[ver], c.merge[ver]
+}
+
+func (c cache) Store(ver int, op ops.Op, merge []ops.Op) {
+	c.x[ver] = op
+	c.merge[ver] = merge
 }
