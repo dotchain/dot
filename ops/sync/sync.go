@@ -19,10 +19,10 @@ import (
 // Store and remote changes are also automatically merged into the
 // returned stream.
 //
-// Sync works with a Transformed store.  A raw store can be converted
-// to a transformed store using ops.Transformed(rawStore).
+// Sync works with a Transformed store.  A raw store can be auto
+// transformed via the WithAutoTransform option.
 //
-// Additional sync options can be used to configure the behavior
+// Additional sync options can be used to configure the behavior.
 //
 // The returned close function can be used to shutdown the
 // synchronization but the underlying store still needs to be
@@ -34,7 +34,10 @@ func Stream(store ops.Store, opts ...Option) (s streams.Stream, closefn func()) 
 	for _, opt := range opts {
 		opt(c)
 	}
-	c.Store = Reliable(store, opts...)
+	if c.AutoTransform {
+		c.Store = ops.Transformed(c.Store, c.Cache)
+	}
+	c.Store = Reliable(c.Store, opts...)
 
 	session := &session{config: c, stream: streams.New()}
 	session.id = session.newID()
