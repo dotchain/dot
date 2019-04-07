@@ -83,7 +83,7 @@ func Client(stop chan struct{}, render func(*TodoListStream)) {
 	url := "http://localhost:8080/dot/"
 	version, pending, todos := SavedSession()
 
-	session, s := dot.Reconnect(url, version, pending)
+	session, s, _ := dot.Reconnect(url, version, pending)
 	todosStream := &TodoListStream{Stream: s, Value: todos}
 
 	// save session before shutdown

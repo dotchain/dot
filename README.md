@@ -28,8 +28,7 @@ custom data structures with conflict-free merging.
 
 ## Contents
 1. [Features](#features)
-2. [Status](#status)
-3. [TODO Example](#todo-example)
+2. [TODO Example](#todo-example)
     1. [Server](#server)
     2. [Types](#types)
     3. [Type registration](#type-registration)
@@ -40,7 +39,7 @@ custom data structures with conflict-free merging.
     8. [Client connection](#client-connection)
     9. [Running the demo](#running-the-demo)
     10. [In browser demo](#in-browser-demo)
-4. [How it all works](#how-it-all-works)
+3. [How it all works](#how-it-all-works)
     1. [Applying changes](#applying-changes)
     2. [Applying changes with streams](#applying-changes-with-streams)
     3. [Composition of changes](#composition-of-changes)
@@ -51,8 +50,8 @@ custom data structures with conflict-free merging.
     8. [Branching of streams](#branching-of-streams)
     9. [References](#references)
     10. [Network synchronization and server](#network-synchronization-and-server)
-5. [Broad Issues](#broad-issues)
-6. [Contributing](#contributing)
+4. [Broad Issues](#broad-issues)
+5. [Contributing](#contributing)
 
 ## TODO Example
 
@@ -699,18 +698,14 @@ build one rather easily
 
 ## Broad Issues
 
-1. Add changes.Canonical to remove empty changes or empty path in PathChange
-2. changes.Context/changes.Meta are not fully integrated
-3. streams.Async forces code complexity
-    1. streams/undo does not work well with streams.Async
-    2. ops/nw has odd signatures because of async
-4. gob-encoding makes it harder to deal with other languages but JSON
+1. changes.Context/changes.Meta are not fully integrated
+2. gob-encoding makes it harder to deal with other languages but JSON
 encodindg wont work with interfaces.
-5. Cross-object merging and persisted branches need more platform support
-6. Full rich-text support with collaborative cursors still needs work
+3. Cross-object merging and persisted branches need more platform support
+4. Full rich-text support with collaborative cursors still needs work
 with references and reference containers
-7. Code generation can infer types from regular go declarations
-8. Snapshots and transient states
+5. Code generation can infer types from regular go declarations
+6. Snapshots and transient states
 
 ## Contributing
 

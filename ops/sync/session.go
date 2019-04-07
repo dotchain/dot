@@ -52,10 +52,12 @@ func (s *session) onStoreOps(operations []ops.Op) int {
 	defer s.stream.Nextf(s, s.onAppend)
 
 	c := s.config
+	before := c.Version
 	for _, op := range operations {
 		if op.Version() != c.Version+1 {
 			s.must(verMismatchError{op.Version(), c.Version + 1}, "")
 		}
+
 		c.Version++
 		if len(c.Pending) > 0 && c.Pending[0].ID() == op.ID() {
 			c.Pending = c.Pending[1:]
@@ -65,7 +67,9 @@ func (s *session) onStoreOps(operations []ops.Op) int {
 		}
 	}
 
-	c.Notify(c.Version, c.Pending)
+	if c.Version > before {
+		c.Notify(c.Version, c.Pending)
+	}
 	return c.Version
 }
 
@@ -87,8 +91,10 @@ func (s *session) onAppend() {
 		c.Pending = append(c.Pending, op)
 	}
 
-	c.Notify(c.Version, c.Pending)
-	s.write(c.Pending[before:len(c.Pending)])
+	if len(c.Pending) > before {
+		c.Notify(c.Version, c.Pending)
+		s.write(c.Pending[before:len(c.Pending)])
+	}
 }
 
 func (s *session) write(pending []ops.Op) {
