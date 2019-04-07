@@ -17,7 +17,7 @@ func (my MyStruct) get(key interface{}) changes.Value {
 	case "s":
 		return types.S16(my.str)
 	case "count":
-		return changes.Atomic{my.Count}
+		return changes.Atomic{int(my.Count)}
 	}
 	panic(key)
 }
@@ -32,7 +32,7 @@ func (my MyStruct) set(key interface{}, v changes.Value) changes.Value {
 	case "s":
 		myClone.str = string((v).(types.S16))
 	case "count":
-		myClone.Count = (v).(changes.Atomic).Value.(int)
+		myClone.Count = int32((v).(changes.Atomic).Value.(int))
 	}
 	return myClone
 }
@@ -59,8 +59,8 @@ func (my MyStruct) setStr(value string) MyStruct {
 	return my.Apply(nil, myChange).(MyStruct)
 }
 
-func (my MyStruct) SetCount(value int) MyStruct {
-	myReplace := changes.Replace{changes.Atomic{my.Count}, changes.Atomic{value}}
+func (my MyStruct) SetCount(value int32) MyStruct {
+	myReplace := changes.Replace{changes.Atomic{int(my.Count)}, changes.Atomic{int(value)}}
 	myChange := changes.PathChange{[]interface{}{"count"}, myReplace}
 	return my.Apply(nil, myChange).(MyStruct)
 }
@@ -115,5 +115,5 @@ func (s *MyStructStream) str() *streams.S16 {
 	return &streams.S16{Stream: streams.Substream(s.Stream, "s"), Value: s.Value.str}
 }
 func (s *MyStructStream) Count() *streams.Int {
-	return &streams.Int{Stream: streams.Substream(s.Stream, "count"), Value: s.Value.Count}
+	return &streams.Int{Stream: streams.Substream(s.Stream, "count"), Value: int(s.Value.Count)}
 }
