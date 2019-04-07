@@ -27,7 +27,7 @@ type SessionState struct {
 
 // Reconnnect creates a new session from this state
 func (ss SessionState) Reconnect(serverUrl string, numClients int, wg *sync.WaitGroup) *Session {
-	session, s := dot.Reconnect("http://localhost:8083/stress/", ss.Version-1, ss.Pending)
+	session, s, _ := dot.Reconnect("http://localhost:8083/stress/", ss.Version-1, ss.Pending)
 	stateStream := &StateStream{Stream: s, Value: ss.State}
 	countStream := stateStream.Count()
 	result := &Session{stateStream, session}
