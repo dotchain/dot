@@ -22,7 +22,7 @@ import (
 )
 
 func TestSyncFromScratch(t *testing.T) {
-	store := testops.MemStore(nil)
+	store := ops.Polled(testops.MemStore(nil))
 	c1, close1 := stream(store, -1, nil)
 	c2, close2 := stream(store, -1, nil)
 	defer store.Close()
@@ -39,14 +39,14 @@ func TestSyncFromScratch(t *testing.T) {
 }
 
 func TestSyncReconnect(t *testing.T) {
-	store := testops.MemStore([]ops.Op{
+	store := ops.Polled(testops.MemStore([]ops.Op{
 		ops.Operation{
 			OpID:    "one",
 			VerID:   0,
 			BasisID: -1,
 			Change:  changes.Splice{Offset: 5, Before: types.S8(" "), After: types.S8("--")},
 		},
-	})
+	}))
 
 	pending := ops.Operation{OpID: "two", VerID: 0, BasisID: 0}
 	pending.Change = changes.Splice{Offset: 15, Before: types.S8(" "), After: types.S8("")}
@@ -85,13 +85,18 @@ func TestSyncReconnect(t *testing.T) {
 }
 
 func TestSyncMultipleInFlight(t *testing.T) {
-	store := testops.MemStore([]ops.Op{
-		ops.Operation{
-			OpID:    "one",
-			VerID:   0,
-			BasisID: -1,
-			Change:  changes.Move{Offset: 100, Count: 101, Distance: 102},
-		},
+	// store is special -- it does not return any entries
+	// until ops count = 3
+	store := ops.Polled(blockedStore{
+		testops.MemStore([]ops.Op{
+			ops.Operation{
+				OpID:    "one",
+				VerID:   0,
+				BasisID: -1,
+				Change:  changes.Move{Offset: 100, Count: 101, Distance: 102},
+			},
+		}),
+		3,
 	})
 
 	flushed := make(chan struct{}, 100)
@@ -104,21 +109,21 @@ func TestSyncMultipleInFlight(t *testing.T) {
 	s, close := sync.Stream(store, sync.WithNotify(waitForFlush), auto)
 	defer close()
 
-	// append a couple of moves
+	// append a couple of moves, bumping up the ops count to 3
 	s = s.Append(changes.Move{Offset: 1, Count: 2, Distance: 3})
 	s = s.Append(changes.Move{Offset: 10, Count: 11, Distance: 12})
 
+	// so things should get flushed properly at this point
+	<-flushed
+
 	// receive the original Move
-	s, c := next(s)
+	s, c := s.Next()
 	if c != (changes.Move{Offset: 100, Count: 101, Distance: 102}) {
 		t.Fatal("Unexpected change", c)
 	}
 
-	// now wait till pending is flushed and then append one more
-	<-flushed
+	// then append one more and wait til it gets flushed
 	s.Append(changes.Move{Offset: 1000, Count: 1000, Distance: 1000})
-
-	// wait for this to be flushed as well
 	<-flushed
 
 	// now confirm with the store that these operations have the
@@ -217,4 +222,19 @@ func (f fakeStore) Poll(ctx context.Context, version int) error {
 }
 
 func (f fakeStore) Close() {
+}
+
+// blockedStore does not return any values for GetSince until
+// a specific number of messages is reached
+type blockedStore struct {
+	ops.Store
+	count int
+}
+
+func (b blockedStore) GetSince(ctx context.Context, version, limit int) ([]ops.Op, error) {
+	result, err := b.Store.GetSince(ctx, version, limit)
+	if err != nil || version != 0 || limit < b.count || len(result) >= b.count {
+		return result, err
+	}
+	return nil, nil
 }

@@ -50,10 +50,10 @@ func TestClosedPolledStore(t *testing.T) {
 		store.Close()
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 	_, err := store.GetSince(ctx, 0, 1000)
-	if err != nil {
+	if err != nil || ctx.Err() != nil {
 		t.Error("unexpected poll result", err)
 	}
 }
