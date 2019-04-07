@@ -6,7 +6,6 @@ package sync
 
 import (
 	"context"
-	"sync"
 
 	"github.com/dotchain/dot/log"
 	"github.com/dotchain/dot/ops"
@@ -41,7 +40,7 @@ func Stream(store ops.Store, opts ...Option) (s streams.Stream, closefn func()) 
 
 	session := &session{config: c, stream: streams.New()}
 	session.id = session.newID()
-	session.stream = &stream{streams.New(), map[interface{}]func(){}, &sync.Mutex{}}
+	session.stream = SafeStream()
 
 	// add fake entries for each pending as an entry is expected
 	// per pending request. See the ack behavior in session.read

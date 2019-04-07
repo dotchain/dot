@@ -17,7 +17,7 @@ import (
 )
 
 func Example_clientServerUsingBoltDB() {
-	defer os.Remove("file.bolt")
+	defer remove("file.bolt")()
 
 	logger := log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile)
 	srv := dot.WithLogger(dot.BoltServer("file.bolt"), logger)
@@ -74,4 +74,15 @@ func Example_clientServerUsingPostgresDB() {
 	wg.Wait()
 
 	// Output:
+}
+
+func remove(fname string) func() {
+	if err := os.Remove(fname); err != nil {
+		log.Println("Couldnt remove file", fname)
+	}
+	return func() {
+		if err := os.Remove(fname); err != nil {
+			log.Println("Couldnt remove file", fname)
+		}
+	}
 }

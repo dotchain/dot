@@ -11,6 +11,11 @@ import (
 	"github.com/dotchain/dot/streams"
 )
 
+// SafeStream returns a stream that is safe for concurrent access
+func SafeStream() streams.Stream {
+	return &stream{streams.New(), map[interface{}]func(){}, &sync.Mutex{}}
+}
+
 type stream struct {
 	inner streams.Stream
 	fns   map[interface{}]func()
