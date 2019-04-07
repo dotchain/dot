@@ -132,19 +132,19 @@ func TestStreamMyStructStreamCount(t *testing.T) {
 	s := streams.New()
 	values := valuesForMyStructStream()
 	strong := &MyStructStream{Stream: s, Value: values[0]}
-	expected := strong.Value.Count
+	expected := int(strong.Value.Count)
 	if !reflect.DeepEqual(expected, strong.Count().Value) {
 		t.Error("Substream returned unexpected value", strong.Count().Value)
 	}
 
 	child := strong.Count()
 	for kk := range values {
-		child = child.Update(values[kk].Count)
+		child = child.Update(int(values[kk].Count))
 		strong = strong.Latest()
-		if !reflect.DeepEqual(child.Value, values[kk].Count) {
+		if !reflect.DeepEqual(child.Value, int(values[kk].Count)) {
 			t.Error("updating child didn't  take effect", child.Value)
 		}
-		if !reflect.DeepEqual(child.Value, strong.Value.Count) {
+		if !reflect.DeepEqual(child.Value, int(strong.Value.Count)) {
 			t.Error("updating child didn't  take effect", child.Value)
 		}
 	}

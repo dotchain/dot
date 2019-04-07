@@ -64,7 +64,9 @@ func (info Info) Generate() (result string, err error) {
 
 	result = string(p)
 	p, err = imports.Process("generated.go", p, nil)
-	return string(p), err
+	must(err)
+
+	return string(p), nil
 }
 
 // GenerateTests generates the tests
@@ -104,7 +106,9 @@ func (info Info) GenerateTests() (result string, err error) {
 
 	result = string(p)
 	p, err = imports.Process("generated_test.go", p, nil)
-	return string(p), err
+	must(err)
+
+	return string(p), nil
 }
 
 var infoTpl = template.Must(template.New("imports").Parse(`

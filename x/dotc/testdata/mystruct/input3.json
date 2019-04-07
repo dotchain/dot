@@ -23,8 +23,12 @@
 		{
 			"Name": "Count",
 			"Key": "count",
-			"Type": "int",
-			"Atomic": false
+			"Type": "int32",
+		    	"Atomic": false,
+			"ToValueFmt": "changes.Atomic{int(%s)}%.s",
+			"FromValueFmt": "int32((%s).(changes.Atomic).Value.(int))%.s",
+			"FromStreamValueFmt": "int(%s)%.s",
+			"ToStreamFmt": "streams.Int%.s"
 		}
 	]
 }

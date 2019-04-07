@@ -26,7 +26,7 @@ type MyStruct struct {
 	boop  *bool
 	str   string
 	Str16 types.S16
-	Count int
+	Count int32
 }
 
 type boolStream struct {
