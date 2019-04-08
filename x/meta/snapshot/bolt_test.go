@@ -48,8 +48,8 @@ func Example_clientServerUsingBoltDB() {
 	updates, metas := bolt.NewSession(url)
 
 	// make a couple of changes
-	c1 := changes.Replace{changes.Nil, types.S8("hello")}
-	c2 := changes.Replace{types.S8("hello"), types.S8("hello2")}
+	c1 := changes.Replace{Before: changes.Nil, After: types.S8("hello")}
+	c2 := changes.Replace{Before: types.S8("hello"), After: types.S8("hello2")}
 	updates.Append(c1).Append(c2)
 
 	// wait till version = 1 (i.e. version 0 => c1, version 1 => c2)
