@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/dotchain/dot/log"
@@ -21,14 +22,18 @@ type Handler struct {
 	ops.Store
 	Codecs map[string]Codec
 	log.Log
+
+	once sync.Once
 }
 
 // ServeHTTP uses the code to unmarshal a request, apply it and then
 // encode back the response
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if h.Log == nil {
-		h.Log = log.Default()
-	}
+	h.once.Do(func() {
+		if h.Log == nil {
+			h.Log = log.Default()
+		}
+	})
 
 	defer func() {
 		h.report("unexpected client close", r.Body.Close())
