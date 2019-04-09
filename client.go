@@ -8,6 +8,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	gosync "sync"
 	"time"
 
 	"github.com/dotchain/dot/changes"
@@ -25,6 +26,8 @@ type Session struct {
 	pending []ops.Op
 	x       map[int]ops.Op
 	merge   map[int][]ops.Op
+
+	gosync.Mutex
 }
 
 // Close closes the session
@@ -52,6 +55,9 @@ func (s *Session) makeChange(before, after interface{}, path ...interface{}) cha
 
 // Store implements the ops.Cache store interface
 func (s *Session) Store(ver int, op ops.Op, merge []ops.Op) {
+	s.Lock()
+	defer s.Unlock()
+
 	s.meta = s.meta.Append(changes.ChangeSet{
 		s.makeChange(nil, op, "TransformedOp", ver),
 		s.makeChange(nil, merge, "MergeOps", ver),
@@ -61,6 +67,9 @@ func (s *Session) Store(ver int, op ops.Op, merge []ops.Op) {
 
 // UpdateVersion updates the version/pending info
 func (s *Session) UpdateVersion(version int, pending []ops.Op) {
+	s.Lock()
+	defer s.Unlock()
+
 	s.meta = s.meta.Append(changes.ChangeSet{
 		s.makeChange(s.version, version, "Version"),
 		s.makeChange(s.pending, pending, "Pending"),
@@ -99,7 +108,7 @@ func Connect(url string) (*Session, streams.Stream) {
 // See x/meta for an example of how to use this.
 func Reconnect(url string, version int, pending []ops.Op) (session *Session, updates, meta streams.Stream) {
 	meta = sync.SafeStream()
-	session = &Session{meta, nil, version, pending, map[int]ops.Op{}, map[int][]ops.Op{}}
+	session = &Session{meta, nil, version, pending, map[int]ops.Op{}, map[int][]ops.Op{}, gosync.Mutex{}}
 	logger := log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile)
 	store := &nw.Client{URL: url, Log: logger}
 	stream, closefn := sync.Stream(
