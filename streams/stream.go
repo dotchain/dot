@@ -63,7 +63,11 @@
 // types for structs, slices and unions.
 package streams
 
-import "github.com/dotchain/dot/changes"
+import (
+	"sync"
+
+	"github.com/dotchain/dot/changes"
+)
 
 // Stream is an immutable type to track a sequence of changes.
 //
@@ -84,10 +88,6 @@ import "github.com/dotchain/dot/changes"
 // This list can be traversed via the Next() method.  The Nextf method
 // sets up a listener (or clears it) so that it can be used to listen
 // for changes that have not been made yet.
-//
-// Concurrency
-//
-// Streams are generally not safe for concurrent access.
 //
 // Branching
 //
@@ -133,16 +133,20 @@ type Stream interface {
 // New returns a new Stream
 func New() Stream {
 	fns := map[interface{}]func(){}
-	return &stream{fns: fns}
+	return &stream{fns: fns, Mutex: &sync.Mutex{}}
 }
 
 type stream struct {
 	c    changes.Change
 	next *stream
 	fns  map[interface{}]func()
+	*sync.Mutex
 }
 
 func (s *stream) Next() (Stream, changes.Change) {
+	s.Lock()
+	defer s.Unlock()
+
 	if s.next == nil {
 		return nil, nil
 	}
@@ -150,16 +154,13 @@ func (s *stream) Next() (Stream, changes.Change) {
 }
 
 func (s *stream) Nextf(key interface{}, fn func()) {
+	s.Lock()
 	if fn == nil {
 		delete(s.fns, key)
 	} else {
 		s.fns[key] = fn
-		for next := s.next; next != nil; next = next.next {
-			if fn := s.fns[key]; fn != nil {
-				fn()
-			}
-		}
 	}
+	s.Unlock()
 }
 
 func (s *stream) Append(c changes.Change) Stream {
@@ -171,19 +172,32 @@ func (s *stream) ReverseAppend(c changes.Change) Stream {
 }
 
 func (s *stream) apply(c changes.Change, reverse bool) *stream {
-	result := &stream{fns: s.fns}
+	s.Lock()
+	defer s.notify()()
+	defer s.Unlock()
+	result := &stream{fns: s.fns, Mutex: s.Mutex}
 	next := result
 	for s.next != nil {
 		c, next.c = s.merge(s.c, c, reverse)
 		s = s.next
-		next.next = &stream{fns: s.fns}
+		next.next = &stream{fns: s.fns, Mutex: s.Mutex}
 		next = next.next
 	}
 	s.c, s.next = c, next
-	for _, fn := range s.fns {
-		fn()
-	}
 	return result
+}
+
+func (s *stream) notify() func() {
+	fns := make([]func(), 0, len(s.fns))
+	for _, fn := range s.fns {
+		fns = append(fns, fn)
+	}
+
+	return func() {
+		for _, fn := range fns {
+			fn()
+		}
+	}
 }
 
 func (s *stream) merge(left, right changes.Change, reverse bool) (lx, rx changes.Change) {

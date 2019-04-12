@@ -52,41 +52,35 @@ func TestStream(t *testing.T) {
 }
 
 func TestBranch(t *testing.T) {
-	initial := S("")
-	v := changes.Value(initial)
-
-	var latest streams.Stream
-	ev := func() {
-		var c changes.Change
-		latest, c = latest.Next()
-		v = v.Apply(nil, c)
-	}
+	initial := types.S8("")
 	s := streams.New()
-	latest = s
-	s.Nextf("boo", ev)
-	defer s.Nextf("boo", nil)
-	s = s.Append(changes.Replace{Before: changes.Nil, After: S("Hello World")})
+	s1 := s.Append(changes.Replace{Before: changes.Nil, After: types.S8("Hello World")})
 
-	child := streams.Branch(s)
-	child1 := child.Append(changes.Splice{Offset: 0, Before: S(""), After: S("OK ")})
-	if v != S("Hello World") {
+	child := streams.Branch(s1)
+	cInitial := types.S8("Hello World")
+
+	child1 := child.Append(changes.Splice{Before: types.S8(""), After: types.S8("OK ")})
+
+	_, c := streams.Latest(s)
+	if v := initial.Apply(nil, c); v != types.S8("Hello World") {
 		t.Fatal("Unexpected branch updated", v)
 	}
-	s = s.Append(changes.Splice{Offset: 0, Before: S(""), After: S("Oh ")})
-	s.Append(changes.Splice{Offset: len("Oh Hello World"), Before: S(""), After: S("!")})
+
+	s2 := s1.Append(changes.Splice{Offset: 0, Before: S(""), After: S("Oh ")})
+	s2.Append(changes.Splice{Offset: len("Oh Hello World"), Before: S(""), After: S("!")})
 
 	streams.Push(child)
-	if v != S("Oh OK Hello World!") {
+
+	_, c = streams.Latest(s)
+	if v := initial.Apply(nil, c); v != types.S8("Oh OK Hello World!") {
 		t.Fatal("Unexpected branch updated", v)
 	}
 
 	child1.Append(changes.Splice{Offset: len("OK Hello World"), Before: S(""), After: S("**")})
 	streams.Pull(child)
-	v = changes.Value(S("Hello World"))
-	latest = child
-	child.Nextf("boq", ev)
-	child.Nextf("boq", nil)
-	if v != S("Oh OK Hello World!**") {
+
+	_, c = streams.Latest(child)
+	if v := cInitial.Apply(nil, c); v != types.S8("Oh OK Hello World!**") {
 		t.Fatal("Unexpected branch updated", v)
 	}
 }
