@@ -94,11 +94,11 @@ func (r *reliable) deliver(pending []ops.Op) {
 func (r *reliable) GetSince(ctx context.Context, version, limit int) ([]ops.Op, error) {
 	var result []ops.Op
 	fn := func() error {
-		r, err := r.Store.GetSince(ctx, version, limit)
-		if err == nil && len(r) == 0 {
+		rops, err := r.Store.GetSince(ctx, version, limit)
+		if err == nil && len(rops) == 0 {
 			return errors.New("retrying on empty result")
 		}
-		result = r
+		result = rops
 		return err
 	}
 

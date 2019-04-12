@@ -7,7 +7,10 @@ import (
 	"log"
 	"net/http/httptest"
 	"os"
+	"os/signal"
+	"runtime"
 	"sync"
+	"syscall"
 	"testing"
 
 	"github.com/dotchain/dot"
@@ -31,10 +34,28 @@ func TestInvalidFile(t *testing.T) {
 	b.NewSession("")
 }
 
+func dumpCallStack() func() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		if sig := <-c; sig != nil {
+			stacktrace := make([]byte, 8192)
+			length := runtime.Stack(stacktrace, true)
+			log.Println(string(stacktrace[:length]))
+			os.Exit(1)
+		}
+	}()
+	return func() {
+		signal.Stop(c)
+		close(c)
+	}
+}
+
 func Example_clientServerUsingBoltDB() {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 
+	defer dumpCallStack()()
 	defer remove("file.bolt")()
 	defer remove("snap.bolt")()
 

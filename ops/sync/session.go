@@ -28,11 +28,7 @@ func (s *session) read(ctx context.Context) {
 	c, ver := s.config, s.config.Version
 	for err == nil {
 		operations, err = c.Store.GetSince(ctx, ver+1, 1000)
-		if err != nil {
-			break
-		}
-
-		if len(operations) > 0 {
+		if err == nil && len(operations) > 0 {
 			ver = s.onStoreOps(operations)
 		}
 	}

@@ -74,7 +74,7 @@ func reconnect(url string, m meta.Data) (closer func(), updates, metas streams.S
 	}
 	m.MergeOps = merge
 
-	metas = sync.SafeStream()
+	metas = streams.New()
 	s := &session{Stream: metas, Data: m}
 	logger := log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile)
 	store := &nw.Client{URL: url, Log: logger}

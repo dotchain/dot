@@ -107,7 +107,7 @@ func Connect(url string) (*Session, streams.Stream) {
 //
 // See x/meta for an example of how to use this.
 func Reconnect(url string, version int, pending []ops.Op) (session *Session, updates, meta streams.Stream) {
-	meta = sync.SafeStream()
+	meta = streams.New()
 	session = &Session{meta, nil, version, pending, map[int]ops.Op{}, map[int][]ops.Op{}, gosync.Mutex{}}
 	logger := log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile)
 	store := &nw.Client{URL: url, Log: logger}
