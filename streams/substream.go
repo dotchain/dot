@@ -58,7 +58,7 @@ func (s *substream) Next() (Stream, changes.Change) {
 }
 
 func (s *substream) Nextf(key interface{}, fn func()) {
-	if key == nil || s.ref != refs.InvalidRef {
+	if fn == nil || s.ref != refs.InvalidRef {
 		s.parent.Nextf(key, fn)
 	}
 }
