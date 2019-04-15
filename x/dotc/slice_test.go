@@ -18,6 +18,7 @@ func TestSliceGenerateApply(t *testing.T) {
 
 func genSlices(s []dotc.Slice) (string, error) {
 	info := dotc.Info{Package: "myslice", Slices: s}
+	info.SliceStreams = info.Slices
 	code, err := info.Generate()
 	if err != nil {
 		logErrorContext(err, code)
@@ -27,6 +28,7 @@ func genSlices(s []dotc.Slice) (string, error) {
 
 func genSlicesTests(s []dotc.Slice) (string, error) {
 	info := dotc.Info{Package: "myslice", Slices: s}
+	info.SliceStreams = info.Slices
 	code, err := info.GenerateTests()
 	if err != nil {
 		logErrorContext(err, code)

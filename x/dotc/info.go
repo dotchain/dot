@@ -14,11 +14,14 @@ import (
 
 // Info tracks all information used for code generation
 type Info struct {
-	Package string
-	Imports [][2]string
-	Structs []Struct
-	Unions  []Union
-	Slices  []Slice
+	Package       string
+	Imports       [][2]string
+	Structs       []Struct
+	Unions        []Union
+	Slices        []Slice
+	StructStreams []Struct
+	UnionStreams  []Union
+	SliceStreams  []Slice
 }
 
 // Generate implements the helper methods for the provided types
@@ -43,18 +46,27 @@ func (info Info) Generate() (result string, err error) {
 	for _, s := range info.Structs {
 		must(s.GenerateApply(&buf))
 		must(s.GenerateSetters(&buf))
+	}
+
+	for _, s := range info.StructStreams {
 		must(StructStream(s).GenerateStream(&buf))
 	}
 
 	for _, u := range info.Unions {
 		must(u.GenerateApply(&buf))
 		must(u.GenerateSetters(&buf))
+	}
+
+	for _, u := range info.UnionStreams {
 		must(UnionStream(u).GenerateStream(&buf))
 	}
 
 	for _, s := range info.Slices {
 		must(s.GenerateApply(&buf))
 		must(s.GenerateSetters(&buf))
+	}
+
+	for _, s := range info.SliceStreams {
 		must(SliceStream(s).GenerateStream(&buf))
 	}
 

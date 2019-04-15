@@ -13,6 +13,7 @@ import (
 )
 
 func main() {
+	info.StructStreams = info.Structs
 	code, err := info.Generate()
 	if err != nil {
 		panic(err)
