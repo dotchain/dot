@@ -26,6 +26,7 @@ func TestStructGenerateApply(t *testing.T) {
 
 func genStruct(s dotc.Struct) (string, error) {
 	info := dotc.Info{Package: "mystruct", Structs: []dotc.Struct{s}}
+	info.StructStreams = info.Structs
 	code, err := info.Generate()
 	if err != nil {
 		logErrorContext(err, code)
@@ -35,6 +36,7 @@ func genStruct(s dotc.Struct) (string, error) {
 
 func genStructTests(s dotc.Struct) (string, error) {
 	info := dotc.Info{Package: "mystruct", Structs: []dotc.Struct{s}}
+	info.StructStreams = info.Structs
 	code, err := info.GenerateTests()
 	if err != nil {
 		logErrorContext(err, code)

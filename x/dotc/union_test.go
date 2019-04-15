@@ -20,6 +20,7 @@ func TestUnionGenerateApply(t *testing.T) {
 
 func genUnion(s dotc.Union) (string, error) {
 	info := dotc.Info{Package: "myunion", Unions: []dotc.Union{s}}
+	info.UnionStreams = info.Unions
 	code, err := info.Generate()
 	if err != nil {
 		logErrorContext(err, code)
@@ -29,6 +30,7 @@ func genUnion(s dotc.Union) (string, error) {
 
 func genUnionTests(s dotc.Union) (string, error) {
 	info := dotc.Info{Package: "myunion", Unions: []dotc.Union{s}}
+	info.UnionStreams = info.Unions
 	code, err := info.GenerateTests()
 	if err != nil {
 		logErrorContext(err, code)
