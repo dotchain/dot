@@ -76,9 +76,9 @@ func (d Decoder) decodeType(typ reflect.Type, r *bufio.Reader) reflect.Value {
 	switch typ.Kind() {
 	case reflect.Bool:
 		return d.decodeBoolValue(typ, r)
-	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return d.decodeIntValue(typ, r)
-	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return d.decodeUintValue(typ, r)
 	case reflect.String:
 		return d.decodeStringValue(typ, r)
@@ -250,10 +250,6 @@ func (d Decoder) readStringValue(r *bufio.Reader) string {
 		escape = !escape && rn == '\\'
 	}
 	must(err)
-	if rn != '"' {
-		panic(errors.New("unexpected char " + string([]rune{rn})))
-	}
-
 	return string(runes)
 }
 

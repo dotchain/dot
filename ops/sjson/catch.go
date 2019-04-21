@@ -6,11 +6,8 @@ package sjson
 
 func catch(fn func()) (err error) {
 	defer func() {
-		var ok bool
 		if r := recover(); r != nil {
-			if err, ok = r.(error); !ok {
-				panic(r)
-			}
+			err, _ = r.(error)
 		}
 	}()
 	fn()
