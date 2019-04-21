@@ -59,7 +59,7 @@ func init() {
 	sjson.Std.Register([]stringer{nil})
 }
 
-func TestBasic(t *testing.T) {
+func TestCases(t *testing.T) {
 	var i32 int32 = 5
 	mi32 := myInt32(-22)
 	var str stringer = mi32
@@ -90,8 +90,15 @@ func TestBasic(t *testing.T) {
 		"{\"*ops/sjson_test.myInt32\": -22}": &mi32,
 
 		// slices
-		"{\"[]string\": [{\"string\": \"hello\"}]}": []string{"hello"},
-		"{\"[]string\": null}":                      []string(nil),
+		"{\"[]string\": [\"hello\"]}": []string{"hello"},
+		"{\"[]string\": null}":        []string(nil),
+
+		// maps
+		`{"map[string]string": null}`:              map[string]string(nil),
+		`{"map[string]string": ["hello","world"]}`: map[string]string{"hello": "world"},
+
+		// map of interface => interface
+		`{"map[ops/sjson_test.stringer]ops/sjson_test.stringer": [{"ops/sjson_test.myInt32": 42},{"ops/sjson_test.myInt32": 42}]}`: map[stringer]stringer{myInt32(42): myInt32(42)},
 
 		// slices of interfaces
 		`{"[]ops/sjson_test.stringer": [{"ops/sjson_test.myInt32": 42}]}`: []stringer{myInt32(42)},
@@ -100,7 +107,7 @@ func TestBasic(t *testing.T) {
 		`{"*ops/sjson_test.stringer": {"ops/sjson_test.myInt32": -22}}`: &str,
 
 		// slices of pointers of named values
-		`{"[]*ops/sjson_test.myInt32": [{"*ops/sjson_test.myInt32": -22}]}`: []*myInt32{&mi32},
+		`{"[]*ops/sjson_test.myInt32": [-22]}`: []*myInt32{&mi32},
 	}
 
 	for expect, v := range values {

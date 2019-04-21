@@ -1,6 +1,7 @@
 // Copyright (C) 2018 rameshvk. All rights reserved.
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
+
 package sjson
 
 import (
@@ -79,6 +80,10 @@ func (d Decoder) decodeType(typ reflect.Type, r *bufio.Reader) reflect.Value {
 		return d.decodePtr(typ, r)
 	case reflect.Slice:
 		return d.decodeSlice(typ, r)
+	case reflect.Map:
+		return d.decodeMap(typ, r)
+	case reflect.Interface:
+		return d.decode(r).Convert(typ)
 	}
 
 	panic(errors.New("unknown type " + typeName(typ)))
@@ -88,12 +93,7 @@ func (d Decoder) decodePtr(typ reflect.Type, r *bufio.Reader) reflect.Value {
 	if d.check("null", r) {
 		return reflect.Zero(typ)
 	}
-	var inner reflect.Value
-	if typ.Elem().Kind() == reflect.Interface {
-		inner = d.decode(r)
-	} else {
-		inner = d.decodeType(typ.Elem(), r)
-	}
+	inner := d.decodeType(typ.Elem(), r)
 	result := reflect.New(typ.Elem())
 	result.Elem().Set(inner)
 	return result.Convert(typ)
@@ -104,13 +104,38 @@ func (d Decoder) decodeSlice(typ reflect.Type, r *bufio.Reader) reflect.Value {
 		return reflect.Zero(typ)
 	}
 	if !d.check("[", r) {
-		panic("missing [")
+		panic(errors.New("missing ["))
 	}
 	result := reflect.Zero(typ)
 	finished := false
 	for !finished {
-		v := d.decode(r).Convert(typ.Elem())
+		v := d.decodeType(typ.Elem(), r)
 		result = reflect.Append(result, v)
+		comma := d.check(",", r)
+		finished = !comma && d.check("]", r)
+		if !comma && !finished {
+			panic(errors.New("missing , or ]"))
+		}
+	}
+	return result
+}
+
+func (d Decoder) decodeMap(typ reflect.Type, r *bufio.Reader) reflect.Value {
+	if d.check("null", r) {
+		return reflect.Zero(typ)
+	}
+	if !d.check("[", r) {
+		panic(errors.New("missing ["))
+	}
+	result := reflect.MakeMap(typ)
+	finished := false
+	for !finished {
+		key := d.decodeType(typ.Key(), r)
+		if !d.check(",", r) {
+			panic(errors.New("missing ,"))
+		}
+		v := d.decodeType(typ.Elem(), r)
+		result.SetMapIndex(key, v)
 		comma := d.check(",", r)
 		finished = !comma && d.check("]", r)
 		if !comma && !finished {

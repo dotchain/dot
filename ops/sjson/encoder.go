@@ -1,6 +1,7 @@
 // Copyright (C) 2018 rameshvk. All rights reserved.
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
+
 package sjson
 
 import (
@@ -25,10 +26,6 @@ func (e Encoder) Encode(value interface{}, w io.Writer) error {
 }
 
 func (e Encoder) encode(v reflect.Value, w *bufio.Writer) {
-	if v.Kind() == reflect.Interface {
-		v = reflect.ValueOf(v.Interface())
-	}
-
 	if v.IsValid() {
 		_, err := w.WriteString("{\"" + typeName(v.Type()) + "\": ")
 		must(err)
@@ -65,20 +62,19 @@ func (e Encoder) encodeValue(v reflect.Value, w *bufio.Writer) {
 		e.encodePtrValue(v, w)
 	case reflect.Slice:
 		e.encodeSliceValue(v, w)
+	case reflect.Map:
+		e.encodeMapValue(v, w)
 	case reflect.Interface:
-		e.encodeValue(reflect.ValueOf(v.Interface()), w)
+		e.encode(reflect.ValueOf(v.Interface()), w)
 	default:
 		panic(errors.New("not yet implemented: " + v.Kind().String()))
 	}
 }
 
 func (e Encoder) encodePtrValue(v reflect.Value, w *bufio.Writer) {
-	switch {
-	case v.IsNil():
+	if v.IsNil() {
 		e.encodeValue(reflect.ValueOf(nil), w)
-	case v.Type().Elem().Kind() == reflect.Interface:
-		e.encode(v.Elem(), w)
-	default:
+	} else {
 		e.encodeValue(v.Elem(), w)
 	}
 }
@@ -95,7 +91,29 @@ func (e Encoder) encodeSliceValue(v reflect.Value, w *bufio.Writer) {
 				must(err)
 			}
 
-			e.encode(v.Index(idx), w)
+			e.encodeValue(v.Index(idx), w)
+		}
+		_, err = w.WriteString("]")
+		must(err)
+	}
+}
+
+func (e Encoder) encodeMapValue(v reflect.Value, w *bufio.Writer) {
+	if v.IsNil() {
+		e.encodeValue(reflect.ValueOf(nil), w)
+	} else {
+		_, err := w.WriteString("[")
+		must(err)
+		keys := v.MapKeys()
+		for idx := range keys {
+			if idx > 0 {
+				_, err = w.WriteString(",")
+				must(err)
+			}
+			e.encodeValue(keys[idx], w)
+			_, err = w.WriteString(",")
+			must(err)
+			e.encodeValue(v.MapIndex(keys[idx]), w)
 		}
 		_, err = w.WriteString("]")
 		must(err)

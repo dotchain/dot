@@ -6,9 +6,7 @@ package sjson
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
-	"strconv"
 	"strings"
 )
 
@@ -20,10 +18,6 @@ func typeName(v reflect.Type) string {
 	}
 
 	switch v.Kind() {
-	case reflect.Int:
-		return fmt.Sprintf("int%d", strconv.IntSize)
-	case reflect.Uint:
-		return fmt.Sprintf("uint%d", strconv.IntSize)
 	case reflect.Ptr:
 		return "*" + typeName(v.Elem())
 	case reflect.Slice:
