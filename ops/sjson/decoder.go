@@ -32,6 +32,14 @@ func (d *Decoder) register(typ reflect.Type) {
 	case reflect.Map:
 		d.register(typ.Key())
 		d.register(typ.Elem())
+	case reflect.Struct:
+		for idx := 0; idx < typ.NumField(); idx++ {
+			field := typ.Field(idx)
+			if field.PkgPath != "" {
+				continue
+			}
+			d.register(field.Type)
+		}
 	}
 }
 
@@ -82,6 +90,8 @@ func (d Decoder) decodeType(typ reflect.Type, r *bufio.Reader) reflect.Value {
 		return d.decodeSlice(typ, r)
 	case reflect.Map:
 		return d.decodeMap(typ, r)
+	case reflect.Struct:
+		return d.decodeStruct(typ, r)
 	case reflect.Interface:
 		return d.decode(r).Convert(typ)
 	}
@@ -141,6 +151,30 @@ func (d Decoder) decodeMap(typ reflect.Type, r *bufio.Reader) reflect.Value {
 		if !comma && !finished {
 			panic(errors.New("missing , or ]"))
 		}
+	}
+	return result
+}
+
+func (d Decoder) decodeStruct(typ reflect.Type, r *bufio.Reader) reflect.Value {
+	if !d.check("[", r) {
+		panic(errors.New("missing ["))
+	}
+	result := reflect.New(typ).Elem()
+	first := true
+	for idx := 0; idx < typ.NumField(); idx++ {
+		field := typ.Field(idx)
+		if field.PkgPath != "" {
+			continue
+		}
+
+		if !first && !d.check(",", r) {
+			panic(errors.New("missing ,"))
+		}
+		first = false
+		result.Field(idx).Set(d.decodeType(field.Type, r))
+	}
+	if !d.check("]", r) {
+		panic(errors.New("missing }"))
 	}
 	return result
 }

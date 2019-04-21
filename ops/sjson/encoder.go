@@ -66,6 +66,8 @@ func (e Encoder) encodeValue(v reflect.Value, w *bufio.Writer) {
 		e.encodeMapValue(v, w)
 	case reflect.Interface:
 		e.encode(reflect.ValueOf(v.Interface()), w)
+	case reflect.Struct:
+		e.encodeStructValue(v, w)
 	default:
 		panic(errors.New("not yet implemented: " + v.Kind().String()))
 	}
@@ -96,6 +98,28 @@ func (e Encoder) encodeSliceValue(v reflect.Value, w *bufio.Writer) {
 		_, err = w.WriteString("]")
 		must(err)
 	}
+}
+
+func (e Encoder) encodeStructValue(v reflect.Value, w *bufio.Writer) {
+	_, err := w.WriteString("[")
+	must(err)
+	first := true
+	vType := v.Type()
+	for idx := 0; idx < v.NumField(); idx++ {
+		field := vType.Field(idx)
+		if field.PkgPath != "" {
+			continue
+		}
+
+		if !first {
+			_, err = w.WriteString(",")
+			must(err)
+		}
+		first = false
+		e.encodeValue(v.Field(idx), w)
+	}
+	_, err = w.WriteString("]")
+	must(err)
 }
 
 func (e Encoder) encodeMapValue(v reflect.Value, w *bufio.Writer) {

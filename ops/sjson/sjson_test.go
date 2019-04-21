@@ -54,12 +54,20 @@ type stringer interface {
 	String() string
 }
 
+type myStruct struct {
+	Boo        myInt32
+	unexported float32
+}
+
 func init() {
 	sjson.Std.Register(myInt32(0))
 	sjson.Std.Register([]stringer{nil})
+	sjson.Std.Register(myStruct{})
 }
 
 func TestCases(t *testing.T) {
+	_ = myStruct{unexported: 52} // keep lint happy
+
 	var i32 int32 = 5
 	mi32 := myInt32(-22)
 	var str stringer = mi32
@@ -96,6 +104,9 @@ func TestCases(t *testing.T) {
 		// maps
 		`{"map[string]string": null}`:              map[string]string(nil),
 		`{"map[string]string": ["hello","world"]}`: map[string]string{"hello": "world"},
+
+		// structs
+		`{"ops/sjson_test.myStruct": [99]}`: myStruct{Boo: myInt32(99)},
 
 		// map of interface => interface
 		`{"map[ops/sjson_test.stringer]ops/sjson_test.stringer": [{"ops/sjson_test.myInt32": 42},{"ops/sjson_test.myInt32": 42}]}`: map[stringer]stringer{myInt32(42): myInt32(42)},
