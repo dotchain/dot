@@ -93,7 +93,10 @@ func (d Decoder) decodeType(typ reflect.Type, r *bufio.Reader) reflect.Value {
 	case reflect.Struct:
 		return d.decodeStruct(typ, r)
 	case reflect.Interface:
-		return d.decode(r).Convert(typ)
+		if decoded := d.decode(r); decoded.Type().ConvertibleTo(typ) {
+			return decoded.Convert(typ)
+		}
+		return reflect.Zero(typ)
 	}
 
 	panic(errors.New("unknown type " + typeName(typ)))

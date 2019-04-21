@@ -113,6 +113,7 @@ func TestCases(t *testing.T) {
 
 		// slices of interfaces
 		`{"[]ops/sjson_test.stringer": [{"ops/sjson_test.myInt32": 42}]}`: []stringer{myInt32(42)},
+		`{"[]ops/sjson_test.stringer": [null]}`:                           []stringer{nil},
 
 		// ptr to interface
 		`{"*ops/sjson_test.stringer": {"ops/sjson_test.myInt32": -22}}`: &str,
