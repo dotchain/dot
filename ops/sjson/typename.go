@@ -7,6 +7,7 @@ package sjson
 import (
 	"errors"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -22,6 +23,8 @@ func typeName(v reflect.Type) string {
 		return "*" + typeName(v.Elem())
 	case reflect.Slice:
 		return "[]" + typeName(v.Elem())
+	case reflect.Array:
+		return "[" + strconv.Itoa(v.Len()) + "]" + typeName(v.Elem())
 	case reflect.Map:
 		return "map[" + typeName(v.Key()) + "]" + typeName(v.Elem())
 	}
@@ -43,6 +46,18 @@ func typeFromName(name string, types map[string]reflect.Type) reflect.Type {
 
 	if strings.HasPrefix(name, "[]") {
 		return reflect.SliceOf(typeFromName(name[2:], types))
+	}
+
+	if strings.HasPrefix(name, "[") {
+		size := name[1:]
+		for idx, rn := range size {
+			if rn == ']' {
+				count, err := strconv.ParseInt(size[:idx], 10, 32)
+				must(err)
+				elem := typeFromName(size[idx+1:], types)
+				return reflect.ArrayOf(int(count), elem)
+			}
+		}
 	}
 
 	if strings.HasPrefix(name, "map") {
