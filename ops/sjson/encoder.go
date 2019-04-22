@@ -62,6 +62,8 @@ func (e Encoder) encodeValue(v reflect.Value, w *bufio.Writer) {
 		e.encodePtrValue(v, w)
 	case reflect.Slice:
 		e.encodeSliceValue(v, w)
+	case reflect.Array:
+		e.encodeArrayValue(v, w)
 	case reflect.Map:
 		e.encodeMapValue(v, w)
 	case reflect.Interface:
@@ -85,19 +87,23 @@ func (e Encoder) encodeSliceValue(v reflect.Value, w *bufio.Writer) {
 	if v.IsNil() {
 		e.encodeValue(reflect.ValueOf(nil), w)
 	} else {
-		_, err := w.WriteString("[")
-		must(err)
-		for idx := 0; idx < v.Len(); idx++ {
-			if idx > 0 {
-				_, err = w.WriteString(",")
-				must(err)
-			}
-
-			e.encodeValue(v.Index(idx), w)
-		}
-		_, err = w.WriteString("]")
-		must(err)
+		e.encodeArrayValue(v, w)
 	}
+}
+
+func (e Encoder) encodeArrayValue(v reflect.Value, w *bufio.Writer) {
+	_, err := w.WriteString("[")
+	must(err)
+	for idx := 0; idx < v.Len(); idx++ {
+		if idx > 0 {
+			_, err = w.WriteString(",")
+			must(err)
+		}
+
+		e.encodeValue(v.Index(idx), w)
+	}
+	_, err = w.WriteString("]")
+	must(err)
 }
 
 func (e Encoder) encodeStructValue(v reflect.Value, w *bufio.Writer) {

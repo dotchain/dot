@@ -109,6 +109,9 @@ func TestSuccess(t *testing.T) {
 		"{\"[]string\": [\"hello\",\"world\"]}": []string{"hello", "world"},
 		"{\"[]string\": null}":                  []string(nil),
 
+		// arrays
+		`{"[2]int": [2,3]}`: [2]int{2, 3},
+
 		// maps
 		`{"map[string]string": null}`:              map[string]string(nil),
 		`{"map[string]string": ["hello","world"]}`: map[string]string{"hello": "world"},
@@ -155,7 +158,7 @@ func TestSuccess(t *testing.T) {
 				return cmp.Equal(entries1, entries2, opt1)
 			})
 			if !cmp.Equal(decoded, v, opt1, opt2) {
-				t.Errorf("failed to decode %s %v", expect, decoded)
+				t.Errorf("failed to decode %s %#v", expect, decoded)
 			}
 		})
 	}
@@ -222,6 +225,9 @@ func TestDecodeMalformed(t *testing.T) {
 		`{"[]int":55}`,
 		`{"[]int":[55`,
 		`{"[]int":[55?`,
+		`{"[2]int": 55}`,
+		`{"[2]int": [55]}`,
+		`{"[2]int": [55,10}`,
 		`{"map[int]int":55}`,
 		`{"map[int]int":[`,
 		`{"map[int]int":[0]}`,

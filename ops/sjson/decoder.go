@@ -25,9 +25,7 @@ func (d *Decoder) register(typ reflect.Type) {
 
 	d.types[typeName(typ)] = typ
 	switch typ.Kind() {
-	case reflect.Slice:
-		d.register(typ.Elem())
-	case reflect.Ptr:
+	case reflect.Slice, reflect.Array, reflect.Ptr:
 		d.register(typ.Elem())
 	case reflect.Map:
 		d.register(typ.Key())
@@ -66,9 +64,11 @@ func (d Decoder) decode(r *bufio.Reader) reflect.Value {
 	}
 
 	result := d.decodeType(typeFromName(key, d.types), r)
+
 	if !d.check("}", r) {
 		panic(errors.New("missing }"))
 	}
+
 	return result
 }
 
@@ -88,6 +88,8 @@ func (d Decoder) decodeType(typ reflect.Type, r *bufio.Reader) reflect.Value {
 		return d.decodePtr(typ, r)
 	case reflect.Slice:
 		return d.decodeSlice(typ, r)
+	case reflect.Array:
+		return d.decodeArray(typ, r)
 	case reflect.Map:
 		return d.decodeMap(typ, r)
 	case reflect.Struct:
@@ -129,6 +131,23 @@ func (d Decoder) decodeSlice(typ reflect.Type, r *bufio.Reader) reflect.Value {
 		if !comma && !finished {
 			panic(errors.New("missing , or ]"))
 		}
+	}
+	return result
+}
+
+func (d Decoder) decodeArray(typ reflect.Type, r *bufio.Reader) reflect.Value {
+	if !d.check("[", r) {
+		panic(errors.New("missing ["))
+	}
+	result := reflect.New(typ).Elem()
+	for idx := 0; idx < result.Len(); idx++ {
+		if idx > 0 && !d.check(",", r) {
+			panic(errors.New("missing ,"))
+		}
+		result.Index(idx).Set(d.decodeType(typ.Elem(), r))
+	}
+	if !d.check("]", r) {
+		panic(errors.New("missing ]"))
 	}
 	return result
 }
