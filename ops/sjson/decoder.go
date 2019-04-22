@@ -10,6 +10,7 @@ import (
 	"io"
 	"reflect"
 	"strconv"
+	"time"
 	"unicode"
 )
 
@@ -24,6 +25,10 @@ func (d *Decoder) register(typ reflect.Type) {
 	}
 
 	d.types[typeName(typ)] = typ
+	if typ.ConvertibleTo(reflect.TypeOf(time.Time{})) {
+		return
+	}
+
 	switch typ.Kind() {
 	case reflect.Slice, reflect.Array, reflect.Ptr:
 		d.register(typ.Elem())
@@ -73,6 +78,10 @@ func (d Decoder) decode(r *bufio.Reader) reflect.Value {
 }
 
 func (d Decoder) decodeType(typ reflect.Type, r *bufio.Reader) reflect.Value {
+	if typ.ConvertibleTo(reflect.TypeOf(time.Time{})) {
+		return d.decodeTimeValue(typ, r)
+	}
+
 	switch typ.Kind() {
 	case reflect.Bool:
 		return d.decodeBoolValue(typ, r)
@@ -220,6 +229,12 @@ func (d Decoder) decodeUintValue(typ reflect.Type, r *bufio.Reader) reflect.Valu
 
 func (d Decoder) decodeStringValue(typ reflect.Type, r *bufio.Reader) reflect.Value {
 	return reflect.ValueOf(d.readStringValue(r)).Convert(typ)
+}
+
+func (d Decoder) decodeTimeValue(typ reflect.Type, r *bufio.Reader) reflect.Value {
+	t, err := time.Parse(time.RFC3339, d.readStringValue(r))
+	must(err)
+	return reflect.ValueOf(t).Convert(typ)
 }
 
 func (d Decoder) decodeFloatValue(typ reflect.Type, r *bufio.Reader) reflect.Value {
