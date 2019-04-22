@@ -114,6 +114,7 @@ func TestSuccess(t *testing.T) {
 		// slices
 		"{\"[]string\": [\"hello\",\"world\"]}": []string{"hello", "world"},
 		"{\"[]string\": null}":                  []string(nil),
+		"{\"[]string\": []}":                    []string{},
 
 		// arrays
 		`{"[2]int": [2,3]}`: [2]int{2, 3},
