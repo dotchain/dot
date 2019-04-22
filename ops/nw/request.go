@@ -36,7 +36,7 @@ func (c *Client) request(ctx context.Context, r *request) ([]ops.Op, error) {
 
 	codec := codecs[contentType]
 	var buf bytes.Buffer
-	err := codec.Encode(r, &buf)
+	err := codec.Encode(*r, &buf)
 	if err != nil {
 		return nil, c.codecError(err)
 	}

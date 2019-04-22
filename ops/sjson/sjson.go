@@ -77,4 +77,4 @@ func (c *Codec) Register(v interface{}) {
 }
 
 // Std is a global encoder/decoder
-var Std = Codec{}
+var Std = &Codec{}

@@ -9,10 +9,10 @@ package stress
 //go:generate go run codegen.go
 
 import (
-	"encoding/gob"
 	"math/rand"
 
 	"github.com/dotchain/dot/changes/types"
+	"github.com/dotchain/dot/ops/nw"
 )
 
 type State struct {
@@ -21,6 +21,6 @@ type State struct {
 }
 
 func init() {
-	gob.Register(State{})
+	nw.Register(State{})
 	rand.Seed(42)
 }

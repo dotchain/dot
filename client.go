@@ -110,7 +110,7 @@ func Reconnect(url string, version int, pending []ops.Op) (session *Session, upd
 	meta = streams.New()
 	session = &Session{meta, nil, version, pending, map[int]ops.Op{}, map[int][]ops.Op{}, gosync.Mutex{}}
 	logger := log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile)
-	store := &nw.Client{URL: url, Log: logger}
+	store := &nw.Client{URL: url, Log: logger, ContentType: "application/x-sjson"}
 	stream, closefn := sync.Stream(
 		store,
 		sync.WithNotify(session.UpdateVersion),

@@ -50,7 +50,8 @@ func (d *Decoder) register(typ reflect.Type) {
 func (d Decoder) Decode(value interface{}, r io.Reader) (err error) {
 	return catch(func() {
 		val := d.decode(bufio.NewReader(r))
-		reflect.ValueOf(value).Elem().Set(val)
+		elem := reflect.ValueOf(value).Elem()
+		elem.Set(val.Convert(elem.Type()))
 	})
 }
 
@@ -60,7 +61,7 @@ func (d Decoder) decode(r *bufio.Reader) reflect.Value {
 	}
 
 	if !d.check("{", r) {
-		panic(errors.New("misssing {"))
+		panic(errors.New("missing {"))
 	}
 
 	key := d.readStringValue(r)
@@ -130,8 +131,8 @@ func (d Decoder) decodeSlice(typ reflect.Type, r *bufio.Reader) reflect.Value {
 	if !d.check("[", r) {
 		panic(errors.New("missing ["))
 	}
-	result := reflect.Zero(typ)
-	finished := false
+	result := reflect.MakeSlice(typ, 0, 0)
+	finished := d.check("]", r)
 	for !finished {
 		v := d.decodeType(typ.Elem(), r)
 		result = reflect.Append(result, v)

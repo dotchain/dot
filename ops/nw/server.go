@@ -81,7 +81,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.patchResponseError(ctx, &res)
 
 	var buf bytes.Buffer
-	if err := codec.Encode(&res, &buf); err != nil {
+	if err := codec.Encode(res, &buf); err != nil {
 		http.Error(w, h.codecError(err).Error(), 400)
 		return
 	}
