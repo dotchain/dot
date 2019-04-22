@@ -10,6 +10,7 @@ import (
 	"errors"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/dotchain/dot/ops/sjson"
 	"github.com/google/go-cmp/cmp"
@@ -65,11 +66,14 @@ type myStruct struct {
 
 type myMap map[*[]int]int
 
+type myTime time.Time
+
 func init() {
 	sjson.Std.Register(myInt32(0))
 	sjson.Std.Register([]stringer{nil})
 	sjson.Std.Register(myStruct{})
 	sjson.Std.Register(myMap{})
+	sjson.Std.Register(myTime{})
 }
 
 func TestSuccess(t *testing.T) {
@@ -78,6 +82,8 @@ func TestSuccess(t *testing.T) {
 	var i32 int32 = 5
 	mi32 := myInt32(-22)
 	var str stringer = mi32
+	epoch, _ := time.Parse(time.RFC3339, "2006-01-02T15:04:05+07:00")
+
 	values := map[string]interface{}{
 		// basic
 		"{\"bool\": true}":                 true,
@@ -134,6 +140,10 @@ func TestSuccess(t *testing.T) {
 
 		// type of map
 		`{"ops/sjson_test.myMap": [[0],1]}`: myMap{&[]int{0}: 1},
+
+		// time
+		`{"time.Time": "2006-01-02T15:04:05+07:00"}`:             epoch,
+		`{"ops/sjson_test.myTime": "2006-01-02T15:04:05+07:00"}`: myTime(epoch),
 	}
 
 	for expect, v := range values {
@@ -157,7 +167,10 @@ func TestSuccess(t *testing.T) {
 				}
 				return cmp.Equal(entries1, entries2, opt1)
 			})
-			if !cmp.Equal(decoded, v, opt1, opt2) {
+			opt3 := cmp.Comparer(func(v1, v2 myTime) bool {
+				return time.Time(v1).Equal(time.Time(v2))
+			})
+			if !cmp.Equal(decoded, v, opt1, opt2, opt3) {
 				t.Errorf("failed to decode %s %#v", expect, decoded)
 			}
 		})

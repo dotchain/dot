@@ -10,6 +10,7 @@ import (
 	"io"
 	"reflect"
 	"strconv"
+	"time"
 )
 
 // Encoder encodes any value
@@ -107,6 +108,13 @@ func (e Encoder) encodeArrayValue(v reflect.Value, w *bufio.Writer) {
 }
 
 func (e Encoder) encodeStructValue(v reflect.Value, w *bufio.Writer) {
+	timeType := reflect.TypeOf(time.Time{})
+	if v.Type().ConvertibleTo(timeType) {
+		t := v.Convert(timeType).Interface().(time.Time)
+		e.encodeStringValue(t.Format(time.RFC3339), w)
+		return
+	}
+
 	_, err := w.WriteString("[")
 	must(err)
 	first := true
