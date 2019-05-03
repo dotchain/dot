@@ -46,7 +46,7 @@ func (pc PathChange) ApplyTo(ctx Context, v Value) Value {
 	if len(pc.Path) == 0 {
 		return v.Apply(ctx, pc.Change)
 	}
-	panic("Unexpected use of PathChange.ApplyTo")
+	panic("unexpected use of PathChange.ApplyTo")
 }
 
 func (pc PathChange) mergePathChange(o PathChange, reverse bool) (Change, Change) {
