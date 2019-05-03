@@ -63,7 +63,7 @@ func Example_nilFold() {
 	defer upstream.Nextf("mykey", nil)
 
 	folded := fold.New(changes.Splice{Offset: 0, Before: types.S8(""), After: types.S8("hello")}, upstream)
-	folded2 := folded.Append(changes.Splice{Offset: 0, Before: types.S8("j"), After: types.S8("j")})
+	folded2 := folded.Append(changes.Splice{Offset: 1, Before: types.S8("e"), After: types.S8("u")})
 	folded.Append(changes.Splice{Offset: 10, Before: types.S8(""), After: types.S8("insert")})
 	c, _ := fold.Unfold(folded2)
 
@@ -71,7 +71,7 @@ func Example_nilFold() {
 
 	// Output:
 	// Got Change: {5  insert}
-	// Unfolded: {0  jello}
+	// Unfolded: {0  hullo}
 }
 
 func Example_nextf() {

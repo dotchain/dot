@@ -42,9 +42,12 @@ func (s Splice) MergeSplice(other Splice) (other1, s1 *Splice) {
 		s.Before = s.Before.Slice(0, ostart-sstart)
 		return &other, &s
 
-	case sstart == ostart && send < oend: // [<  ]   >
-		other.Before = other.Before.ApplyCollection(nil, Splice{0, s.Before, s.After})
-		return &other, nil
+	case sstart == ostart && send < oend: // <[  ]   >
+		other.Before = other.Before.Slice(s.Before.Count(), other.Before.Count()-s.Before.Count())
+		other.Offset += s.After.Count()
+
+		s.Before = s.Before.Slice(0, 0)
+		return &other, &s
 
 	case sstart <= ostart && send >= oend: // [ < > ]
 		sliced := s.Before.Slice(ostart-sstart, oend-ostart)

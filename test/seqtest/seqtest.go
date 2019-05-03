@@ -137,7 +137,7 @@ var sequenceTests = [][3]string{
 	{"-abc[123|d]4fgh-", "-abc12[34|e]fgh-", "-abcdefgh-"},
 	{"-abc[123|]4fgh-", "-abc12[34|e]fgh-", "-abcefgh-"},
 
-	{"-abc[123|d]4fgh-", "-abc[1234|e]fgh-", "-abcefgh-"},
+	{"-abc[123|d]4fgh-", "-abc[1234|e]fgh-", "-abcdefgh-"},
 	{"-abc[123|]4fgh-", "-abc[1234|e]fgh-", "-abcefgh-"},
 
 	{"-abc12[34|d]fgh-", "-abc[123|e]4fgh-", "-abcedfgh-"},
@@ -147,7 +147,7 @@ var sequenceTests = [][3]string{
 	{"-abc12[34|e]fgh-", "-abc[1234|d]fgh-", "-abcdfgh-"},
 
 	{"-abc[1234|d]fgh-", "-abc[12|e]34fgh-", "-abcdfgh-"},
-	{"-abc[12|e]34fgh-", "-abc[1234|d]fgh-", "-abcdfgh-"},
+	{"-abc[12|e]34fgh-", "-abc[1234|d]fgh-", "-abcedfgh-"},
 
 	{"-abc[1234|d]fgh-", "-abc1[23|e]4fgh-", "-abcdfgh-"},
 	{"-abc1[23|e]4fgh-", "-abc[1234|d]fgh-", "-abcdfgh-"},
@@ -171,7 +171,7 @@ var sequenceTests = [][3]string{
 	{"-abc[123]de456f|g-", "-abc123de[456]fg|-", "-abcdef123g456-"},
 
 	// conflicting move move tests
-	{"-abc[123]de4|56fg-", "-abc1|23de[456]fg-", "-abc456de123fg-"},
+	{"-abc[123]de4|56fg-", "-abc1|23de[456]fg-", "-abcde145623fg-"},
 
 	// Series D: non-conflicting splice vs move
 	{"-abc[123|d]e456f-", "-abc123|e[456]f-", "-abcd456ef-"},
@@ -193,9 +193,9 @@ var sequenceTests = [][3]string{
 	{"-abc[123|]456f-", "-abc123[456]f|-", "-abcf456-"},
 	{"-abc[123|]456f-", "-abc|123[456]f-", "-abc456f-"},
 	{"-abc[123|]456f-", "-ab|c123[456]f-", "-ab456cf-"},
-	{"-abc123[|d]456f-", "-abc123[456]f|-", "-abc123df456-"},
-	{"-abc123[|d]456f-", "-abc|123[456]f-", "-abc456123df-"},
-	{"-abc123[|d]456f-", "-ab|c123[456]f-", "-ab456c123df-"},
+	{"-abc123[|d]456f-", "-abc123[456]f|-", "-abc123fd456-"},
+	{"-abc123[|d]456f-", "-abc|123[456]f-", "-abcd456123f-"},
+	{"-abc123[|d]456f-", "-ab|c123[456]f-", "-abd456c123f-"},
 
 	// Series E: non-conflicting move vs splice
 	{"-ab|c[123]de456gh-", "-abc123de[456|f]gh-", "-ab123cdefgh-"},
@@ -223,17 +223,17 @@ var sequenceTests = [][3]string{
 	{"-abc[123]456|ef-", "-abc123[456|]ef-", "-abc123ef-"},
 	{"-abc[123]456e|f-", "-abc123[456|]ef-", "-abce123f-"},
 
-	{"-ab|c[123]ef-", "-abc123[|d]ef-", "-ab123cdef-"},
-	{"-abc[123]e|f-", "-abc123[|d]ef-", "-abcde123f-"},
+	{"-ab|c[123]ef-", "-abc123[|d]ef-", "-ab123dcef-"},
+	{"-abc[123]e|f-", "-abc123[|d]ef-", "-abce123df-"},
 
 	// Series F: Splices conflicting with moves.
 	// Note a very large number of cases here are testable but the actual
 	// results of these operations are not interesting so long as there is "convergence"
 	// so the only real test being done is when one range fully contains the other.
 	{"-abc[1234|d]ef-", "-abc[12]3|4ef-", "-abcdef-"},
-	{"-abc[1234|d]ef-", "-ab|c[1234]ef-", "-abdcef-"},
-	{"-abc[1234|]ef-", "-ab|c[1234]ef-", "-abcef-"},
-	{"-abc[|d]ef-", "-a|b[ce]f-", "-acebdf-"}, // this is odd but ok
+	{"-abc[1234|d]ef-", "-ab|c[1234]ef-", "-ab1234cdef-"},
+	{"-abc[1234|]ef-", "-ab|c[1234]ef-", "-ab1234cef-"},
+	{"-abc[|d]ef-", "-a|b[ce]f-", "-acdebf-"},
 	{"-abc[|d]ef-", "-ab|c[]ef-", "-abcdef-"},
 	{"-ab|c[1234]ef-", "-abc1[23|d]4ef-", "-ab1d4cef-"},
 
