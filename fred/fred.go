@@ -22,7 +22,7 @@ import (
 type Object interface {
 	changes.Value
 	Eval(*DirStream) Object
-	Next(old, next *DirStream, c changes.Change) (Object, changes.Change)
+	Diff(old, next *DirStream, c changes.Change) changes.Change
 }
 
 func replace(before, after changes.Value) changes.Change {

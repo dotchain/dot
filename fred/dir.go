@@ -63,6 +63,9 @@ type DirStream struct {
 	Changes map[interface{}]changes.Change
 }
 
+// Next returns the next dir stream. Any evaluated ObjectStream values
+// should be advanced via their own Next calls. If they are no longer
+// referred to, none of their antecedents will be computed
 func (s *DirStream) Next() (*DirStream, changes.Change) {
 	if s.Stream != nil {
 		next, c := s.Stream.Next()
@@ -74,24 +77,39 @@ func (s *DirStream) Next() (*DirStream, changes.Change) {
 	return nil, nil
 }
 
+// Eval evaluates an object with possible references and calculations
+// within the directory.  All the sub-computations are cached and
+// future calls to Next() on the returned object stream will use the
+// cached values for incremental computation.  The cache is located on
+// the DirStream instance and as such the cache itself is not
+// automatically carried over to the next instance to avoid leaking
+// memory.
+//
+// Note that the Object being evaluated could be a Func expression or
+// a Ref.  The returned value is guaranteed to not have any references.
 func (s *DirStream) Eval(obj Object) (Object, *ObjectStream) {
 	result := &ObjectStream{s, obj}
 	return result.Eval(), result
 }
 
+// ObjectStream is a holder for the evaluations from Eval.
 type ObjectStream struct {
 	*DirStream
 	Object
 }
 
+// Next iterates through the object stream yielding the changes. The
+// actual value can be recalculated (most likely simple pulled from
+// cache) via Eval.
 func (s *ObjectStream) Next() (*ObjectStream, changes.Change) {
 	if next, c := s.DirStream.Next(); next != nil {
-		nx, cx := s.Object.Next(s.DirStream, next, c)
-		return &ObjectStream{next, nx}, cx
+		cx := s.Object.Diff(s.DirStream, next, c)
+		return &ObjectStream{next, s.Object}, cx
 	}
 	return nil, nil
 }
 
+// Eval evaluates the object value.
 func (s *ObjectStream) Eval() Object {
 	return s.Object.Eval(s.DirStream)
 }
