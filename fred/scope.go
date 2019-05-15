@@ -10,31 +10,14 @@ type Scope struct {
 	DefMap *DefMap
 }
 
-// Resolve implements the Resolver interface
-func (s Scope) Resolve(key interface{}) (Def, Resolver) {
+// Resolve implements part of the Resolver interface
+func (s Scope) Resolve(key interface{}) Def {
 	if s.DefMap == nil {
-		return nil, nil
+		return nil
 	}
 
 	if def, ok := (*s.DefMap)[key]; ok {
-		return def, s
+		return def
 	}
-	return nil, nil
-}
-
-// ChainResolver returns a resolver that tries the child and then parent.
-func ChainResolver(child, parent Resolver) Resolver {
-	return chainResolver{child, parent}
-}
-
-type chainResolver struct {
-	child, parent Resolver
-}
-
-func (c chainResolver) Resolve(key interface{}) (Def, Resolver) {
-	def, r := c.child.Resolve(key)
-	if r == nil {
-		def, r = c.parent.Resolve(key)
-	}
-	return def, r
+	return nil
 }

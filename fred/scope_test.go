@@ -5,7 +5,6 @@
 package fred_test
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/dotchain/dot/fred"
@@ -13,74 +12,24 @@ import (
 
 func TestScopeResolveMiss(t *testing.T) {
 	s := fred.Scope{}
-	if def, r := s.Resolve("boo"); def != nil || r != nil {
-		t.Error("Unexpected", def, r)
+	if def := s.Resolve("boo"); def != nil {
+		t.Error("Unexpected", def)
 	}
 
 	s = fred.Scope{DefMap: &fred.DefMap{}}
-	if def, r := s.Resolve("boo"); def != nil || r != nil {
-		t.Error("Unexpected", def, r)
+	if def := s.Resolve("boo"); def != nil {
+		t.Error("Unexpected", def)
 	}
 
 	s = fred.Scope{DefMap: &fred.DefMap{"goop": fred.Nil{}}}
-	if def, r := s.Resolve("boo"); def != nil || r != nil {
-		t.Error("Unexpected", def, r)
+	if def := s.Resolve("boo"); def != nil {
+		t.Error("Unexpected", def)
 	}
 }
 
 func TestScopeResolveHit(t *testing.T) {
 	s := fred.Scope{DefMap: &fred.DefMap{"goop": fred.Nil{}, "boop": nil}}
-	if def, r := s.Resolve("goop"); def != (fred.Nil{}) || !reflect.DeepEqual(r, s) {
-		t.Error("Unexpected", def, r)
-	}
-}
-
-func TestScopeChainedResolveMiss(t *testing.T) {
-	s := fred.ChainResolver(
-		fred.Scope{},
-		fred.ChainResolver(
-			fred.Scope{DefMap: &fred.DefMap{}},
-			fred.Scope{},
-		),
-	)
-	if def, r := s.Resolve("boo"); def != nil || r != nil {
-		t.Error("Unexpected", def, r)
-	}
-
-	s = fred.ChainResolver(
-		fred.Scope{},
-		fred.ChainResolver(
-			fred.Scope{DefMap: &fred.DefMap{}},
-			fred.Scope{DefMap: &fred.DefMap{}},
-		),
-	)
-	if def, r := s.Resolve("boo"); def != nil || r != nil {
-		t.Error("Unexpected", def, r)
-	}
-
-	s = fred.ChainResolver(
-		fred.Scope{},
-		fred.ChainResolver(
-			fred.Scope{DefMap: &fred.DefMap{}},
-			fred.Scope{DefMap: &fred.DefMap{"goop": fred.Nil{}}},
-		),
-	)
-
-	if def, r := s.Resolve("boo"); def != nil || r != nil {
-		t.Error("Unexpected", def, r)
-	}
-}
-
-func TestScopeChainedResolveHit(t *testing.T) {
-	expected := fred.Scope{DefMap: &fred.DefMap{"goop": fred.Nil{}}}
-	s := fred.ChainResolver(
-		fred.Scope{},
-		fred.ChainResolver(
-			expected,
-			fred.Scope{&fred.DefMap{"goop": nil}},
-		),
-	)
-	if def, r := s.Resolve("goop"); def != (fred.Nil{}) || !reflect.DeepEqual(r, expected) {
-		t.Error("Unexpected", def, r)
+	if def := s.Resolve("goop"); def != (fred.Nil{}) {
+		t.Error("Unexpected", def)
 	}
 }

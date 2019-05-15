@@ -18,9 +18,9 @@ import "github.com/dotchain/dot/changes"
 
 // Env is the runtime environment.
 type Env interface {
-	Resolver
 	Cacher
 	RecursionChecker
+	Resolver
 }
 
 // Cacher is a generic cache
@@ -35,13 +35,12 @@ type Cacher interface {
 // RecursionChecker is used by Eval to track recursion.
 type RecursionChecker interface {
 	CheckRecursion(scope interface{}, key interface{}, fn func(inner Env) Val) Val
+	UseCheckerFrom(Env) Env
 }
 
 // Resolver resolves a "name"
 type Resolver interface {
-	// Lookup returns the definition and the associated scope
-	// it was found in.  Both can be nil if the key is not found.
-	Resolve(key interface{}) (Def, Resolver)
+	Resolve(name interface{}) (Def, Env)
 }
 
 // Def holds the definition of an object value to be evaluated.

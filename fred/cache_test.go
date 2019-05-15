@@ -59,7 +59,7 @@ func TestCacheDefs(t *testing.T) {
 func TestCacheResolvers(t *testing.T) {
 	var c fred.Cache
 
-	v := fred.Scope{}
+	v := &fred.Environ{}
 	x := c.ResolverOf("boo", func() fred.Resolver { return v })
 	if !reflect.DeepEqual(x, v) {
 		t.Error("Unexpected value", x)

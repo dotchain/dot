@@ -5,10 +5,10 @@
 package fred
 
 // ErrMaxDepthReached is fired when stack depth exceeds configured value
-var ErrMaxDepthReached = Error("Max stack depth reached")
+var ErrMaxDepthReached = Error("max stack depth reached")
 
 // ErrRecursion is fired when recursion is detected
-var ErrRecursion = Error("Recursion not allowed")
+var ErrRecursion = Error("recursion not allowed")
 
 // Environ implements Env.
 //
@@ -16,15 +16,34 @@ var ErrRecursion = Error("Recursion not allowed")
 //
 // If MaxDepth is specified, that is used to check max depth
 type Environ struct {
-	Resolver
+	Parent   *Environ
+	Resolver func(key interface{}) Def
 	Cacher
 	Depth uint
 }
 
+// Resolve maps the key to the def and returns the environment where
+// it was found in
+func (e *Environ) Resolve(key interface{}) (Def, Env) {
+	if def := e.Resolver(key); def != nil {
+		return def, e
+	}
+	if e.Parent != nil {
+		return e.Parent.Resolve(key)
+	}
+	return nil, nil
+}
+
 // CheckRecursion checks if the provided scope/key pair were already
 // used in the current invocation stack
-func (e Environ) CheckRecursion(scope interface{}, key interface{}, fn func(inner Env) Val) Val {
-	return fn(&environ{e.Resolver, e.Cacher, e.Depth, [2]interface{}{scope, key}, nil})
+func (e *Environ) CheckRecursion(scope interface{}, key interface{}, fn func(inner Env) Val) Val {
+	return fn(&environ{e, e.Cacher, e.Depth, [2]interface{}{scope, key}, nil})
+}
+
+// UseCheckerFrom switches just the recursion/env from the other environment
+func (e *Environ) UseCheckerFrom(other Env) Env {
+	result := &environ{e, e.Cacher, e.Depth, nil, nil}
+	return result.UseCheckerFrom(other)
 }
 
 type environ struct {
@@ -47,4 +66,12 @@ func (e *environ) CheckRecursion(scope interface{}, key interface{}, fn func(inn
 		}
 	}
 	return fn(&environ{e.Resolver, e.Cacher, e.depth - 1, key, e})
+}
+
+func (e *environ) UseCheckerFrom(other Env) Env {
+	result := *e
+	result.key = other.(*environ).key
+	result.parent = other.(*environ).parent
+	result.depth = other.(*environ).depth
+	return &result
 }
