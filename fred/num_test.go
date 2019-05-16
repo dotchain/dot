@@ -5,6 +5,7 @@
 package fred_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/dotchain/dot/changes"
@@ -59,6 +60,63 @@ func TestNumArithmetic(t *testing.T) {
 	}
 }
 
+func TestNumCompareTrue(t *testing.T) {
+	success := [][]string{
+		{"<", "-5"},
+		{"<", "-5", "10", "100"},
+		{"<=", "-5", "-5", "10", "10"},
+		{"==", "-5", "-5", "-5"},
+		{"!=", "5", "3", "5"},
+		{">=", "10", "10", "-5", "-5"},
+		{">", "100", "10", "-5"},
+	}
+	for _, list := range success {
+		name := strings.Join(list, ",")
+		t.Run(name, func(t *testing.T) {
+			expected := fred.Bool(true)
+			op := fred.Fixed(fred.Text(list[0]))
+			first := fred.Fixed(fred.Num(list[1]))
+			args := fred.Defs{}
+			for _, arg := range list[2:] {
+				args = append(args, fred.Fixed(fred.Num(arg)))
+			}
+			expr := fred.Call(fred.Field(first, op), args...)
+			got := expr.Eval(env)
+			if got != expected {
+				t.Error("unexpected", got)
+			}
+		})
+	}
+}
+
+func TestNumCompareFalse(t *testing.T) {
+	fail := [][]string{
+		{"<", "-5", "10", "10", "100"},
+		{"<=", "-5", "-5", "10", "9", "10"},
+		{"==", "-5", "-5", "2", "-5"},
+		{"!=", "5", "3", "3", "5"},
+		{">=", "10", "10", "11", "-5", "-5"},
+		{">", "100", "10", "10", "-5"},
+	}
+	for _, list := range fail {
+		name := strings.Join(list, ",")
+		t.Run(name, func(t *testing.T) {
+			expected := fred.Bool(false)
+			op := fred.Fixed(fred.Text(list[0]))
+			first := fred.Fixed(fred.Num(list[1]))
+			args := fred.Defs{}
+			for _, arg := range list[2:] {
+				args = append(args, fred.Fixed(fred.Num(arg)))
+			}
+			expr := fred.Call(fred.Field(first, op), args...)
+			got := expr.Eval(env)
+			if got != expected {
+				t.Error("unexpected", got)
+			}
+		})
+	}
+}
+
 func TestNumErrors(t *testing.T) {
 	n := fred.Fixed(fred.Num("5"))
 	z := fred.Field(n, fred.Fixed(fred.Text("?")))
@@ -91,6 +149,35 @@ func TestNumErrors(t *testing.T) {
 
 	x = fred.Call(fred.Field(fred.Fixed(fred.Num("9")), fred.Fixed(fred.Text("+")))).Eval(env)
 	if x != fred.Num("9") {
+		t.Error("Unexpected", x)
+	}
+
+	n = fred.Fixed(fred.Num("5"))
+	op := fred.Field(n, fred.Fixed(fred.Text("<")))
+	x = fred.Call(sum, fred.Fixed(fred.Text("boo"))).Eval(env)
+	if x != fred.ErrNotNumber {
+		t.Error("Unexpected", x)
+	}
+
+	x = fred.Call(op, fred.Fixed(fred.Num("boo"))).Eval(env)
+	if x != fred.Error("math/big: cannot unmarshal \"boo\" into a *big.Rat") {
+		t.Error("Unexpected", x)
+	}
+
+	x = fred.Call(op, fred.Fixed(fred.Error("boo"))).Eval(env)
+	if x != fred.Error("boo") {
+		t.Error("Unexpected", x)
+	}
+
+	n = fred.Fixed(fred.Num("z"))
+	z = fred.Field(n, fred.Fixed(fred.Text("<")))
+	x = fred.Call(z, fred.Fixed(fred.Num("0"))).Eval(env)
+	if x != fred.Error("math/big: cannot unmarshal \"z\" into a *big.Rat") {
+		t.Error("Unexpected", x)
+	}
+
+	x = fred.Call(fred.Field(fred.Fixed(fred.Num("9")), fred.Fixed(fred.Text("<")))).Eval(env)
+	if x != fred.Bool(true) {
 		t.Error("Unexpected", x)
 	}
 }

@@ -48,6 +48,18 @@ func (n Num) Field(e Env, key Val) Val {
 		return n.method(func(r1, r2 *big.Rat) { r2.Inv(r2); r1.Mul(r1, r2) })
 	case Text("*"):
 		return n.method(func(r1, r2 *big.Rat) { r1.Mul(r1, r2) })
+	case Text("<"):
+		return n.compare(func(r1, r2 *big.Rat) bool { return r1.Cmp(r2) < 0 })
+	case Text("<="):
+		return n.compare(func(r1, r2 *big.Rat) bool { return r1.Cmp(r2) <= 0 })
+	case Text("=="):
+		return n.compare(func(r1, r2 *big.Rat) bool { return r1.Cmp(r2) == 0 })
+	case Text("!="):
+		return n.compare(func(r1, r2 *big.Rat) bool { return r1.Cmp(r2) != 0 })
+	case Text(">="):
+		return n.compare(func(r1, r2 *big.Rat) bool { return r1.Cmp(r2) >= 0 })
+	case Text(">"):
+		return n.compare(func(r1, r2 *big.Rat) bool { return r1.Cmp(r2) > 0 })
 	}
 	return ErrNoSuchField
 }
@@ -70,6 +82,25 @@ func (n Num) method(fn func(r1, r2 *big.Rat)) Val {
 			return Error(err.Error())
 		}
 		return Num(string(s))
+	})
+}
+
+func (n Num) compare(fn func(r1, r2 *big.Rat) bool) Val {
+	return method(func(e Env, defs *Defs) Val {
+		result := true
+		var last big.Rat
+		if err := last.UnmarshalText([]byte(string(n))); err != nil {
+			return Error(err.Error())
+		}
+		for _, arg := range *defs {
+			r, errval := n.toNum(e, arg)
+			if errval != nil {
+				return errval
+			}
+			result = result && fn(&last, r)
+			last = *r
+		}
+		return Bool(result)
 	})
 }
 
