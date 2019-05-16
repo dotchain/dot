@@ -36,3 +36,19 @@ func TestError(t *testing.T) {
 		t.Error("Unexpected Error()", x)
 	}
 }
+
+func TestErrorField(t *testing.T) {
+	err := fred.Error("boo")
+	expr := fred.Field(fred.Fixed(err), fred.Fixed(fred.Text("booya")))
+	if x := expr.Eval(env); x != err {
+		t.Error("Unexpected", x)
+	}
+}
+
+func TestErrorCall(t *testing.T) {
+	err := fred.Error("boo")
+	expr := fred.Call(fred.Fixed(err), fred.Fixed(fred.Text("booya")))
+	if x := expr.Eval(env); x != err {
+		t.Error("Unexpected", x)
+	}
+}

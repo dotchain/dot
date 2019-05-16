@@ -20,6 +20,7 @@ func TestVisitor(t *testing.T) {
 		},
 		fred.Error("myerr"),
 		fred.Nil().Eval(nil),
+		fred.Text("hello").Field(nil, fred.Text("concat")),
 	}
 
 	t1.Visit(&v)
@@ -29,6 +30,7 @@ func TestVisitor(t *testing.T) {
   } // <map>
   [1] = err: myerr
   [2] = <nil>
+  [3] = <method>
 } // <list>`
 
 	if v.text != expected {

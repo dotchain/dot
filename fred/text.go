@@ -41,7 +41,7 @@ func (t Text) Slice(offset, count int) changes.Collection {
 	return Text(string(v.(types.S16)))
 }
 
-// Apply implements changes.Collection
+// ApplyCollection implements changes.Collection
 func (t Text) ApplyCollection(ctx changes.Context, c changes.Change) changes.Collection {
 	if splice, ok := c.(changes.Splice); ok {
 		splice.Before = types.S16(string(splice.Before.(Text)))
@@ -61,4 +61,21 @@ func (t Text) Text() string {
 // Visit implements Val.Visit
 func (t Text) Visit(v Visitor) {
 	v.VisitLeaf(t)
+}
+
+// Field implements the "method" fields which only has "concat" at this point.
+func (t Text) Field(e Env, key Val) Val {
+	switch key {
+	case Text("concat"):
+		return method(func(e Env, args *Defs) Val {
+			others := args.Eval(e).(*Vals)
+			if others != nil {
+				for _, o := range *others {
+					t += Text(o.Text())
+				}
+			}
+			return t
+		})
+	}
+	return ErrNoSuchField
 }

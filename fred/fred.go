@@ -63,6 +63,19 @@ type Val interface {
 	Visit(visitor Visitor)
 }
 
+// Fieldable values implement Field
+type Fieldable interface {
+	// Field returns a field (say, via .key).  Also used for index
+	Field(e Env, key Val) Val
+}
+
+// Callable values implement Call
+type Callable interface {
+	// Call calls the value with the args.  Note that the args are
+	// not evaluated (this allows the callable to lazy evaluate them)
+	Call(e Env, args *Defs) Val
+}
+
 // Visitor is the interface that all value visitors should implement
 type Visitor interface {
 	VisitLeaf(v Val)

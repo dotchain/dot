@@ -34,3 +34,13 @@ func (e Error) Text() string {
 func (e Error) Visit(v Visitor) {
 	v.VisitLeaf(e)
 }
+
+// Field implements Fieldable but only returns itself no matter what
+func (e Error) Field(ex Env, key Val) Val {
+	return e
+}
+
+// Call implements Callable but only returns itself no matter what
+func (e Error) Call(ex Env, args *Defs) Val {
+	return e
+}

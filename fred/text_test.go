@@ -73,3 +73,21 @@ func TestTextApply(t *testing.T) {
 		t.Error("Unexpected Apply.Move", x)
 	}
 }
+
+func TestTextConcatCall(t *testing.T) {
+	base := fred.Fixed(fred.Text("hello "))
+	concat := fred.Field(base, fred.Fixed(fred.Text("concat")))
+	suffix := fred.Fixed(fred.Text("world"))
+	expr := fred.Call(concat, suffix)
+	if x := expr.Eval(env); x != fred.Text("hello world") {
+		t.Error("Unexpected", x)
+	}
+}
+
+func TestTextUnexpectedField(t *testing.T) {
+	base := fred.Fixed(fred.Text("hello "))
+	expr := fred.Field(base, fred.Fixed(fred.Text("booya")))
+	if x := expr.Eval(env); x != fred.ErrNoSuchField {
+		t.Error("Unexpected", x)
+	}
+}
