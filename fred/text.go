@@ -5,9 +5,14 @@
 package fred
 
 import (
+	"strconv"
+
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
 )
+
+// ErrInvalidArgs is a generic error for mismatched number or types of args
+var ErrInvalidArgs = Error("invalid args")
 
 // Text uses types.S16 to implement string-based values
 type Text string
@@ -65,16 +70,93 @@ func (t Text) Visit(v Visitor) {
 
 // Field implements the "method" fields which only has "concat" at this point.
 func (t Text) Field(e Env, key Val) Val {
-	if key == Text("concat") {
-		return method(func(e Env, args *Defs) Val {
-			others := args.Eval(e).(*Vals)
-			if others != nil {
-				for _, o := range *others {
-					t += Text(o.Text())
-				}
-			}
-			return t
-		})
+	switch key {
+	case Text("concat"):
+		return t.method(t.concatMethod)
+	case Text("length"):
+		return Num(strconv.Itoa(types.S16(string(t)).Count()))
+	case Text("splice"):
+		return t.method(t.spliceMethod)
+	case Text("slice"):
+		return t.method(t.sliceMethod)
 	}
 	return ErrNoSuchField
+}
+
+func (t Text) method(fn func(args Vals) Val) Val {
+	return method(func(e Env, args *Defs) Val {
+		others := args.Eval(e).(*Vals)
+		var vals Vals
+		if others != nil {
+			vals = *others
+		}
+		return fn(vals)
+	})
+}
+
+func (t Text) concatMethod(args Vals) Val {
+	result := string(t)
+	for _, arg := range args {
+		result += arg.Text()
+	}
+	return Text(result)
+}
+
+func (t Text) sliceMethod(args Vals) Val {
+	x := types.S16(string(t))
+
+	if len(args) != 1 && len(args) != 2 {
+		return ErrInvalidArgs
+	}
+
+	offset, err := ToInt(args[0])
+	if err != nil {
+		return err
+	}
+
+	count := int64(x.Count()) - offset
+	if len(args) == 2 {
+		var err Val
+		count, err = ToInt(args[1])
+		if err != nil {
+			return err
+		}
+	}
+
+	if offset < 0 || count < 0 || offset+count > int64(x.Count()) {
+		return ErrInvalidArgs
+	}
+
+	return Text(string(x.Slice(int(offset), int(count)).(types.S16)))
+}
+
+func (t Text) spliceMethod(args Vals) Val {
+	x := types.S16(string(t))
+
+	if len(args) != 3 {
+		return ErrInvalidArgs
+	}
+
+	offset, err := ToInt(args[0])
+	if err != nil {
+		return err
+	}
+
+	count, err := ToInt(args[1])
+	if err != nil {
+		return err
+	}
+
+	r := args[2].Text()
+	if offset < 0 || count < 0 || offset+count > int64(x.Count()) {
+		return ErrInvalidArgs
+	}
+
+	x = x.Apply(nil, changes.Splice{
+		Offset: int(offset),
+		Before: x.Slice(int(offset), int(count)),
+		After:  types.S16(r),
+	}).(types.S16)
+
+	return Text(string(x))
 }

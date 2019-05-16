@@ -119,3 +119,24 @@ func (n Num) toNum(e Env, arg Def) (*big.Rat, Val) {
 	}
 	return &r, nil
 }
+
+// ToInt converts a value to int64 returning any errors in the second param
+func ToInt(v Val) (int64, Val) {
+	nx, ok := v.(Num)
+	if !ok {
+		if err, ok := v.(Error); ok {
+			return 0, err
+		}
+		return 0, ErrNotNumber
+	}
+	var r big.Rat
+	if err := r.UnmarshalText([]byte(string(nx))); err != nil {
+		return 0, Error(err.Error())
+	}
+
+	if !r.IsInt() || !r.Num().IsInt64() {
+		return 0, ErrInvalidArgs
+	}
+
+	return r.Num().Int64(), nil
+}
