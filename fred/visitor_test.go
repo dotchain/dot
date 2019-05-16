@@ -23,6 +23,7 @@ func TestVisitor(t *testing.T) {
 		fred.Text("hello").Field(nil, fred.Text("concat")),
 		fred.Bool(true),
 		fred.Bool(false),
+		fred.Num("3/2"),
 	}
 
 	t1.Visit(&v)
@@ -35,6 +36,7 @@ func TestVisitor(t *testing.T) {
   [3] = <method>
   [4] = true
   [5] = false
+  [6] = 3/2
 } // <list>`
 
 	if v.text != expected {
