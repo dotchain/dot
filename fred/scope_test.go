@@ -21,15 +21,15 @@ func TestScopeResolveMiss(t *testing.T) {
 		t.Error("Unexpected", def)
 	}
 
-	s = fred.Scope{DefMap: &fred.DefMap{"goop": fred.Nil{}}}
+	s = fred.Scope{DefMap: &fred.DefMap{"goop": fred.Nil()}}
 	if def := s.Resolve("boo"); def != nil {
 		t.Error("Unexpected", def)
 	}
 }
 
 func TestScopeResolveHit(t *testing.T) {
-	s := fred.Scope{DefMap: &fred.DefMap{"goop": fred.Nil{}, "boop": nil}}
-	if def := s.Resolve("goop"); def != (fred.Nil{}) {
+	s := fred.Scope{DefMap: &fred.DefMap{"goop": fred.Nil(), "boop": nil}}
+	if def := s.Resolve("goop"); def != fred.Nil() {
 		t.Error("Unexpected", def)
 	}
 }

@@ -48,7 +48,7 @@ func TestTextApply(t *testing.T) {
 		t.Error("Unexpected Apply.Replace", x)
 	}
 
-	x = s.Apply(nil, changes.Splice{Offset: 7, Before: s.Slice(7, 2), After: fred.Text("-")})
+	x = s.ApplyCollection(nil, changes.Splice{Offset: 7, Before: s.Slice(7, 2), After: fred.Text("-")})
 	if x != fred.Text("hello, -🌂") {
 		t.Error("Unexpected Apply.Splice", x)
 	}
@@ -58,7 +58,7 @@ func TestTextApply(t *testing.T) {
 		t.Error("Unexpected Apply.Splice", x)
 	}
 
-	x = s.Apply(nil, changes.Move{Offset: 7, Count: 2, Distance: -1})
+	x = s.ApplyCollection(nil, changes.Move{Offset: 7, Count: 2, Distance: -1})
 	if x != fred.Text("hello,🌂 🌂") {
 		t.Error("Unexpected Apply.Move", x)
 	}

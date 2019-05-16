@@ -64,8 +64,8 @@ func TestEnvironDepth(t *testing.T) {
 }
 
 func TestEnvironChainedMiss(t *testing.T) {
-	goo := &fred.Fixed{Val: fred.Error("goo")}
-	boo := &fred.Fixed{Val: fred.Error("boo")}
+	goo := fred.Fixed(fred.Error("goo"))
+	boo := fred.Fixed(fred.Error("boo"))
 	parent := fred.Scope{DefMap: &fred.DefMap{"goo": goo}}
 	child := fred.Scope{DefMap: &fred.DefMap{"boo": boo}}
 	e := fred.Environ{
@@ -78,8 +78,8 @@ func TestEnvironChainedMiss(t *testing.T) {
 }
 
 func TestScopeChainedResolveHit(t *testing.T) {
-	goo := &fred.Fixed{Val: fred.Error("goo")}
-	boo := &fred.Fixed{Val: fred.Error("boo")}
+	goo := fred.Fixed(fred.Error("goo"))
+	boo := fred.Fixed(fred.Error("boo"))
 	parent := fred.Scope{DefMap: &fred.DefMap{"goo": goo}}
 	child := fred.Scope{DefMap: &fred.DefMap{"boo": boo}}
 	e := &fred.Environ{

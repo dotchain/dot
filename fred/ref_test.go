@@ -13,12 +13,7 @@ import (
 func TestRefMiss(t *testing.T) {
 	scope := &fred.Scope{}
 	env := &fred.Environ{Resolver: scope.Resolve, Cacher: &fred.Cache{}, Depth: 5}
-	x := fred.NewRef(&fred.Fixed{Val: fred.Error("boo")}).Eval(env)
-	if x != fred.Error("ref: no such ref") {
-		t.Error("Unexpected missing ref", x)
-	}
-
-	x = fred.NewFixedRef(fred.Error("boo")).Eval(env)
+	x := fred.Ref(fred.Fixed(fred.Error("boo"))).Eval(env)
 	if x != fred.Error("ref: no such ref") {
 		t.Error("Unexpected missing ref", x)
 	}
@@ -26,10 +21,10 @@ func TestRefMiss(t *testing.T) {
 
 func TestRefHit(t *testing.T) {
 	scope := &fred.Scope{
-		DefMap: &fred.DefMap{fred.Error("boo"): &fred.Fixed{Val: fred.Error("goo")}},
+		DefMap: &fred.DefMap{fred.Error("boo"): fred.Fixed(fred.Error("goo"))},
 	}
 	env := &fred.Environ{Resolver: scope.Resolve, Cacher: &fred.Cache{}, Depth: 5}
-	x := fred.NewFixedRef(fred.Error("boo")).Eval(env)
+	x := fred.Ref(fred.Fixed(fred.Error("boo"))).Eval(env)
 	if x != fred.Error("goo") {
 		t.Error("Unexpected missing ref", x)
 	}
@@ -38,8 +33,8 @@ func TestRefHit(t *testing.T) {
 func TestRefRecursion(t *testing.T) {
 	scope := &fred.Scope{
 		DefMap: &fred.DefMap{
-			fred.Error("boo"): fred.NewFixedRef(fred.Error("goo")),
-			fred.Error("goo"): fred.NewFixedRef(fred.Error("boo")),
+			fred.Error("boo"): fred.Ref(fred.Fixed(fred.Error("goo"))),
+			fred.Error("goo"): fred.Ref(fred.Fixed(fred.Error("boo"))),
 		},
 	}
 	env := &fred.Environ{Resolver: scope.Resolve, Cacher: &fred.Cache{}, Depth: 5}
@@ -47,7 +42,7 @@ func TestRefRecursion(t *testing.T) {
 	var r interface{}
 	func() {
 		defer func() { r = recover() }()
-		fred.NewFixedRef(fred.Error("boo")).Eval(env)
+		fred.Ref(fred.Fixed(fred.Error("boo"))).Eval(env)
 	}()
 
 	if r != fred.ErrRecursion {

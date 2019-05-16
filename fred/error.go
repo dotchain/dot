@@ -24,3 +24,13 @@ func (e Error) Apply(ctx changes.Context, c changes.Change) changes.Value {
 	}
 	return c.(changes.Custom).ApplyTo(ctx, e)
 }
+
+// Text implements Val.Text
+func (e Error) Text() string {
+	return "err: " + string(e)
+}
+
+// Visit implements Val.Visit
+func (e Error) Visit(v Visitor) {
+	v.VisitLeaf(e)
+}

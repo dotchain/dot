@@ -62,3 +62,19 @@ func (v *Vals) Slice(offset, count int) changes.Collection {
 	result := (*v)[offset : offset+count : offset+count]
 	return &result
 }
+
+// Text implements Val.Text
+func (v *Vals) Text() string {
+	return "<list>"
+}
+
+// Visit implements Val.Visite
+func (v *Vals) Visit(visitor Visitor) {
+	visitor.VisitChildrenBegin(v)
+	if v != nil {
+		for kk, val := range *v {
+			visitor.VisitChild(val, kk)
+		}
+	}
+	visitor.VisitChildrenEnd(v)
+}

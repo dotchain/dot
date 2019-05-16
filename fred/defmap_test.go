@@ -24,20 +24,20 @@ func TestDefMap(t *testing.T) {
 			Path: []interface{}{"boo"},
 			Change: changes.Replace{
 				Before: changes.Nil,
-				After:  &fred.Fixed{Val: fred.Error("hoo")},
+				After:  fred.Fixed(fred.Error("hoo")),
 			},
 		},
 		changes.PathChange{
 			Path: []interface{}{"goo"},
 			Change: changes.Replace{
 				Before: changes.Nil,
-				After:  &fred.Fixed{Val: fred.Error("goo")},
+				After:  fred.Fixed(fred.Error("goo")),
 			},
 		},
 	}
 	expected := &fred.DefMap{
-		"boo": &fred.Fixed{Val: fred.Error("hoo")},
-		"goo": &fred.Fixed{Val: fred.Error("goo")},
+		"boo": fred.Fixed(fred.Error("hoo")),
+		"goo": fred.Fixed(fred.Error("goo")),
 	}
 	if x := d.Apply(nil, c); !reflect.DeepEqual(x, expected) {
 		t.Error("Unexpected Defs..Apply", x)
@@ -46,13 +46,13 @@ func TestDefMap(t *testing.T) {
 	c = changes.PathChange{
 		Path: []interface{}{"boo"},
 		Change: changes.Replace{
-			Before: &fred.Fixed{Val: fred.Error("hoo")},
-			After:  &fred.Fixed{Val: fred.Error("hoo2")},
+			Before: fred.Fixed(fred.Error("hoo")),
+			After:  fred.Fixed(fred.Error("hoo2")),
 		},
 	}
 	expected2 := &fred.DefMap{
-		"boo": &fred.Fixed{Val: fred.Error("hoo2")},
-		"goo": &fred.Fixed{Val: fred.Error("goo")},
+		"boo": fred.Fixed(fred.Error("hoo2")),
+		"goo": fred.Fixed(fred.Error("goo")),
 	}
 	if x := expected.Apply(nil, c); !reflect.DeepEqual(x, expected2) {
 		t.Error("Unexpected Defs..Apply", x)
@@ -61,13 +61,13 @@ func TestDefMap(t *testing.T) {
 	c = changes.PathChange{
 		Path: []interface{}{"boo"},
 		Change: changes.Replace{
-			Before: &fred.Fixed{Val: fred.Error("hoo2")},
+			Before: fred.Fixed(fred.Error("hoo2")),
 			After:  changes.Nil,
 		},
 	}
 
 	expected3 := &fred.DefMap{
-		"goo": &fred.Fixed{Val: fred.Error("goo")},
+		"goo": fred.Fixed(fred.Error("goo")),
 	}
 	if x := expected2.Apply(nil, c); !reflect.DeepEqual(x, expected3) {
 		t.Error("Unexpected Defs..Apply", x)

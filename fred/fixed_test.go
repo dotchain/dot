@@ -12,16 +12,18 @@ import (
 	"github.com/dotchain/dot/fred"
 )
 
+var nilVal = fred.Nil().Eval(nil)
+
 func TestFixedEval(t *testing.T) {
-	t1 := &fred.Fixed{Val: fred.Nil{}}
-	if x := t1.Eval(nil); x != t1.Val {
+	t1 := fred.Fixed(nilVal)
+	if x := t1.Eval(nil); x != (nilVal) {
 		t.Error("Unexpected Eval", x)
 	}
 }
 
 func TestFixedApply(t *testing.T) {
-	t1 := &fred.Fixed{Val: fred.Nil{}}
-	t2 := &fred.Fixed{Val: fred.Error("boo")}
+	t1 := fred.Fixed(nilVal)
+	t2 := fred.Fixed(fred.Error("boo"))
 	t3 := t1.Apply(nil, changes.Replace{Before: t1, After: t2})
 	if t3 != t2 {
 		t.Error("replace failed", t3)
@@ -29,7 +31,7 @@ func TestFixedApply(t *testing.T) {
 
 	t4 := t1.Apply(nil, changes.PathChange{
 		Path:   []interface{}{"Val"},
-		Change: changes.Replace{Before: t1.Val, After: t2.Val},
+		Change: changes.Replace{Before: t1.Eval(nil), After: t2.Eval(nil)},
 	})
 	if !reflect.DeepEqual(t4, t3) {
 		t.Error("Unexpected eval", t4)
@@ -37,7 +39,7 @@ func TestFixedApply(t *testing.T) {
 }
 
 func TestFixedBadKey(t *testing.T) {
-	t1 := &fred.Fixed{Val: fred.Nil{}}
+	t1 := fred.Fixed(nilVal)
 
 	// must panic
 	var r interface{}

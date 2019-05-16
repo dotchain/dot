@@ -27,7 +27,7 @@ func TestDefsNil(t *testing.T) {
 		t.Error("Unexpected eval", x)
 	}
 
-	expected := &fred.Defs{&fred.Fixed{Val: fred.Error("one")}}
+	expected := &fred.Defs{fred.Fixed(fred.Error("one"))}
 	c := changes.Splice{Before: d.Slice(0, 0), After: expected}
 	if x := d.Apply(nil, c); !reflect.DeepEqual(x, expected) {
 		t.Error("Unexpected Defs.Apply", x)
@@ -50,8 +50,8 @@ func TestDefsSplice(t *testing.T) {
 	}
 
 	expected := &fred.Defs{
-		&fred.Fixed{Val: fred.Error("one")},
-		&fred.Fixed{Val: fred.Error("two")},
+		fred.Fixed(fred.Error("one")),
+		fred.Fixed(fred.Error("two")),
 	}
 	c := changes.Splice{Before: d.Slice(0, 0), After: expected}
 	if x := d.Apply(nil, c); !reflect.DeepEqual(x, expected) {
@@ -59,7 +59,7 @@ func TestDefsSplice(t *testing.T) {
 	}
 
 	expected2 := &fred.Defs{
-		&fred.Fixed{Val: fred.Error("one")},
+		fred.Fixed(fred.Error("one")),
 	}
 
 	c = changes.Splice{Offset: 1, Before: expected.Slice(1, 1), After: (*fred.Defs)(nil)}
@@ -74,7 +74,7 @@ func TestDefsSplice(t *testing.T) {
 }
 
 func TestDefsReplaceItem(t *testing.T) {
-	d := &fred.Defs{&fred.Fixed{Val: fred.Error("before")}}
+	d := &fred.Defs{fred.Fixed(fred.Error("before"))}
 	c := changes.PathChange{
 		Path: []interface{}{0, "Val"},
 		Change: changes.Replace{
@@ -82,7 +82,7 @@ func TestDefsReplaceItem(t *testing.T) {
 			After:  fred.Error("after"),
 		},
 	}
-	expected := &fred.Defs{&fred.Fixed{Val: fred.Error("after")}}
+	expected := &fred.Defs{fred.Fixed(fred.Error("after"))}
 	if x := d.Apply(nil, c); !reflect.DeepEqual(x, expected) {
 		t.Error("Unexpected apply", x)
 	}

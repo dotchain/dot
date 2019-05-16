@@ -16,12 +16,7 @@ func (r ref) Eval(e Env, args *Vals) Val {
 	return Error("ref: no such ref")
 }
 
-// NewRef creates a new ref to whatever Def evaluates to
-func NewRef(d Def) Def {
+// Ref creates a new ref to whatever Def evaluates to
+func Ref(d Def) Def {
 	return &Pure{Functor: &ref{}, Args: &Defs{d}}
-}
-
-// NewFixedRef creates a ref whose value is the lookup of the v in its environment
-func NewFixedRef(v Val) Def {
-	return &Pure{Functor: &ref{}, Args: &Defs{&Fixed{Val: v}}}
 }

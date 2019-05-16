@@ -6,11 +6,14 @@ package fred
 
 import "github.com/dotchain/dot/changes"
 
-// Nil represents an empty def and val
-type Nil struct{}
+// Nil returns an empty def
+func Nil() Def {
+	return none{}
+}
 
-// Apply implements changes.Value
-func (n Nil) Apply(ctx changes.Context, c changes.Change) changes.Value {
+type none struct{}
+
+func (n none) Apply(ctx changes.Context, c changes.Change) changes.Value {
 	if c == nil {
 		return n
 	}
@@ -20,7 +23,14 @@ func (n Nil) Apply(ctx changes.Context, c changes.Change) changes.Value {
 	return c.(changes.Custom).ApplyTo(ctx, n)
 }
 
-// Eval returns itself
-func (n Nil) Eval(e Env) Val {
+func (n none) Eval(e Env) Val {
 	return n
+}
+
+func (n none) Text() string {
+	return "<nil>"
+}
+
+func (n none) Visit(v Visitor) {
+	v.VisitLeaf(n)
 }

@@ -54,4 +54,19 @@ type Def interface {
 // Val implements an actual immutable value.
 type Val interface {
 	changes.Value
+
+	// Text converts the val into some string form
+	Text() string
+
+	// Visit is used to visit the val.  Val then calls
+	// Vistor.Leaf (for leaf nodes) or Visitor.Child (for each child)
+	Visit(visitor Visitor)
+}
+
+// Visitor is the interface that all value visitors should implement
+type Visitor interface {
+	VisitLeaf(v Val)
+	VisitChildrenBegin(v Val)
+	VisitChild(v Val, key interface{})
+	VisitChildrenEnd(v Val)
 }

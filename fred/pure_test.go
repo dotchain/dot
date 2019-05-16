@@ -26,8 +26,8 @@ func TestPureEval(t *testing.T) {
 	p := &fred.Pure{
 		Functor: concatErrors{},
 		Args: &fred.Defs{
-			&fred.Fixed{Val: fred.Error("hello ")},
-			&fred.Fixed{Val: fred.Error("world!")},
+			fred.Fixed(fred.Error("hello ")),
+			fred.Fixed(fred.Error("world!")),
 		},
 	}
 
@@ -41,8 +41,8 @@ func TestPureUpdateArgs(t *testing.T) {
 	p := &fred.Pure{
 		Functor: concatErrors{},
 		Args: &fred.Defs{
-			&fred.Fixed{Val: fred.Error("hello ")},
-			&fred.Fixed{Val: fred.Error("world!")},
+			fred.Fixed(fred.Error("hello ")),
+			fred.Fixed(fred.Error("world!")),
 		},
 	}
 
@@ -51,7 +51,7 @@ func TestPureUpdateArgs(t *testing.T) {
 		Change: changes.Splice{
 			Offset: 0,
 			Before: &fred.Defs{},
-			After:  &fred.Defs{&fred.Fixed{Val: fred.Error("OK ")}},
+			After:  &fred.Defs{fred.Fixed(fred.Error("OK "))},
 		},
 	}
 	expected := fred.Error("OK hello world!")

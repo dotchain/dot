@@ -5,6 +5,7 @@
 package fred_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/dotchain/dot/changes"
@@ -12,8 +13,8 @@ import (
 )
 
 func TestNil(t *testing.T) {
-	t1 := fred.Nil{}
-	t2 := fred.Nil{}
+	t1 := fred.Nil()
+	t2 := fred.Nil()
 	if t1 != t2 {
 		t.Error("Unexpected inequality")
 	}
@@ -32,7 +33,7 @@ func TestNil(t *testing.T) {
 		t.Error("Unexpected apply", t3)
 	}
 
-	if t1.Eval(nil) != t1 {
+	if !reflect.DeepEqual(t1.Eval(nil), t1) {
 		t.Error("Unexpected Eval", t3)
 	}
 

@@ -40,3 +40,19 @@ func (v *ValMap) set(key interface{}, value changes.Value) changes.Value {
 func (v *ValMap) Apply(ctx changes.Context, c changes.Change) changes.Value {
 	return (types.Generic{Set: v.set, Get: v.get}).Apply(ctx, c, v)
 }
+
+// Text implements Val.Text
+func (v *ValMap) Text() string {
+	return "<map>"
+}
+
+// Visit implements Val.Visit
+func (v *ValMap) Visit(visitor Visitor) {
+	visitor.VisitChildrenBegin(v)
+	if v != nil {
+		for k, val := range *v {
+			visitor.VisitChild(val, k)
+		}
+	}
+	visitor.VisitChildrenEnd(v)
+}

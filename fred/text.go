@@ -52,3 +52,13 @@ func (t Text) ApplyCollection(ctx changes.Context, c changes.Change) changes.Col
 	v := types.S16(string(t)).ApplyCollection(ctx, c)
 	return Text(string(v.(types.S16)))
 }
+
+// Text implements Val.Text
+func (t Text) Text() string {
+	return string(t)
+}
+
+// Visit implements Val.Visit
+func (t Text) Visit(v Visitor) {
+	v.VisitLeaf(t)
+}

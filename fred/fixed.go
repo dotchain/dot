@@ -18,27 +18,29 @@ import (
 // resolver.
 //
 // The provided value cannot be nil (though it can be fred.Nil{}).
-type Fixed struct {
-	Val
+func Fixed(v Val) Def {
+	return &fixed{val: v}
 }
 
-func (f *Fixed) get(key interface{}) changes.Value {
+type fixed struct {
+	val Val
+}
+
+func (f *fixed) get(key interface{}) changes.Value {
 	if key != "Val" {
 		panic("Unexpected key")
 	}
-	return f.Val
+	return f.val
 }
 
-func (f *Fixed) set(key interface{}, val changes.Value) changes.Value {
-	return &Fixed{Val: val.(Val)}
+func (f *fixed) set(key interface{}, val changes.Value) changes.Value {
+	return &fixed{val.(Val)}
 }
 
-// Apply implements changes.Value
-func (f *Fixed) Apply(ctx changes.Context, c changes.Change) changes.Value {
+func (f *fixed) Apply(ctx changes.Context, c changes.Change) changes.Value {
 	return (types.Generic{Set: f.set, Get: f.get}).Apply(ctx, c, f)
 }
 
-// Eval returns the wrapped val
-func (f *Fixed) Eval(e Env) Val {
-	return f.Val
+func (f *fixed) Eval(e Env) Val {
+	return f.val
 }
