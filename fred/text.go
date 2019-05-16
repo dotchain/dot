@@ -65,8 +65,7 @@ func (t Text) Visit(v Visitor) {
 
 // Field implements the "method" fields which only has "concat" at this point.
 func (t Text) Field(e Env, key Val) Val {
-	switch key {
-	case Text("concat"):
+	if key == Text("concat") {
 		return method(func(e Env, args *Defs) Val {
 			others := args.Eval(e).(*Vals)
 			if others != nil {

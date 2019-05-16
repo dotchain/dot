@@ -21,6 +21,8 @@ func TestVisitor(t *testing.T) {
 		fred.Error("myerr"),
 		fred.Nil().Eval(nil),
 		fred.Text("hello").Field(nil, fred.Text("concat")),
+		fred.Bool(true),
+		fred.Bool(false),
 	}
 
 	t1.Visit(&v)
@@ -31,6 +33,8 @@ func TestVisitor(t *testing.T) {
   [1] = err: myerr
   [2] = <nil>
   [3] = <method>
+  [4] = true
+  [5] = false
 } // <list>`
 
 	if v.text != expected {
