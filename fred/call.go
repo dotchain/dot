@@ -45,6 +45,14 @@ func (cx *callable) Eval(e Env) Val {
 	})
 }
 
+func (cx *callable) Func() Def {
+	return cx.fn
+}
+
+func (cx *callable) Args() *Defs {
+	return cx.args
+}
+
 // Call evaluates the first arg and passes the rest of the defs as args to it.
 //
 // The provided fn should evaluate to a Callable or this results in an error.

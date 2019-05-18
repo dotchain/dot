@@ -44,3 +44,7 @@ func (f *fixed) Apply(ctx changes.Context, c changes.Change) changes.Value {
 func (f *fixed) Eval(e Env) Val {
 	return f.val
 }
+
+func (f *fixed) Val() Val {
+	return f.val
+}

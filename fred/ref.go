@@ -16,6 +16,9 @@ func (r ref) Eval(e Env, args *Vals) Val {
 	return Error("ref: no such ref")
 }
 
+func (r *ref) Ref() {
+}
+
 // Ref creates a new ref to whatever Def evaluates to
 func Ref(d Def) Def {
 	return &Pure{Functor: &ref{}, Args: &Defs{d}}

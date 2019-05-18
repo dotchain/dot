@@ -56,6 +56,14 @@ func (f *fieldable) Eval(e Env) Val {
 	})
 }
 
+func (f *fieldable) FieldBase() Def {
+	return f.base
+}
+
+func (f *fieldable) Args() *Defs {
+	return f.args
+}
+
 // Field evaluates base.arg1.arg2 etc.
 func Field(base Def, args ...Def) Def {
 	a := Defs(args)
