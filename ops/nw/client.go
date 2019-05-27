@@ -11,6 +11,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/dotchain/dot/log"
 )
@@ -30,7 +31,7 @@ type Client struct {
 func (c *Client) call(ctx context.Context, r *request, ct string, body []byte) (io.ReadCloser, error) {
 	client := c.Client
 	if client == nil {
-		client = &http.Client{}
+		client = &http.Client{Timeout: time.Second}
 	}
 
 	req, err := http.NewRequest("POST", c.URL, bytes.NewReader(body))

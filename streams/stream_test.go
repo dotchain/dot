@@ -5,7 +5,6 @@
 package streams_test
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/dotchain/dot/changes"
@@ -16,19 +15,7 @@ import (
 type S = types.S8
 
 func TestStream(t *testing.T) {
-	initial := S("")
-	var latest streams.Stream
-	v := changes.Value(initial)
-
-	ev := func() {
-		var c changes.Change
-		latest, c = latest.Next()
-		v = v.Apply(nil, c)
-	}
 	s := streams.New()
-	latest = s
-	s.Nextf("boo", ev)
-	defer s.Nextf("boo", nil)
 
 	s1 := s.Append(changes.Replace{Before: changes.Nil, After: S("Hello World")})
 
@@ -36,7 +23,7 @@ func TestStream(t *testing.T) {
 	c1_2 := c1_1.Append(changes.Splice{Offset: 2, Before: S(""), After: S("B ")})
 
 	c2_1 := s1.Append(changes.Splice{Offset: 0, Before: S(""), After: S("X ")})
-	c2_1_merged := latest
+	c2_1_merged, _ := streams.Latest(s)
 
 	c2_2 := c2_1.Append(changes.Splice{Offset: 2, Before: S(""), After: S("Y ")})
 	c2_2_with_c1_1, _ := c2_2.Next()
@@ -44,7 +31,8 @@ func TestStream(t *testing.T) {
 	c1_3 := c2_1_merged.Append(changes.Splice{Offset: 6, Before: S(""), After: S("C ")})
 	c2_3 := c2_2_with_c1_1.Append(changes.Splice{Offset: 6, Before: S(""), After: S("Z ")})
 
-	if !reflect.DeepEqual(v, S("A B X Y C Z Hello World")) {
+	_, c := streams.Latest(s)
+	if v := S("").Apply(nil, c); v != S("A B X Y C Z Hello World") {
 		t.Error("Merge failed: ", v)
 		t.Error("changes", c1_1, c1_2, c1_3)
 		t.Error("changes", c2_1, c2_2, c2_3)
@@ -69,7 +57,9 @@ func TestBranch(t *testing.T) {
 	s2 := s1.Append(changes.Splice{Offset: 0, Before: S(""), After: S("Oh ")})
 	s2.Append(changes.Splice{Offset: len("Oh Hello World"), Before: S(""), After: S("!")})
 
-	streams.Push(child)
+	if err := child.Push(); err != nil {
+		t.Error("Push failed", err)
+	}
 
 	_, c = streams.Latest(s)
 	if v := initial.Apply(nil, c); v != types.S8("Oh OK Hello World!") {
@@ -77,40 +67,13 @@ func TestBranch(t *testing.T) {
 	}
 
 	child1.Append(changes.Splice{Offset: len("OK Hello World"), Before: S(""), After: S("**")})
-	streams.Pull(child)
+	if err := child.Pull(); err != nil {
+		t.Error("Pull failed", err)
+	}
 
 	_, c = streams.Latest(child)
 	if v := cInitial.Apply(nil, c); v != types.S8("Oh OK Hello World!**") {
 		t.Fatal("Unexpected branch updated", v)
-	}
-}
-
-func TestConnectedBranches(t *testing.T) {
-	var master changes.Value = S("")
-	var local changes.Value = S("")
-
-	bm := streams.New()
-	bl := streams.New()
-	bm.Nextf("key", func() {
-		var c changes.Change
-		bm, c = bm.Next()
-		master = master.Apply(nil, c)
-	})
-	bl.Nextf("key", func() {
-		var c changes.Change
-		bl, c = bl.Next()
-		local = local.Apply(nil, c)
-	})
-
-	streams.Connect(bm, bl)
-	bl.Append(changes.Splice{Offset: 0, Before: S(""), After: S("OK")})
-	if master != S("OK") || local != S("OK") {
-		t.Fatal("Unexpected master, local", master, local)
-	}
-
-	bm.Append(changes.Splice{Offset: 2, Before: S(""), After: S(" Computer")})
-	if master != S("OK Computer") || local != S("OK Computer") {
-		t.Fatal("Unexpected master, local", master, local)
 	}
 }
 
@@ -140,40 +103,38 @@ func TestDoubleBranches(t *testing.T) {
 		t.Error("Branch merged too soon", x)
 	}
 
-	streams.Pull(child)
+	if err := child.Pull(); err != nil {
+		t.Error("Pull failed", err)
+	}
+
 	if _, c := child.Next(); c != (changes.Move{Offset: 2, Count: 2, Distance: 2}) {
 		t.Error("Branch move unexpected change", c)
 	}
 
-	streams.Pull(grandChild)
+	if err := grandChild.Pull(); err != nil {
+		t.Error("pull failed", err)
+	}
+
 	if _, c := grandChild.Next(); c != (changes.Move{Offset: 2, Count: 2, Distance: 2}) {
 		t.Error("Branch move unexpected change", c)
 	}
 }
 
 func TestStreamNilChange(t *testing.T) {
-	initial := S("")
-	v := changes.Value(initial)
-
-	var latest streams.Stream
-	ev := func() {
-		var c changes.Change
-		latest, c = latest.Next()
-		v = v.Apply(nil, c)
-	}
 	s := streams.New()
-	latest = s
-	s.Nextf("boo", ev)
-	defer s.Nextf("boo", nil)
-
 	child := streams.Branch(s)
 
 	s.Append(nil)
 	child.Append(nil)
-	streams.Push(child)
-	streams.Pull(child)
+	if err := child.Push(); err != nil {
+		t.Error("push", err)
+	}
+	if err := child.Pull(); err != nil {
+		t.Error("pull", err)
+	}
 
-	if v != S("") {
+	_, c := streams.Latest(s)
+	if v := types.S8("").Apply(nil, c); v != types.S8("") {
 		t.Fatal("Failed merging nil changes", v)
 	}
 }

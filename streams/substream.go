@@ -57,12 +57,6 @@ func (s *substream) Next() (Stream, changes.Change) {
 	return &substream{next, r}, c
 }
 
-func (s *substream) Nextf(key interface{}, fn func()) {
-	if fn == nil || s.ref != refs.InvalidRef {
-		s.parent.Nextf(key, fn)
-	}
-}
-
 func (s *substream) Append(c changes.Change) Stream {
 	return s.apply(c, false)
 }
@@ -81,4 +75,20 @@ func (s *substream) apply(c changes.Change, reverse bool) Stream {
 		return &substream{s.parent.ReverseAppend(c), s.ref}
 	}
 	return &substream{s.parent.Append(c), s.ref}
+}
+
+func (s *substream) Push() error {
+	return s.parent.Push()
+}
+
+func (s *substream) Pull() error {
+	return s.parent.Pull()
+}
+
+func (s *substream) Undo() {
+	s.parent.Undo()
+}
+
+func (s *substream) Redo() {
+	s.parent.Redo()
 }

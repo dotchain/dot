@@ -16,31 +16,23 @@ func Branch(upstream Stream) Stream {
 	return branch{b, downstream}
 }
 
-// Push can be called on any branch to push all local changes
-// upstream.  It will panic if called on a non-branch
-func Push(s Stream) {
-	s.(branch).info.push()
-}
-
-// Pull can be called on any branch to pull all upstream changes over
-// locally. It will panic if called on a non-branch
-func Pull(s Stream) {
-	s.(branch).info.pull()
-}
-
-// Connect connects two streams as if downstream was created by a call
-// to Branch with the caveat that connected streams do not support
-// calls to Push or Pull -- they are effectively always in merge
-// mode.
-func Connect(up, down Stream) {
-	b := &branchInfo{up, down, false}
-	up.Nextf(b, b.pull)
-	down.Nextf(b, b.push)
-}
-
 type branch struct {
 	info *branchInfo
 	s    Stream
+}
+
+func (b branch) Push() error {
+	return b.info.push()
+}
+
+func (b branch) Pull() error {
+	return b.info.pull()
+}
+
+func (b branch) Undo() {
+}
+
+func (b branch) Redo() {
 }
 
 func (b branch) Append(c changes.Change) Stream {
@@ -59,21 +51,19 @@ func (b branch) Next() (Stream, changes.Change) {
 	return s, c
 }
 
-func (b branch) Nextf(key interface{}, fn func()) {
-	b.s.Nextf(key, fn)
-}
-
 type branchInfo struct {
 	up, down Stream
 	merging  bool
 }
 
-func (b *branchInfo) push() {
+func (b *branchInfo) push() error {
 	b.down, b.up = b.merge(b.down, b.up, false)
+	return nil
 }
 
-func (b *branchInfo) pull() {
+func (b *branchInfo) pull() error {
 	b.up, b.down = b.merge(b.up, b.down, true)
+	return nil
 }
 
 func (b *branchInfo) merge(from, to Stream, reverse bool) (fromx, tox Stream) {

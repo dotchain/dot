@@ -125,11 +125,11 @@ To use the types across the network, they have to be registered with
 the codec (which will be `gob` in this example)
 
 ```go example.global
-// import encoding/gob
+// import github.com/dotchain/dot/ops.nw
 
 func init() {
-	gob.Register(Todo{})
-        gob.Register(TodoList{})
+	nw.Register(Todo{})
+        nw.Register(TodoList{})
 }
 ```
 
@@ -257,41 +257,53 @@ is hosted.  In addition, the code below illustrations how sessions
 could be saved and restarted if needed.
 
 ```go example.global
+// import time
+// import sync
 // import github.com/dotchain/dot
 
+var Lock sync.Mutex
 func Client(stop chan struct{}, render func(*TodoListStream)) {
 	url := "http://localhost:8080/dot/"
-        version, pending, todos := SavedSession()
+        session, todos := SavedSession()
+	s, store := session.NonBlockingStream(url, nil)
+        defer store.Close()
 
-	session, s, _ := dot.Reconnect(url, version, pending)
 	todosStream := &TodoListStream{Stream: s, Value: todos}
 
-        // save session before shutdown
-	defer func() {
-        	todosStream.Stream.Nextf("key", nil)
-        	version, pending = session.Close()
-        	todos = todosStream.Latest().Value
-        	SaveSession(version, pending, todos)
-        }()
+        ticker := time.NewTicker(500*time.Millisecond)
+        changed := true
+	for {
+        	if changed {
+			render(todosStream)
+                }
+        	select {
+                case <- stop:
+                	return
+                case <- ticker.C:
+                }
 
-        render(todosStream)
-        todosStream.Stream.Nextf("key", func() {
-        	todosStream = todosStream.Latest()
-        	render(todosStream)
-        })
-	<- stop
+                Lock.Lock()
+		s.Push()
+                s.Pull()
+                next := todosStream.Latest()
+                changed = next != todosStream
+                todosStream, s = next, next.Stream
+                Lock.Unlock()
+        }
+
+       	SaveSession(session, todosStream.Value)
 }
 
 
-func SaveSession(version int, pending []ops.Op, todos TodoList) {
+func SaveSession(s *dot.Session, todos TodoList) {
 	// this is not yet implemented. if it were, then
         // this value should be persisted locally and returned
         // by the call to savedSession
 }
 
-func SavedSession() (version int, pending []ops.Op, todos TodoList) {
+func SavedSession() (s *dot.Session, todos TodoList) {
 	// this is not yet implemented. return default values
-        return -1, nil, nil
+        return dot.NewSession(), nil
 }
 
 ```
@@ -553,7 +565,7 @@ and **Redo** being invoked from an undo stack.
 
 	// create master, undoable child and the undo stack itself
 	master := &streams.S16{Stream: streams.New(), Value: "hello"}
-        s, stack := undo.New(master.Stream)
+        s := undo.New(master.Stream)
         undoableChild := &streams.S16{Stream: s, Value: master.Value}
 
 	// change hello => Hello
@@ -565,14 +577,14 @@ and **Redo** being invoked from an undo stack.
         master.Splice(len("hello"), 0, "$")
 
 	// now undo this via the stack
-        stack.Undo()
+        s.Undo()
 
 	// now undoableChild should be hello$
         undoableChild = undoableChild.Latest()
         fmt.Println(undoableChild.Value)
 
 	// now redo the last operation to get Hello$
-        stack.Redo()
+        s.Redo()
         undoableChild = undoableChild.Latest()
         fmt.Println(undoableChild.Value)
         
@@ -657,7 +669,7 @@ or Push are called.
         fmt.Println(master.Latest().Value)
 
 	// push local changes up to master now
-        streams.Push(local.Stream)
+        local.Stream.Push()
 
 	// now master = hallo
 	fmt.Println(master.Latest().Value)

@@ -54,42 +54,21 @@ func Example_appendUpstream() {
 
 func Example_nilFold() {
 	upstream := streams.New()
-	latest := upstream
-	upstream.Nextf("mykey", func() {
-		var c changes.Change
-		latest, c = latest.Next()
-		fmt.Println("Got Change:", c)
-	})
-	defer upstream.Nextf("mykey", nil)
 
 	folded := fold.New(changes.Splice{Offset: 0, Before: types.S8(""), After: types.S8("hello")}, upstream)
 	folded2 := folded.Append(changes.Splice{Offset: 1, Before: types.S8("e"), After: types.S8("u")})
-	folded.Append(changes.Splice{Offset: 10, Before: types.S8(""), After: types.S8("insert")})
-	c, _ := fold.Unfold(folded2)
 
+	folded.Append(changes.Splice{Offset: 10, Before: types.S8(""), After: types.S8("insert")})
+
+	_, c := upstream.Next()
+	fmt.Println("Got Change:", c)
+
+	c, _ = fold.Unfold(folded2)
 	fmt.Println("Unfolded:", c)
 
 	// Output:
 	// Got Change: {5  insert}
 	// Unfolded: {0  hullo}
-}
-
-func Example_nextf() {
-	upstream := streams.New()
-	folded := fold.New(changes.Splice{Offset: 0, Before: types.S8(""), After: types.S8("hello")}, upstream)
-	var latest streams.Stream = folded
-	folded.Nextf("mykey", func() {
-		var c changes.Change
-		latest, c = latest.Next()
-		fmt.Println("Got Change:", c)
-	})
-	defer folded.Nextf("mykey", nil)
-
-	// because of the folded splicee, offset 5 should get transformed to offset  10
-	upstream.Append(changes.Move{Offset: 5, Count: 6, Distance: 7})
-
-	// Output:
-	// Got Change: {10 6 7}
 }
 
 func TestPanic(t *testing.T) {

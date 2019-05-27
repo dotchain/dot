@@ -13,39 +13,51 @@ import (
 )
 
 func Example_newStream() {
-	latest := changes.Value(types.S8("Hello World"))
 	s := streams.New()
-	sLatest := s
-	s.Nextf("apply", func() {
-		var c changes.Change
-		sLatest, c = sLatest.Next()
-		latest = latest.Apply(nil, c)
-		fmt.Println("Changed:", latest)
+	s.Append(changes.Splice{
+		Offset: 0,
+		Before: types.S8(""),
+		After:  types.S8("OK "),
 	})
 
-	s.Append(changes.Splice{Offset: 0, Before: types.S8(""), After: types.S8("OK ")})
+	_, c := streams.Latest(s)
+	fmt.Println("Changed:", types.S8("Hello World").Apply(nil, c))
 
 	// Output:
 	// Changed: OK Hello World
 }
 
-func Example_streamMergeUsingNextfAndApply() {
-	latest := changes.Value(types.S8("Hello World"))
+func Example_streamMerge() {
 	s := streams.New()
-	sLatest := s
-	s.Nextf("apply", func() {
-		var c changes.Change
-		sLatest, c = sLatest.Next()
-		latest = latest.Apply(nil, c)
-		fmt.Println("Changed:", latest)
+	s1 := s.Append(changes.Splice{
+		Offset: 0,
+		Before: types.S8(""),
+		After:  types.S8("OK "),
 	})
 
-	s1 := s.Append(changes.Splice{Offset: 0, Before: types.S8(""), After: types.S8("OK ")})
+	_, c := streams.Latest(s)
+	fmt.Println("Changed:", types.S8("Hello World").Apply(nil, c))
+
 	// note that this works on s, so the offset location is based
 	// off "Hello World", rather than "OK Hello World"
-	_ = s.Append(changes.Splice{Offset: len("Hello World"), Before: types.S8(""), After: types.S8("!")})
+	_ = s.Append(changes.Splice{
+		Offset: len("Hello World"),
+		Before: types.S8(""),
+		After:  types.S8("!"),
+	})
+
+	_, c = streams.Latest(s)
+	fmt.Println("Changed:", types.S8("Hello World").Apply(nil, c))
+
 	// now modify s1 again which is based off of "OK Hello World"
-	s1.Append(changes.Splice{Offset: len("OK Hello World"), Before: types.S8(""), After: types.S8("*")})
+	s1.Append(changes.Splice{
+		Offset: len("OK Hello World"),
+		Before: types.S8(""),
+		After:  types.S8("*"),
+	})
+
+	_, c = streams.Latest(s)
+	fmt.Println("Changed:", types.S8("Hello World").Apply(nil, c))
 
 	// Output:
 	// Changed: OK Hello World
@@ -59,12 +71,20 @@ func Example_streamBranching() {
 	child := streams.Branch(s)
 
 	// update child, the changes won't be reflected on latest
-	child.Append(changes.Splice{Offset: 0, Before: types.S8(""), After: types.S8("OK ")})
+	child.Append(changes.Splice{
+		Offset: 0,
+		Before: types.S8(""),
+		After:  types.S8("OK "),
+	})
+
 	_, c := streams.Latest(s)
 	fmt.Println("Latest:", val.Apply(nil, c))
 
 	// merge child and parent, change will get reflected
-	streams.Push(child)
+	if err := child.Push(); err != nil {
+		fmt.Println("Error", err)
+	}
+
 	_, c = streams.Latest(s)
 	fmt.Println("Latest:", val.Apply(nil, c))
 

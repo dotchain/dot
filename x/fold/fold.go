@@ -35,7 +35,7 @@ func New(c changes.Change, base streams.Stream) streams.Stream {
 
 type stream struct {
 	fold changes.Change
-	base streams.Stream
+	streams.Stream
 }
 
 func (s stream) Append(c changes.Change) streams.Stream {
@@ -48,10 +48,10 @@ func (s stream) Append(c changes.Change) streams.Stream {
 	}
 
 	if c == nil {
-		return stream{fold, s.base}
+		return stream{fold, s.Stream}
 	}
 
-	return stream{fold, s.base.Append(c)}
+	return stream{fold, s.Stream.Append(c)}
 }
 
 func (s stream) ReverseAppend(c changes.Change) streams.Stream {
@@ -59,16 +59,12 @@ func (s stream) ReverseAppend(c changes.Change) streams.Stream {
 }
 
 func (s stream) Next() (streams.Stream, changes.Change) {
-	base, c := s.base.Next()
+	base, c := s.Stream.Next()
 	if base == nil {
 		return nil, nil
 	}
 	fold, cx := c.Merge(s.fold)
 	return &stream{fold, base}, cx
-}
-
-func (s stream) Nextf(key interface{}, fn func()) {
-	s.base.Nextf(key, fn)
 }
 
 // Unfold takes any stream derived from a folded stream (created by
@@ -78,5 +74,5 @@ func (s stream) Nextf(key interface{}, fn func()) {
 // It panics if the provided stream is not derived from New().
 func Unfold(s streams.Stream) (changes.Change, streams.Stream) {
 	x := s.(stream)
-	return x.fold, x.base
+	return x.fold, x.Stream
 }

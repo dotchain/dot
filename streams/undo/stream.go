@@ -9,32 +9,9 @@ import (
 	"github.com/dotchain/dot/streams"
 )
 
-// New returns a new stream based on another stream but with added
-// ability to undo and redo actions that happened on the base stream.
-//
-// The return Stack internally manages a stack of changes applied to
-// the stream.  Undo() and Redo() on the stack behave as expected.
-//
-// When using changes.Branch to merge streams, the undo stack should
-// be used a little carefully.  It identifies upstream merges and
-// ensures that those are not part of the undo/redo stack but this
-// only works if the newly returned stream is used in the branch, like
-// so:
-//
-//       original := streams.New()
-//       upstream := streams.New()
-//       downstream, stack := undo.New(original)
-//       branch := changes.Branch{upstream, downstream}
-//
-//       ... now stack.Undo() and stack.Redo() will not undo/redo
-//       ... operations made on the upstream branch but will use the
-//       ... upstream changes for proper transforms
-//
-// The undo setup can be terminated by calling Close() on the returned
-// stack. This will free up the resources associated with the stack
-func New(base streams.Stream) (streams.Stream, Stack) {
-	s := newStack(base)
-	return stream{base, s}, s
+// New returns a new stream with undo/redo capabilities
+func New(base streams.Stream) streams.Stream {
+	return stream{base, &stack{base: base}}
 }
 
 type stream struct {
@@ -52,7 +29,7 @@ func (s stream) Append(c changes.Change) streams.Stream {
 }
 
 func (s stream) ReverseAppend(c changes.Change) streams.Stream {
-	return stream{s.base.Append(c), s.stack}
+	return stream{s.base.ReverseAppend(c), s.stack}
 }
 
 func (s stream) Next() (streams.Stream, changes.Change) {
@@ -63,6 +40,18 @@ func (s stream) Next() (streams.Stream, changes.Change) {
 	return base, c
 }
 
-func (s stream) Nextf(key interface{}, fn func()) {
-	s.base.Nextf(key, fn)
+func (s stream) Push() error {
+	return s.base.Push()
+}
+
+func (s stream) Pull() error {
+	return s.base.Pull()
+}
+
+func (s stream) Undo() {
+	s.stack.Undo()
+}
+
+func (s stream) Redo() {
+	s.stack.Redo()
 }

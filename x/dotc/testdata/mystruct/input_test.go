@@ -30,7 +30,7 @@ func valuesFormyStructStream() []myStruct {
 			str:   "four",
 			Str16: types.S16("four"),
 		},
-	}	
+	}
 }
 
 func valuesFormyStructpStream() []*myStructp {
@@ -61,7 +61,7 @@ func valuesFormyStructpStream() []*myStructp {
 			str:   "four",
 			Str16: types.S16("four"),
 		},
-	}	
+	}
 }
 
 func valuesForMyStructStream() []MyStruct {

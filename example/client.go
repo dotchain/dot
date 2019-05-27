@@ -22,8 +22,10 @@ func main() {
 			time.Sleep(time.Second * 2)
 			todo := example.Todo{Description: fmt.Sprintf("Heyaaa %d", count)}
 			if stream != nil {
+				example.Lock.Lock()
 				example.AddTodo(stream.Latest(), todo)
 				stream = stream.Latest()
+				example.Lock.Unlock()
 				count++
 			}
 		}

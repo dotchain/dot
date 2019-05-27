@@ -20,23 +20,11 @@ const (
 	redo
 )
 
-// Stack provides Undo/Redo capability tracking all changes so this
-// can be done correctly.
-type Stack interface {
-	Undo()
-	Redo()
-	Close()
-}
-
 type stack struct {
 	sync.Mutex
 	base    streams.Stream
 	changes []changes.Change
 	types   []cType
-}
-
-func newStack(base streams.Stream) *stack {
-	return &stack{base: base}
 }
 
 func (s *stack) pullChanges(t cType) {
@@ -54,10 +42,6 @@ func (s *stack) withLock(fn func()) {
 	defer s.Unlock()
 	s.pullChanges(upstream)
 	fn()
-}
-
-func (s *stack) Close() {
-	*s = stack{}
 }
 
 func (s *stack) Undo() {

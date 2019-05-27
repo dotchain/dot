@@ -12,9 +12,8 @@ import (
 )
 
 // newID returns a unique ID using crypto/rand
-func (s *session) newID() interface{} {
+func (s *session) newID() (interface{}, error) {
 	var b [32]byte
 	_, err := rand.Read(b[:])
-	s.must(err, "crypto/rand.Read failed")
-	return hex.EncodeToString(b[:])
+	return hex.EncodeToString(b[:]), err
 }

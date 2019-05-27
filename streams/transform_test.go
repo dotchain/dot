@@ -26,18 +26,9 @@ func (_ xformsuite) ParentAppend(t *testing.T) {
 	parent := streams.New()
 	child := streams.Transform(parent, toInt, nil)
 
-	nextCalled := false
-	child.Nextf("key", func() {
-		nextCalled = true
-	})
-
 	c := changes.Replace{Before: changes.Nil, After: changes.Atomic{Value: 2.1}}
 
 	parent.Append(c)
-
-	if !nextCalled {
-		t.Fatal("Child did not get nexted")
-	}
 
 	_, c1 := parent.Next()
 	if !reflect.DeepEqual(c1, c) {
@@ -54,19 +45,10 @@ func (_ xformsuite) Append(t *testing.T) {
 	parent := streams.New()
 	child := streams.Transform(parent, toInt, nil)
 
-	nextCalled := false
-	child.Nextf("key", func() {
-		nextCalled = true
-	})
-
 	c := changes.Replace{Before: changes.Nil, After: changes.Atomic{Value: 2.1}}
 	expected := changes.Replace{Before: changes.Nil, After: changes.Atomic{Value: int(2)}}
 
 	child.Append(c)
-
-	if !nextCalled {
-		t.Fatal("Child did not get nexted")
-	}
 
 	_, c1 := parent.Next()
 	if !reflect.DeepEqual(c1, expected) {
@@ -83,17 +65,8 @@ func (_ xformsuite) ReverseAppend(t *testing.T) {
 	parent := streams.New()
 	child := streams.Transform(parent, toInt, nil)
 
-	nextCalled := false
-	child.Nextf("key", func() {
-		nextCalled = true
-	})
-
 	c := changes.Replace{Before: changes.Nil, After: changes.Atomic{Value: 2.1}}
 	child.ReverseAppend(c)
-
-	if !nextCalled {
-		t.Fatal("Child did not get nexted")
-	}
 
 	_, c1 := parent.Next()
 	if !reflect.DeepEqual(c1, c) {
@@ -110,18 +83,9 @@ func (_ xformsuite) Next(t *testing.T) {
 	parent := streams.New()
 	child := streams.Transform(parent, nil, toInt)
 
-	nextCalled := false
-	child.Nextf("key", func() {
-		nextCalled = true
-	})
-
 	c := changes.Replace{Before: changes.Nil, After: changes.Atomic{Value: 2.1}}
 	expected := changes.Replace{Before: changes.Nil, After: changes.Atomic{Value: int(2)}}
 	parent.Append(c)
-
-	if !nextCalled {
-		t.Fatal("Child did not get nexted")
-	}
 
 	_, c1 := parent.Next()
 	if !reflect.DeepEqual(c1, c) {

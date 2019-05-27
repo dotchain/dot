@@ -7,104 +7,85 @@ package sync
 import (
 	"context"
 	"strconv"
-	"sync"
-	"time"
 
+	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/ops"
 	"github.com/dotchain/dot/streams"
 )
 
 type session struct {
-	sync.Mutex
 	config *Config
 	stream streams.Stream
-	id     interface{}
+	out    []ops.Op
 }
 
-func (s *session) read(ctx context.Context) {
-	var err error
-	var operations []ops.Op
+func (s *session) push() error {
+	stream, c := streams.Latest(s.stream)
+	s.stream = stream
+	err := s.appendChange(c)
 
-	c, ver := s.config, s.config.Version
-	for err == nil {
-		operations, err = c.Store.GetSince(ctx, ver+1, 1000)
-		if err == nil && len(operations) > 0 {
-			ver = s.onStoreOps(operations)
+	if len(s.out) > 0 && err == nil {
+		err = s.config.Store.Append(context.Background(), s.out)
+		if err == nil {
+			s.out = nil
 		}
 	}
 
-	if err == ctx.Err() {
-		err = nil
-	}
-
-	s.must(err, "reliable GetSince failed")
+	return err
 }
 
-func (s *session) onStoreOps(operations []ops.Op) int {
-	s.Lock()
-	defer s.Unlock()
+func (s *session) appendChange(c changes.Change) error {
+	if c == nil {
+		return nil
+	}
 
-	s.stream.Nextf(s, nil)
-	defer s.stream.Nextf(s, s.onAppend)
+	cfg := s.config
+	id, err := s.newID()
+	if err == nil {
+		op := ops.Operation{OpID: id, BasisID: cfg.Version, Change: c}
+		if len(cfg.Pending) > 0 {
+			op.ParentID = cfg.Pending[len(cfg.Pending)-1].ID()
+		}
+		cfg.Pending = append(cfg.Pending, op)
+		cfg.MergeChain = append(cfg.MergeChain, op)
+		s.out = append(s.out, op)
+		cfg.Notify(cfg.Version, cfg.Pending, cfg.MergeChain)
+	}
+	return err
+}
 
-	c := s.config
-	before := c.Version
-	for _, op := range operations {
-		if op.Version() != c.Version+1 {
-			s.must(verMismatchError{op.Version(), c.Version + 1}, "")
+func (s *session) pull() error {
+	cfg := s.config
+	version := cfg.Version
+
+	ops, err := cfg.Store.GetSince(context.Background(), version+1, 1000)
+	if err != nil {
+		return err
+	}
+
+	for _, op := range ops {
+		if op.Version() != cfg.Version+1 {
+			return verMismatchError{op.Version(), cfg.Version + 1}
 		}
 
-		c.Version++
-		if len(c.Pending) > 0 && c.Pending[0].ID() == op.ID() {
-			c.Pending = c.Pending[1:]
-			s.stream, _ = s.stream.Next()
+		if len(cfg.Pending) > 0 && cfg.Pending[0].ID() == op.ID() {
+			cfg.Pending = cfg.Pending[1:]
+			cfg.MergeChain = cfg.MergeChain[1:]
 		} else {
+			for idx, pending := range cfg.MergeChain {
+				pc, oc := changes.Merge(op.Changes(), pending.Changes())
+				cfg.MergeChain[idx] = pending.WithChanges(pc)
+				op = op.WithChanges(oc)
+			}
 			s.stream = s.stream.ReverseAppend(op.Changes())
 		}
+		cfg.Version++
 	}
 
-	if c.Version > before {
-		c.Notify(c.Version, c.Pending)
+	if cfg.Version > version {
+		cfg.Notify(cfg.Version, cfg.Pending, cfg.MergeChain)
 	}
-	return c.Version
-}
-
-func (s *session) onAppend() {
-	s.Lock()
-	defer s.Unlock()
-
-	stream, c := s.stream, s.config
-	for range c.Pending {
-		stream, _ = stream.Next()
-	}
-
-	before := len(c.Pending)
-	for next, ch := stream.Next(); next != nil; next, ch = next.Next() {
-		op := ops.Operation{OpID: s.newID(), BasisID: c.Version, Change: ch}
-		if len(c.Pending) > 0 {
-			op.ParentID = c.Pending[len(c.Pending)-1].ID()
-		}
-		c.Pending = append(c.Pending, op)
-	}
-
-	if len(c.Pending) > before {
-		c.Notify(c.Version, c.Pending)
-		s.write(c.Pending[before:len(c.Pending)])
-	}
-}
-
-func (s *session) write(pending []ops.Op) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-
-	err := s.config.Store.Append(ctx, pending)
-	s.must(err, "reliable append failed")
-}
-
-func (s *session) must(err error, msg string) {
-	if err != nil {
-		s.config.Log.Fatal(msg, err)
-	}
+	return nil
 }
 
 type verMismatchError struct {

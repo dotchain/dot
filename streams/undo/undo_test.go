@@ -13,38 +13,16 @@ import (
 	"github.com/dotchain/dot/streams/undo"
 )
 
-func TestNextf(t *testing.T) {
-	orig := streams.New()
-	downstream, stack := undo.New(orig)
-	defer stack.Close()
-
-	count := 0
-	downstream.Nextf("key", func() {
-		count++
-		if count > 2 {
-			panic("wa")
-		}
-	})
-	orig.Append(changes.Move{Offset: 1, Count: 2, Distance: 3})
-	orig.Append(changes.Move{Offset: 2, Count: 3, Distance: 4})
-	downstream.Nextf("key", nil)
-	orig.Append(changes.Move{Offset: 4, Count: 5, Distance: 6})
-	if count != 2 {
-		t.Fatal("Nextf did not proxy as expected", count)
-	}
-}
-
 func TestSimpleUndoRedo(t *testing.T) {
 	upstream := streams.New()
-	downstream, stack := undo.New(streams.New())
-	streams.Connect(upstream, downstream)
+	downstream := undo.New(upstream)
 
 	downstream.Append(changes.Splice{Offset: 10, Before: types.S8(""), After: types.S8("hello")})
 	upstream.Append(changes.Splice{Offset: 0, Before: types.S8(""), After: types.S8("abcde")})
 
 	// now undo should rewrite downstream to remove at index 15
 	downstream = latest(downstream)
-	stack.Undo()
+	downstream.Undo()
 	downstream, c := downstream.Next()
 	expected := changes.Splice{Offset: 15, Before: types.S8("hello"), After: types.S8("")}
 	if c != expected {
@@ -56,7 +34,7 @@ func TestSimpleUndoRedo(t *testing.T) {
 
 	// now redo and confirm that the redo offset is bumped up by 5more
 	downstream = latest(downstream)
-	stack.Redo()
+	downstream.Redo()
 	_, c = downstream.Next()
 	expected = changes.Splice{Offset: 20, Before: types.S8(""), After: types.S8("hello")}
 	if c != expected {
@@ -129,13 +107,12 @@ func TestRedo(t *testing.T) {
 
 func testUndo(t *testing.T, test string) {
 	upstream := streams.New()
-	downstream, stack := undo.New(streams.New())
-	defer stack.Close()
-	streams.Connect(upstream, downstream)
-	expected, _ := prepareBranch(upstream, downstream, stack, test)
+	downstream := undo.New(upstream)
+
+	expected, _ := prepareBranch(upstream, downstream, test)
 
 	downstream = latest(downstream)
-	stack.Undo()
+	downstream.Undo()
 	_, c := downstream.Next()
 	if expected == "" {
 		if c != nil {
@@ -156,13 +133,11 @@ func testUndo(t *testing.T, test string) {
 
 func testRedo(t *testing.T, test string) {
 	upstream := streams.New()
-	downstream, stack := undo.New(streams.New())
-	defer stack.Close()
-	streams.Connect(upstream, downstream)
-	_, expected := prepareBranch(upstream, downstream, stack, test)
+	downstream := undo.New(upstream)
+	_, expected := prepareBranch(upstream, downstream, test)
 
 	downstream = latest(downstream)
-	stack.Redo()
+	downstream.Redo()
 
 	_, c := downstream.Next()
 	if expected == "" {
@@ -182,7 +157,7 @@ func testRedo(t *testing.T, test string) {
 	}
 }
 
-func prepareBranch(upstream, downstream streams.Stream, stack undo.Stack, test string) (string, string) {
+func prepareBranch(upstream, downstream streams.Stream, test string) (string, string) {
 	letters := "abcdefghijklmnopqrstuvwxyz"
 	ops := []string{}
 	for kk, c := range test {
@@ -193,10 +168,10 @@ func prepareBranch(upstream, downstream streams.Stream, stack undo.Stack, test s
 			latest(downstream).Append(splice)
 			ops = append(ops, next)
 		case 'U':
-			stack.Undo()
+			downstream.Undo()
 			ops = ops[:len(ops)-1]
 		case 'R':
-			stack.Redo()
+			downstream.Redo()
 			ops = ops[:len(ops)+1]
 		case 'S':
 			latest(upstream).Append(splice)

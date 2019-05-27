@@ -5,8 +5,7 @@
 package sync
 
 import (
-	"context"
-
+	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/log"
 	"github.com/dotchain/dot/ops"
 	"github.com/dotchain/dot/streams"
@@ -26,8 +25,8 @@ import (
 // The returned close function can be used to shutdown the
 // synchronization but the underlying store still needs to be
 // separately released.
-func Stream(store ops.Store, opts ...Option) (s streams.Stream, closefn func()) {
-	notify := func(version int, pending []ops.Op) {}
+func Stream(store ops.Store, opts ...Option) streams.Stream {
+	notify := func(version int, pending, merge []ops.Op) {}
 	c := &Config{Store: store, Log: log.Default(), Notify: notify, Version: -1}
 
 	for _, opt := range opts {
@@ -37,39 +36,49 @@ func Stream(store ops.Store, opts ...Option) (s streams.Stream, closefn func()) 
 		c.Store = ops.Transformed(c.Store, c.Cache)
 	}
 	c.Store = Reliable(c.Store, opts...)
-
-	session := &session{config: c, stream: streams.New()}
-	session.id = session.newID()
-	session.stream = streams.New()
-
-	// add fake entries for each pending as an entry is expected
-	// per pending request. See the ack behavior in session.read
-	latest := session.stream
-	for range c.Pending {
-		latest = latest.Append(nil)
+	if c.NonBlocking {
+		c.Store = NonBlocking(c.Store)
 	}
 
-	if len(c.Pending) > 0 {
-		session.write(c.Pending)
+	out := append([]ops.Op(nil), c.Pending...)
+	session := &session{config: c, stream: streams.New(), out: out}
+
+	return stream{session, session.stream}
+}
+
+type stream struct {
+	*session
+	stream streams.Stream
+}
+
+func (s stream) Append(c changes.Change) streams.Stream {
+	return stream{s.session, s.stream.Append(c)}
+}
+
+func (s stream) ReverseAppend(c changes.Change) streams.Stream {
+	return stream{s.session, s.stream.ReverseAppend(c)}
+}
+
+func (s stream) Push() error {
+	return s.session.push()
+}
+
+func (s stream) Pull() error {
+	return s.session.pull()
+}
+
+func (s stream) Undo() {
+	s.stream.Undo()
+}
+
+func (s stream) Redo() {
+	s.stream.Redo()
+}
+
+func (s stream) Next() (streams.Stream, changes.Change) {
+	next, c := s.stream.Next()
+	if next == nil {
+		return nil, nil
 	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	closed := make(chan struct{})
-
-	latest.Nextf(session, session.onAppend)
-	go func() {
-		session.read(ctx)
-		session.stream.Nextf(session, nil)
-		close(closed)
-	}()
-
-	closefn = func() {
-		cancel()
-		<-closed
-		// clean up the reliable store only
-		// leaving the original store as is
-		c.Store.(*reliable).cancelDeliver()
-	}
-
-	return latest, closefn
+	return stream{s.session, next}, c
 }

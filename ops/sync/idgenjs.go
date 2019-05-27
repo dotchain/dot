@@ -13,9 +13,9 @@ import (
 )
 
 // newID returns a unique ID using crypto
-func (s *session) newID() interface{} {
+func (s *session) newID() (interface{}, error) {
 	crypto := js.Global.Get("crypto")
 	array := js.Global.Get("Uint8Array").New(32)
 	crypto.Call("getRandomValues", array)
-	return base64.StdEncoding.EncodeToString(array.Interface().([]byte))
+	return base64.StdEncoding.EncodeToString(array.Interface().([]byte)), nil
 }

@@ -8,10 +8,9 @@ import (
 	"log"
 	"math/rand"
 	"os"
-	gosync "sync"
 	"time"
 
-	"github.com/dotchain/dot/changes"
+	dotlog "github.com/dotchain/dot/log"
 	"github.com/dotchain/dot/ops"
 	"github.com/dotchain/dot/ops/nw"
 	"github.com/dotchain/dot/ops/sync"
@@ -20,109 +19,90 @@ import (
 
 // Session represents a client session
 type Session struct {
-	meta    streams.Stream
-	close   func()
-	version int
-	pending []ops.Op
-	x       map[int]ops.Op
-	merge   map[int][]ops.Op
+	Version        int
+	Pending, Merge []ops.Op
 
-	gosync.Mutex
+	OpCache    map[int]ops.Op
+	MergeCache map[int][]ops.Op
 }
 
-// Close closes the session
+// NewSession creates an empty session
+func NewSession() *Session {
+	return &Session{
+		Version:    -1,
+		OpCache:    map[int]ops.Op{},
+		MergeCache: map[int][]ops.Op{},
+	}
+}
+
+// Stream returns the stream of changes for this session
 //
-// The returned version and pending maybe reused to Reconnect from
-// that state.
-func (s *Session) Close() (version int, pending []ops.Op) {
-	s.close()
-	return s.version, s.pending
+// The returned store can be used to *close* the stream when needed
+//
+// Actual syncing of messages happens when Push and Pull are called on the stream
+func (s *Session) Stream(url string, logger dotlog.Log) (streams.Stream, ops.Store) {
+	if logger == nil {
+		logger = log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile)
+	}
+
+	store := &nw.Client{
+		URL:         url,
+		Log:         logger,
+		ContentType: "application/x-sjson",
+	}
+
+	stream := sync.Stream(
+		store,
+		sync.WithNotify(s.UpdateVersion),
+		sync.WithSession(s.Version, s.Pending, s.Merge),
+		sync.WithLog(logger),
+		sync.WithBackoff(rand.Float64, time.Second, time.Minute),
+		sync.WithAutoTransform(s),
+	)
+	return stream, store
+}
+
+// NonBlockingStream returns the stream of changes for this session
+//
+// The returned store can be used to *close* the stream when needed
+//
+// Actual syncing of messages happens when Push and Pull are called on
+// the stream. Pull() does the server-fetch asynchronously, returning
+// immediately if there is no server data available.
+func (s *Session) NonBlockingStream(url string, logger dotlog.Log) (streams.Stream, ops.Store) {
+	if logger == nil {
+		logger = log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile)
+	}
+
+	store := &nw.Client{
+		URL:         url,
+		Log:         logger,
+		ContentType: "application/x-sjson",
+	}
+
+	stream := sync.Stream(
+		store,
+		sync.WithNotify(s.UpdateVersion),
+		sync.WithSession(s.Version, s.Pending, s.Merge),
+		sync.WithLog(logger),
+		sync.WithBackoff(rand.Float64, time.Second, time.Minute),
+		sync.WithAutoTransform(s),
+		sync.WithNonBlocking(true),
+	)
+	return stream, store
 }
 
 // Load implements the ops.Cache load interface
 func (s *Session) Load(ver int) (ops.Op, []ops.Op) {
-	return s.x[ver], s.merge[ver]
-}
-
-func (s *Session) makeChange(before, after interface{}, path ...interface{}) changes.Change {
-	c := changes.Replace{Before: changes.Nil, After: changes.Atomic{Value: after}}
-	if before != nil {
-		c.Before = changes.Atomic{Value: before}
-	}
-
-	return changes.PathChange{Path: path, Change: c}
+	return s.OpCache[ver], s.MergeCache[ver]
 }
 
 // Store implements the ops.Cache store interface
 func (s *Session) Store(ver int, op ops.Op, merge []ops.Op) {
-	s.Lock()
-	defer s.Unlock()
-
-	s.meta = s.meta.Append(changes.ChangeSet{
-		s.makeChange(nil, op, "TransformedOp", ver),
-		s.makeChange(nil, merge, "MergeOps", ver),
-	})
-	s.x[ver], s.merge[ver] = op, merge
+	s.OpCache[ver], s.MergeCache[ver] = op, merge
 }
 
 // UpdateVersion updates the version/pending info
-func (s *Session) UpdateVersion(version int, pending []ops.Op) {
-	s.Lock()
-	defer s.Unlock()
-
-	s.meta = s.meta.Append(changes.ChangeSet{
-		s.makeChange(s.version, version, "Version"),
-		s.makeChange(s.pending, pending, "Pending"),
-	})
-	s.version, s.pending = version, pending
-}
-
-// Connect creates a fresh session to the provided URL
-func Connect(url string) (*Session, streams.Stream) {
-	session, updates, _ := Reconnect(url, -1, nil)
-	return session, updates
-}
-
-// Reconnect creates a session using saved state from a prior session
-//
-// It returns a Session, the updates stream and the state stream.
-//
-// The Session must be closed when done at which time the current
-// version and pending will be returned. That can be used to reconnect
-// and create a new session.
-//
-// The updates streaem contains all the updates to the core stream
-// while the meta stream contains info about the progress of the sync
-// process itself.
-//
-// The meta stream can be thought of as happening on the following
-// struct:
-//
-//    type SessionMeta struct {
-//        Version int
-//        Pending []ops.Op
-//        TransformedOp map[int]ops.Op
-//        MergeOps map[int][]ops.Op
-//    }
-//
-// See x/meta for an example of how to use this.
-func Reconnect(url string, version int, pending []ops.Op) (session *Session, updates, meta streams.Stream) {
-	meta = streams.New()
-	session = &Session{meta, nil, version, pending, map[int]ops.Op{}, map[int][]ops.Op{}, gosync.Mutex{}}
-	logger := log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile)
-	store := &nw.Client{URL: url, Log: logger, ContentType: "application/x-sjson"}
-	stream, closefn := sync.Stream(
-		store,
-		sync.WithNotify(session.UpdateVersion),
-		sync.WithSession(session.version, session.pending),
-		sync.WithLog(log.New(os.Stderr, "C", log.Lshortfile|log.LstdFlags)),
-		sync.WithBackoff(rand.Float64, time.Second, time.Minute),
-		sync.WithAutoTransform(session),
-	)
-	session.close = func() {
-		closefn()
-		store.Close()
-	}
-
-	return session, stream, meta
+func (s *Session) UpdateVersion(version int, pending, merge []ops.Op) {
+	s.Version, s.Pending, s.Merge = version, pending, merge
 }
