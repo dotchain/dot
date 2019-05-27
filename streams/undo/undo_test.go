@@ -105,6 +105,19 @@ func TestRedo(t *testing.T) {
 	}
 }
 
+func TestPushPull(t *testing.T) {
+	upstream := streams.New()
+	downstream := undo.New(upstream)
+
+	if err := downstream.Push(); err != nil {
+		t.Error("Unexpected push error", err)
+	}
+	if err := downstream.Pull(); err != nil {
+		t.Error("Unexpected pull error", err)
+	}
+
+}
+
 func testUndo(t *testing.T, test string) {
 	upstream := streams.New()
 	downstream := undo.New(upstream)

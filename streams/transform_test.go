@@ -83,6 +83,10 @@ func (_ xformsuite) Next(t *testing.T) {
 	parent := streams.New()
 	child := streams.Transform(parent, nil, toInt)
 
+	if x, c := child.Next(); x != nil || c != nil {
+		t.Error("Unexpected next", x, c)
+	}
+
 	c := changes.Replace{Before: changes.Nil, After: changes.Atomic{Value: 2.1}}
 	expected := changes.Replace{Before: changes.Nil, After: changes.Atomic{Value: int(2)}}
 	parent.Append(c)

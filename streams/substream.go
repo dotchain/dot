@@ -35,8 +35,8 @@ func Substream(parent Stream, key ...interface{}) Stream {
 }
 
 type substream struct {
-	parent Stream
-	ref    refs.Ref
+	Stream
+	ref refs.Ref
 }
 
 func (s *substream) Next() (Stream, changes.Change) {
@@ -44,7 +44,7 @@ func (s *substream) Next() (Stream, changes.Change) {
 		return nil, nil
 	}
 
-	next, nextc := s.parent.Next()
+	next, nextc := s.Stream.Next()
 	if next == nil {
 		return nil, nil
 	}
@@ -72,23 +72,7 @@ func (s *substream) apply(c changes.Change, reverse bool) Stream {
 
 	c = changes.PathChange{Path: []interface{}(s.ref.(refs.Path)), Change: c}
 	if reverse {
-		return &substream{s.parent.ReverseAppend(c), s.ref}
+		return &substream{s.Stream.ReverseAppend(c), s.ref}
 	}
-	return &substream{s.parent.Append(c), s.ref}
-}
-
-func (s *substream) Push() error {
-	return s.parent.Push()
-}
-
-func (s *substream) Pull() error {
-	return s.parent.Pull()
-}
-
-func (s *substream) Undo() {
-	s.parent.Undo()
-}
-
-func (s *substream) Redo() {
-	s.parent.Redo()
+	return &substream{s.Stream.Append(c), s.ref}
 }

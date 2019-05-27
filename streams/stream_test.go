@@ -138,3 +138,15 @@ func TestStreamNilChange(t *testing.T) {
 		t.Fatal("Failed merging nil changes", v)
 	}
 }
+
+func TestStreamPushPullUndoRedo(t *testing.T) {
+	s := streams.New()
+	s.Undo()
+	s.Redo()
+	if err := s.Push(); err != nil {
+		t.Error("push", err)
+	}
+	if err := s.Pull(); err != nil {
+		t.Error("pull", err)
+	}
+}
