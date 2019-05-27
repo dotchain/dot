@@ -48,15 +48,15 @@ func Stream(store ops.Store, opts ...Option) streams.Stream {
 
 type stream struct {
 	*session
-	stream streams.Stream
+	streams.Stream
 }
 
 func (s stream) Append(c changes.Change) streams.Stream {
-	return stream{s.session, s.stream.Append(c)}
+	return stream{s.session, s.Stream.Append(c)}
 }
 
 func (s stream) ReverseAppend(c changes.Change) streams.Stream {
-	return stream{s.session, s.stream.ReverseAppend(c)}
+	return stream{s.session, s.Stream.ReverseAppend(c)}
 }
 
 func (s stream) Push() error {
@@ -67,16 +67,8 @@ func (s stream) Pull() error {
 	return s.session.pull()
 }
 
-func (s stream) Undo() {
-	s.stream.Undo()
-}
-
-func (s stream) Redo() {
-	s.stream.Redo()
-}
-
 func (s stream) Next() (streams.Stream, changes.Change) {
-	next, c := s.stream.Next()
+	next, c := s.Stream.Next()
 	if next == nil {
 		return nil, nil
 	}

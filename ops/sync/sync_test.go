@@ -89,7 +89,7 @@ func TestSyncReconnect(t *testing.T) {
 func TestSyncMultipleInFlight(t *testing.T) {
 	// store is special -- it does not return any entries
 	// until ops count = 3
-	store := ops.Polled(blockedStore{
+	store := ops.Polled(cappedStore{
 		testops.MemStore([]ops.Op{
 			ops.Operation{
 				OpID:    "one",
@@ -208,14 +208,14 @@ func (f fakeStore) Poll(ctx context.Context, version int) error {
 func (f fakeStore) Close() {
 }
 
-// blockedStore does not return any values for GetSince until
+// cappedStore does not return any values for GetSince until
 // a specific number of messages is reached
-type blockedStore struct {
+type cappedStore struct {
 	ops.Store
 	count int
 }
 
-func (b blockedStore) GetSince(ctx context.Context, version, limit int) ([]ops.Op, error) {
+func (b cappedStore) GetSince(ctx context.Context, version, limit int) ([]ops.Op, error) {
 	result, err := b.Store.GetSince(ctx, version, limit)
 	if err != nil || version != 0 || limit < b.count || len(result) >= b.count {
 		return result, err
