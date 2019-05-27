@@ -21,10 +21,10 @@ This is very close to v1 release.  The [ES6](https://github.com/dotchain/dotjs) 
 interoperates well right now but outstanding short-term issues have
 more to do with consistency of the API surface than features:
 
-* The ES6 version has a simpler polling-based Network API that seems worth adopting here.
+* ~The ES6 version has a simpler polling-based Network API that seems worth adopting here.~  ** Adopted **
+* ~The ES6 branch/undo integration also feels a lot simpler.~ ** Adopted **
 * The ES6 version prefers `replace()` instead of `update()`.
-* Nullable value types (i.e typed Nil values) are likely going to be tough in other languages.
-* The ES6 branch/undo integration also feels a lot simpler.
+* Nullable value types (i.e typed Nil values vs change.Nil vs nil) seems confusing.
 
 ## Features
 
