@@ -63,11 +63,7 @@
 // types for structs, slices and unions.
 package streams
 
-import (
-	"sync"
-
-	"github.com/dotchain/dot/changes"
-)
+import "github.com/dotchain/dot/changes"
 
 // Stream is an immutable type to track a sequence of changes.
 //
@@ -85,9 +81,7 @@ import (
 // forward list --  a list of changes that will effectively get it to
 // the same converged state as any other related stream instance.
 //
-// This list can be traversed via the Next() method.  The Nextf method
-// sets up a listener (or clears it) so that it can be used to listen
-// for changes that have not been made yet.
+// This list can be traversed via the Next() method.
 //
 // Branching
 //
@@ -121,46 +115,38 @@ type Stream interface {
 	// the same value.
 	Next() (Stream, changes.Change)
 
-	// Nextf calls the provided callback whenever a next value
-	// appears in the current stream. If the current stream
-	// instance already has a next, the callback is called
-	// immediately.
-	//
-	// If the fn is  nil, the listener is removed instead
-	Nextf(key interface{}, fn func())
+	// Push pushes all local change up to any remote stream.
+	// Does nothing if not connected to a remote stream
+	Push() error
+
+	// Pull pulls all changes from a remote stream.
+	// Does nothing if not connected to a remote stream
+	Pull() error
+
+	// Undo undoes the last change on this branch
+	// Does nothing if not connected to a undo stack
+	Undo()
+
+	// Redo redoes the last change on this branch.
+	// Does nothing if not connected to a undo stack
+	Redo()
 }
 
 // New returns a new Stream
 func New() Stream {
-	fns := map[interface{}]func(){}
-	return &stream{fns: fns, Mutex: &sync.Mutex{}}
+	return &stream{}
 }
 
 type stream struct {
 	c    changes.Change
 	next *stream
-	fns  map[interface{}]func()
-	*sync.Mutex
 }
 
 func (s *stream) Next() (Stream, changes.Change) {
-	s.Lock()
-	defer s.Unlock()
-
 	if s.next == nil {
 		return nil, nil
 	}
 	return s.next, s.c
-}
-
-func (s *stream) Nextf(key interface{}, fn func()) {
-	s.Lock()
-	if fn == nil {
-		delete(s.fns, key)
-	} else {
-		s.fns[key] = fn
-	}
-	s.Unlock()
 }
 
 func (s *stream) Append(c changes.Change) Stream {
@@ -172,32 +158,16 @@ func (s *stream) ReverseAppend(c changes.Change) Stream {
 }
 
 func (s *stream) apply(c changes.Change, reverse bool) *stream {
-	s.Lock()
-	defer s.notify()()
-	defer s.Unlock()
-	result := &stream{fns: s.fns, Mutex: s.Mutex}
+	result := &stream{}
 	next := result
 	for s.next != nil {
 		c, next.c = s.merge(s.c, c, reverse)
 		s = s.next
-		next.next = &stream{fns: s.fns, Mutex: s.Mutex}
+		next.next = &stream{}
 		next = next.next
 	}
 	s.c, s.next = c, next
 	return result
-}
-
-func (s *stream) notify() func() {
-	fns := make([]func(), 0, len(s.fns))
-	for _, fn := range s.fns {
-		fns = append(fns, fn)
-	}
-
-	return func() {
-		for _, fn := range fns {
-			fn()
-		}
-	}
 }
 
 func (s *stream) merge(left, right changes.Change, reverse bool) (lx, rx changes.Change) {
@@ -212,6 +182,20 @@ func (s *stream) merge(left, right changes.Change, reverse bool) (lx, rx changes
 	return left.Merge(right)
 }
 
+func (s *stream) Push() error {
+	return nil
+}
+
+func (s *stream) Pull() error {
+	return nil
+}
+
+func (s *stream) Undo() {
+}
+
+func (s *stream) Redo() {
+}
+
 // Latest returns the latest stream instance and the set of changes
 // that have taken place until then
 func Latest(s Stream) (Stream, changes.Change) {
@@ -223,5 +207,5 @@ func Latest(s Stream) (Stream, changes.Change) {
 			cs = append(cs, c)
 		}
 	}
-	return sx, cs
+	return sx, cs.Simplify()
 }

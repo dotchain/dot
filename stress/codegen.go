@@ -48,4 +48,25 @@ var info = dotc.Info{
 			ToStreamFmt:        "streams.Counter%.s",
 		}},
 	}},
+	StructStreams: []dotc.Struct{{
+		Recv: "s",
+		Type: "State",
+		Fields: []dotc.Field{{
+			Name:               "Text",
+			Key:                "text",
+			Type:               "string",
+			ToValueFmt:         "types.S8(%s)%.s",
+			FromValueFmt:       "string(%s.(types.S8))%.s",
+			FromStreamValueFmt: "%s%.s",
+			ToStreamFmt:        "streams.S8%.s",
+		}, {
+			Name:               "Count",
+			Key:                "count",
+			Type:               "types.Counter",
+			ToValueFmt:         "%s%.s",
+			FromValueFmt:       "%s.(types.Counter)%.s",
+			FromStreamValueFmt: "int32(%s)%.s",
+			ToStreamFmt:        "streams.Counter%.s",
+		}},
+	}},
 }

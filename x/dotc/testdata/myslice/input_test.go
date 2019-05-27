@@ -23,7 +23,7 @@ func valuesFormySlice2Stream() []mySlice2 {
 		mySlice2{},
 		mySlice2(valuesForMySliceStream()[:1]),
 		mySlice2(valuesForMySliceStream()[:2]),
-		mySlice2(valuesForMySliceStream()[:3]),		
+		mySlice2(valuesForMySliceStream()[:3]),
 	}
 }
 
@@ -47,7 +47,7 @@ func valuesFormySlice3Stream() []mySlice3 {
 func valuesFormySlice3PStream() []*mySlice3P {
 	vTrue, vFalse := true, false
 	values := mySlice3P([]*bool{&vTrue, &vFalse, &vTrue, &vFalse})
-	v1, v2, v3, v4 := values[:0], values[:1], values[:2],values[:3]
+	v1, v2, v3, v4 := values[:0], values[:1], values[:2], values[:3]
 
-	return []*mySlice3P {&v1, &v2, &v3, &v4}
+	return []*mySlice3P{&v1, &v2, &v3, &v4}
 }

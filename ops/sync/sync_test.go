@@ -23,13 +23,13 @@ import (
 
 func TestSyncFromScratch(t *testing.T) {
 	store := ops.Polled(testops.MemStore(nil))
-	c1, close1 := stream(store, -1, nil)
-	c2, close2 := stream(store, -1, nil)
+	c1 := stream(store, -1, nil)
+	c2 := stream(store, -1, nil)
 	defer store.Close()
-	defer close1()
-	defer close2()
 
 	c2.Append(changes.Move{Offset: 2, Count: 3, Distance: 4})
+	must(c2.Push())
+
 	_, c1ops := next(c1)
 
 	expected := changes.Move{Offset: 2, Count: 3, Distance: 4}
@@ -51,14 +51,16 @@ func TestSyncReconnect(t *testing.T) {
 	pending := ops.Operation{OpID: "two", VerID: 0, BasisID: 0}
 	pending.Change = changes.Splice{Offset: 15, Before: types.S8(" "), After: types.S8("")}
 
-	c1, close1 := stream(store, 0, []ops.Op{pending})
-	c2, close2 := stream(store, -1, nil)
 	defer store.Close()
-	defer close1()
-	defer close2()
+	c1 := stream(store, 0, []ops.Op{pending})
+	must(c1.Push())
+
+	c2 := stream(store, -1, nil)
+	must(c2.Push())
 
 	last := changes.Splice{Offset: 10, Before: types.S8(""), After: types.S8("OK")}
 	c2 = c2.Append(last)
+	must(c2.Push())
 
 	// expect c1 to receive "last" but with offset shifted to factor in op#one
 	_, x := next(c1)
@@ -87,7 +89,7 @@ func TestSyncReconnect(t *testing.T) {
 func TestSyncMultipleInFlight(t *testing.T) {
 	// store is special -- it does not return any entries
 	// until ops count = 3
-	store := ops.Polled(blockedStore{
+	store := ops.Polled(cappedStore{
 		testops.MemStore([]ops.Op{
 			ops.Operation{
 				OpID:    "one",
@@ -99,32 +101,25 @@ func TestSyncMultipleInFlight(t *testing.T) {
 		3,
 	})
 
-	flushed := make(chan struct{}, 100)
-	waitForFlush := func(version int, pending []ops.Op) {
-		if len(pending) == 0 {
-			flushed <- struct{}{}
-		}
-	}
 	auto := sync.WithAutoTransform(testops.NullCache())
-	s, close := sync.Stream(store, sync.WithNotify(waitForFlush), auto)
-	defer close()
+	s := sync.Stream(store, auto)
 
 	// append a couple of moves, bumping up the ops count to 3
 	s = s.Append(changes.Move{Offset: 1, Count: 2, Distance: 3})
+	must(s.Push())
 	s = s.Append(changes.Move{Offset: 10, Count: 11, Distance: 12})
-
-	// so things should get flushed properly at this point
-	<-flushed
+	must(s.Push())
 
 	// receive the original Move
-	s, c := s.Next()
+	s, c := next(s)
 	if c != (changes.Move{Offset: 100, Count: 101, Distance: 102}) {
 		t.Fatal("Unexpected change", c)
 	}
 
 	// then append one more and wait til it gets flushed
 	s.Append(changes.Move{Offset: 1000, Count: 1000, Distance: 1000})
-	<-flushed
+	must(s.Push())
+	must(s.Pull())
 
 	// now confirm with the store that these operations have the
 	// right parent and bassisIDs
@@ -157,25 +152,24 @@ func TestSyncMismatchedVersions(t *testing.T) {
 		},
 	}}
 
-	errors := make(chan error, 100)
-	_, close := sync.Stream(store, sync.WithLog(expectFatalLog(errors)))
-	defer close()
-	err := <-errors
+	s := sync.Stream(store)
+	err := s.Pull()
 	if !strings.Contains(err.Error(), "mismatch") {
 		t.Fatal("Did not get a version mismatch error", err)
 	}
 }
 
-func stream(s ops.Store, version int, pending []ops.Op) (streams.Stream, func()) {
+func stream(s ops.Store, version int, pending []ops.Op) streams.Stream {
 	xformed := ops.Transformed(s, testops.NullCache())
 	l := log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile)
 	opts := []sync.Option{
 		sync.WithLog(l),
-		sync.WithNotify(func(version int, pending []ops.Op) {}),
-		sync.WithSession(-1, nil),
+		sync.WithNotify(func(version int, pending, merge []ops.Op) {}),
+		sync.WithSession(-1, nil, nil),
 	}
+	merge := append([]ops.Op(nil), pending...)
 	if version != -1 {
-		opts = append(opts, sync.WithSession(version, pending))
+		opts = append(opts, sync.WithSession(version, pending, merge))
 	}
 
 	return sync.Stream(xformed, opts...)
@@ -183,23 +177,13 @@ func stream(s ops.Store, version int, pending []ops.Op) (streams.Stream, func())
 
 // next blocks until there is a next and returns that value
 func next(s streams.Stream) (streams.Stream, changes.Change) {
-	if next, c := s.Next(); next != nil {
-		return next, c
+	next, c := s.Next()
+
+	for next == nil {
+		must(s.Pull())
+		next, c = s.Next()
 	}
-
-	wait := make(chan struct{}, 1000)
-	s.Nextf("wait", func() { wait <- struct{}{} })
-	defer s.Nextf("wait", nil)
-	<-wait
-	return s.Next()
-}
-
-type expectFatalLog chan error
-
-func (e expectFatalLog) Println(args ...interface{})            {}
-func (e expectFatalLog) Printf(fmt string, args ...interface{}) {}
-func (e expectFatalLog) Fatal(args ...interface{}) {
-	e <- args[1].(error)
+	return next, c
 }
 
 type fakeStore struct {
@@ -224,17 +208,23 @@ func (f fakeStore) Poll(ctx context.Context, version int) error {
 func (f fakeStore) Close() {
 }
 
-// blockedStore does not return any values for GetSince until
+// cappedStore does not return any values for GetSince until
 // a specific number of messages is reached
-type blockedStore struct {
+type cappedStore struct {
 	ops.Store
 	count int
 }
 
-func (b blockedStore) GetSince(ctx context.Context, version, limit int) ([]ops.Op, error) {
+func (b cappedStore) GetSince(ctx context.Context, version, limit int) ([]ops.Op, error) {
 	result, err := b.Store.GetSince(ctx, version, limit)
 	if err != nil || version != 0 || limit < b.count || len(result) >= b.count {
 		return result, err
 	}
 	return nil, nil
+}
+
+func must(err error) {
+	if err != nil {
+		panic(err)
+	}
 }

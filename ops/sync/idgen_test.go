@@ -16,9 +16,9 @@ func TestIDCollision(t *testing.T) {
 	count := 100000
 	seen := map[interface{}]bool{}
 	for kk := 0; kk < count; kk++ {
-		x := newID()
-		if seen[x] {
-			t.Fatal("Collided on attempt", kk)
+		x, err := newID()
+		if seen[x] || err != nil {
+			t.Fatal("Collided on attempt", kk, err)
 		}
 		seen[x] = true
 	}

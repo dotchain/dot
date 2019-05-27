@@ -19,17 +19,22 @@ type Config struct {
 	// AutoTransform is off by default but can be set to true to
 	// automatically transform the provided store
 	AutoTransform bool
+
+	// NonBlocking is inititally off but can be set to true to
+	// make GetSince non-blocking
+	NonBlocking bool
 	ops.Cache
 
 	// Session state
-	Version int
-	Pending []ops.Op
+	Version    int
+	Pending    []ops.Op
+	MergeChain []ops.Op
 
 	// logger
 	log.Log
 
 	// Session state notifier
-	Notify func(version int, pending []ops.Op)
+	Notify func(version int, pending, mergeChain []ops.Op)
 
 	// Backoff configures the exponential backoff settings
 	Backoff struct {
@@ -45,17 +50,18 @@ type Option func(c *Config)
 
 // WithSession configures the connector to start with the provided
 // version and pending instead of starting from scrach
-func WithSession(version int, pending []ops.Op) Option {
+func WithSession(version int, pending, mergeChain []ops.Op) Option {
 	return func(c *Config) {
 		c.Version = version
 		c.Pending = pending
+		c.MergeChain = mergeChain
 	}
 }
 
 // WithNotify configures a callback to be called when the
 // session state changes. In particular, this is called when the
 // session is closed.
-func WithNotify(fn func(version int, pending []ops.Op)) Option {
+func WithNotify(fn func(version int, pending, mergeChain []ops.Op)) Option {
 	return func(c *Config) {
 		c.Notify = fn
 	}
@@ -85,5 +91,15 @@ func WithAutoTransform(cache ops.Cache) Option {
 	return func(c *Config) {
 		c.AutoTransform = true
 		c.Cache = cache
+	}
+}
+
+// WithNonBlocking sets the non-blocking flag to true.
+//
+// This makes Pull() return synchronously with any remote fetches in
+// the background.
+func WithNonBlocking(nonBlock bool) Option {
+	return func(c *Config) {
+		c.NonBlocking = nonBlock
 	}
 }

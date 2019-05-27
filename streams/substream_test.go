@@ -29,7 +29,6 @@ func (s subsuite) run(t *testing.T) {
 	t.Run("ParentAppendOther"+reverse, s.ParentAppendOther)
 	t.Run("ParentAppendOwn"+reverse, s.ParentAppendOwn)
 	t.Run("InvalidRef"+reverse, s.InvalidRef)
-	t.Run("Nextf"+reverse, s.Nextf)
 }
 
 func (s subsuite) ChangingIndex(t *testing.T) {
@@ -50,27 +49,6 @@ func (s subsuite) ChangingIndex(t *testing.T) {
 	}
 }
 
-func (s subsuite) Nextf(t *testing.T) {
-	parent := streams.New()
-	child := streams.Substream(parent, "boo")
-	c := changes.Replace{Before: types.S16("yoo"), After: types.S16("yooyoo")}
-
-	called := false
-	child.Nextf("key", func() { called = true })
-	parent = parent.Append(changes.PathChange{Path: []interface{}{"boo"}, Change: c})
-	if !called {
-		t.Fatal("Nextf not called")
-	}
-
-	called = false
-	child.Nextf("key", nil)
-	parent.Append(changes.PathChange{Path: []interface{}{"boo"}, Change: c})
-	if called {
-		t.Fatal("Nextf called after deregistration")
-	}
-
-}
-
 func (s subsuite) InvalidRef(t *testing.T) {
 	parent := streams.New()
 	child := streams.Substream(parent, "boo")
@@ -81,14 +59,8 @@ func (s subsuite) InvalidRef(t *testing.T) {
 		t.Fatal("Unexpected response", nn, cc)
 	}
 
-	called := false
-	nn.Nextf("boo", func() { called = true })
-
 	c2 := changes.Replace{Before: changes.Nil, After: types.S16("goo")}
 	parent.Append(changes.PathChange{Path: []interface{}{"boo"}, Change: c2})
-	if called {
-		t.Fatal("Nextf() on invalid ref called")
-	}
 
 	nn2, cc2 := nn.Next()
 	if nn2 != nil || cc2 != nil {

@@ -14,6 +14,7 @@ import (
 	"github.com/dotchain/dot/changes/types"
 )
 
+// Entry is a heap entry
 type Entry struct {
 	Key1, Key2 int64
 	Rank       int

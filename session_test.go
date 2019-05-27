@@ -6,10 +6,10 @@ package dot_test
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http/httptest"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/dotchain/dot"
@@ -27,21 +27,19 @@ func Example_clientServerUsingBoltDB() {
 	httpSrv := httptest.NewServer(srv)
 	defer httpSrv.Close()
 
-	session1, stream1 := dot.Connect(httpSrv.URL)
-	session2, stream2 := dot.Connect(httpSrv.URL)
+	stream1, store1 := dot.NewSession().NonBlockingStream(httpSrv.URL, nil)
+	stream2, store2 := dot.NewSession().Stream(httpSrv.URL, nil)
 
-	defer session1.Close()
-	defer session2.Close()
+	defer store1.Close()
+	defer store2.Close()
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	stream2.Nextf("key", wg.Done)
 	stream1.Append(changes.Replace{Before: changes.Nil, After: types.S8("hello")})
-
-	wg.Wait()
+	fmt.Println("push", stream1.Push())
+	fmt.Println("pull", stream2.Pull())
 
 	// Output:
+	// push <nil>
+	// pull <nil>
 }
 
 func Example_clientServerUsingPostgresDB() {
@@ -63,21 +61,19 @@ func Example_clientServerUsingPostgresDB() {
 	httpSrv := httptest.NewServer(srv)
 	defer httpSrv.Close()
 
-	session1, stream1 := dot.Connect(httpSrv.URL)
-	session2, stream2 := dot.Connect(httpSrv.URL)
+	stream1, store1 := dot.NewSession().Stream(httpSrv.URL, logger)
+	stream2, store2 := dot.NewSession().Stream(httpSrv.URL, logger)
 
-	defer session1.Close()
-	defer session2.Close()
+	defer store1.Close()
+	defer store2.Close()
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	stream2.Nextf("key", wg.Done)
 	stream1.Append(changes.Replace{Before: changes.Nil, After: types.S8("hello")})
-
-	wg.Wait()
+	fmt.Println("push", stream1.Push())
+	fmt.Println("pull", stream2.Pull())
 
 	// Output:
+	// push <nil>
+	// pull <nil>
 }
 
 func remove(fname string) func() {

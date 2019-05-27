@@ -46,7 +46,25 @@ var info = dotc.Info{
                         Type: "string",
                 }},
         }},
+        StructStreams: []dotc.Struct{{
+        	Recv: "t",
+                Type: "Todo",
+                Fields: []dotc.Field{{
+                	Name: "Complete",
+                        Key: "complete",
+                        Type: "bool",
+                }, {
+                	Name: "Description",
+                        Key: "desc",
+                        Type: "string",
+                }},
+        }},
         Slices: []dotc.Slice{{
+        	Recv: "t",
+               	Type: "TodoList",
+               	ElemType: "Todo",
+        }},
+        SliceStreams: []dotc.Slice{{
         	Recv: "t",
                	Type: "TodoList",
                	ElemType: "Todo",

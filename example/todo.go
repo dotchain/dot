@@ -3,11 +3,12 @@
 package example
 
 import (
-	"encoding/gob"
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/dotchain/dot"
-	"github.com/dotchain/dot/ops"
+	"github.com/dotchain/dot/ops/nw"
 )
 
 func Server() {
@@ -28,11 +29,11 @@ type Todo struct {
 // TodoList tracks a collection of todo items
 type TodoList []Todo
 
-// import encoding/gob
+// import github.com/dotchain/dot/ops.nw
 
 func init() {
-	gob.Register(Todo{})
-	gob.Register(TodoList{})
+	nw.Register(Todo{})
+	nw.Register(TodoList{})
 }
 func Toggle(t *TodoListStream, index int) {
 	// TodoListStream.Item() is generated code. It returns
@@ -77,38 +78,51 @@ func AddTodo(t *TodoListStream, todo Todo) {
 	t.Splice(len(t.Value), 0, todo)
 }
 
+// import time
+// import sync
 // import github.com/dotchain/dot
+
+var Lock sync.Mutex
 
 func Client(stop chan struct{}, render func(*TodoListStream)) {
 	url := "http://localhost:8080/dot/"
-	version, pending, todos := SavedSession()
+	session, todos := SavedSession()
+	s, store := session.NonBlockingStream(url, nil)
+	defer store.Close()
 
-	session, s, _ := dot.Reconnect(url, version, pending)
 	todosStream := &TodoListStream{Stream: s, Value: todos}
 
-	// save session before shutdown
-	defer func() {
-		todosStream.Stream.Nextf("key", nil)
-		version, pending = session.Close()
-		todos = todosStream.Latest().Value
-		SaveSession(version, pending, todos)
-	}()
+	ticker := time.NewTicker(500 * time.Millisecond)
+	changed := true
+	for {
+		if changed {
+			render(todosStream)
+		}
+		select {
+		case <-stop:
+			return
+		case <-ticker.C:
+		}
 
-	render(todosStream)
-	todosStream.Stream.Nextf("key", func() {
-		todosStream = todosStream.Latest()
-		render(todosStream)
-	})
-	<-stop
+		Lock.Lock()
+		s.Push()
+		s.Pull()
+		next := todosStream.Latest()
+		changed = next != todosStream
+		todosStream, s = next, next.Stream
+		Lock.Unlock()
+	}
+
+	SaveSession(session, todosStream.Value)
 }
 
-func SaveSession(version int, pending []ops.Op, todos TodoList) {
+func SaveSession(s *dot.Session, todos TodoList) {
 	// this is not yet implemented. if it were, then
 	// this value should be persisted locally and returned
 	// by the call to savedSession
 }
 
-func SavedSession() (version int, pending []ops.Op, todos TodoList) {
+func SavedSession() (s *dot.Session, todos TodoList) {
 	// this is not yet implemented. return default values
-	return -1, nil, nil
+	return dot.NewSession(), nil
 }

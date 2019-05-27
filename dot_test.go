@@ -153,7 +153,7 @@ func Example_undoStreams() {
 
 	// create master, undoable child and the undo stack itself
 	master := &streams.S16{Stream: streams.New(), Value: "hello"}
-	s, stack := undo.New(master.Stream)
+	s := undo.New(master.Stream)
 	undoableChild := &streams.S16{Stream: s, Value: master.Value}
 
 	// change hello => Hello
@@ -165,14 +165,14 @@ func Example_undoStreams() {
 	master.Splice(len("hello"), 0, "$")
 
 	// now undo this via the stack
-	stack.Undo()
+	s.Undo()
 
 	// now undoableChild should be hello$
 	undoableChild = undoableChild.Latest()
 	fmt.Println(undoableChild.Value)
 
 	// now redo the last operation to get Hello$
-	stack.Redo()
+	s.Redo()
 	undoableChild = undoableChild.Latest()
 	fmt.Println(undoableChild.Value)
 
@@ -240,7 +240,7 @@ func Example_branching() {
 	fmt.Println(master.Latest().Value)
 
 	// push local changes up to master now
-	streams.Push(local.Stream)
+	local.Stream.Push()
 
 	// now master = hallo
 	fmt.Println(master.Latest().Value)

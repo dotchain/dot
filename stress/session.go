@@ -19,39 +19,29 @@ import (
 // SessionState is the state associated with a previous session
 type SessionState struct {
 	State State
-	// Version here is 1 + actual version to make zero value of
-	// session state refer to non prior state
-	Version int
-	Pending []ops.Op
+	*dot.Session
 }
 
 // Reconnnect creates a new session from this state
 func (ss SessionState) Reconnect(serverUrl string, numClients int, wg *sync.WaitGroup) *Session {
-	session, s, _ := dot.Reconnect("http://localhost:8083/stress/", ss.Version-1, ss.Pending)
+	if ss.Session == nil {
+		ss.Session = dot.NewSession()
+	}
+	s, store := ss.Session.Stream("http://localhost:8083/stress/", nil)
 	stateStream := &StateStream{Stream: s, Value: ss.State}
 	countStream := stateStream.Count()
-	result := &Session{stateStream, session}
-
 	last := int32(countStream.Value) / int32(numClients)
-	var l sync.Mutex
-	s.Nextf(session, func() {
-		l.Lock()
-		defer l.Unlock()
-		countStream = countStream.Latest()
-		current := int32(countStream.Value) / int32(numClients)
-		if current > last {
-			wg.Add(int(last - current))
-		}
-		last = current
-	})
-	return result
-
+	return &Session{stateStream, ss.Session, store, numClients, wg, last}
 }
 
 // Session represents a single session
 type Session struct {
 	*StateStream
 	*dot.Session
+	ops.Store
+	numClients int
+	wg         *sync.WaitGroup
+	last       int32
 }
 
 // NewSession creates a new session
@@ -61,28 +51,20 @@ func NewSession(serverUrl string, numClients int, wg *sync.WaitGroup) *Session {
 
 // Close releases all resources
 func (s *Session) Close() SessionState {
-	var ss SessionState
-	ss.Version, ss.Pending = s.Session.Close()
-	s.StateStream.Stream.Nextf(s.Session, nil)
-	// Verision is 1 + actual version so that zero value
-	// corresponds to no previous state
-	ss.Version++
-	ss.State = s.StateStream.Latest().Value
-	return ss
+	s.Store.Close()
+	return SessionState{s.StateStream.Latest().Value, s.Session}
 }
 
 // MakeSomeRandomChanges does exactly that but also increments the count
 func (s *Session) MakeSomeRandomChanges(iterations int) {
 	go func() {
-		stream := s.StateStream.Latest().Text()
-		defer s.StateStream.Count().Increment(1)
-
+		stream := s.StateStream.Latest()
 		for kk := 0; kk < iterations; kk++ {
-			l := len(stream.Value)
+			l := len(stream.Value.Text)
 			insert := s.randString(3)
 
 			if l == 0 {
-				stream = stream.Splice(0, 0, insert)
+				stream.Text().Splice(0, 0, insert)
 			} else {
 				var offset, count int
 				if l > 0 {
@@ -91,9 +73,26 @@ func (s *Session) MakeSomeRandomChanges(iterations int) {
 				if l-offset > 0 {
 					count = rand.Intn(l - offset)
 				}
-				stream = stream.Splice(offset, count, insert)
+				stream.Text().Splice(offset, count, insert)
 			}
 		}
+
+		stream.Count().Increment(1)
+		if err := stream.Stream.Push(); err != nil {
+			panic(err)
+		}
+		stream = stream.Latest()
+		current := int32(stream.Value.Count) / int32(s.numClients)
+		for current == s.last {
+			if err := stream.Stream.Pull(); err != nil {
+				panic(err)
+			}
+
+			stream = stream.Latest()
+			current = int32(stream.Value.Count) / int32(s.numClients)
+		}
+		s.wg.Add(int(s.last - current))
+		s.last = current
 	}()
 }
 

@@ -24,12 +24,12 @@ func Transform(parent Stream, append, next func(changes.Change) changes.Change) 
 }
 
 type transform struct {
-	parent       Stream
+	Stream
 	append, next func(changes.Change) changes.Change
 }
 
 func (t transform) Next() (Stream, changes.Change) {
-	next, nextc := t.parent.Next()
+	next, nextc := t.Stream.Next()
 	if next == nil {
 		return nil, nil
 	}
@@ -38,17 +38,13 @@ func (t transform) Next() (Stream, changes.Change) {
 	return transform{next, t.append, t.next}, nextc
 }
 
-func (t transform) Nextf(key interface{}, fn func()) {
-	t.parent.Nextf(key, fn)
-}
-
 func (t transform) Append(c changes.Change) Stream {
 	if c = t.append(c); c != nil {
-		return transform{t.parent.Append(c), t.append, t.next}
+		return transform{t.Stream.Append(c), t.append, t.next}
 	}
 	return t
 }
 
 func (t transform) ReverseAppend(c changes.Change) Stream {
-	return transform{t.parent.ReverseAppend(c), t.append, t.next}
+	return transform{t.Stream.ReverseAppend(c), t.append, t.next}
 }
