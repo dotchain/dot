@@ -112,10 +112,34 @@ func TestPushPull(t *testing.T) {
 	if err := downstream.Push(); err != nil {
 		t.Error("Unexpected push error", err)
 	}
+
 	if err := downstream.Pull(); err != nil {
 		t.Error("Unexpected pull error", err)
 	}
+}
 
+func TestReverseAppend(t *testing.T) {
+	upstream := streams.New()
+	downstream := undo.New(upstream)
+
+	c1 := changes.Replace{
+		Before: types.S8("before"),
+		After:  types.S8("after"),
+	}
+	c2 := changes.Replace{
+		Before: types.S8("before"),
+		After:  types.S8("after2"),
+	}
+
+	u := upstream.Append(c1)
+	downstream.ReverseAppend(c2)
+
+	_, c := u.Next()
+	_, expected := c2.Merge(c1)
+
+	if c != expected {
+		t.Error("Unexpected reverse merge", c, expected)
+	}
 }
 
 func testUndo(t *testing.T, test string) {
