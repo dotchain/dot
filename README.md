@@ -7,6 +7,7 @@
 
 The DOT project is a blend of [operational
 transformation](https://en.wikipedia.org/wiki/Operational_transformation),
+[CmRDT](https://en.wikipedia.org/wiki/Conflict-free_replicated_data_type#Operation-based_CRDTs),
 [persistent/immutable
 datastructures](https://en.wikipedia.org/wiki/Persistent_data_structure)
 and [reactive](https://en.wikipedia.org/wiki/Reactive_programming)
@@ -35,6 +36,7 @@ more to do with consistency of the API surface than features:
 5. Strong references support that are automatically updated with changes
 6. Rich builtin undo support for any type and mutation
 7. Folding (committed changes on top of uncommitted changes)
+8. Support for CmRDT types (see [crdt](https://github.com/dotchain/dot/tree/master/changes))
 
 An interoperable ES6 version is available on [dotchain/dotjs](https://github.com/dotchain/dotjs) with a TODO MVC demo of it [here](https://github.com/dotchain/demos)
 
@@ -42,7 +44,8 @@ An interoperable ES6 version is available on [dotchain/dotjs](https://github.com
 ## Contents
 1. [Status](#status)
 2. [Features](#features)
-3. [TODO Example](#todo-example)
+3. [CRDTs](#crdts)
+4. [TODO Example](#todo-example)
     1. [Server](#server)
     2. [Types](#types)
     3. [Type registration](#type-registration)
@@ -53,7 +56,7 @@ An interoperable ES6 version is available on [dotchain/dotjs](https://github.com
     8. [Client connection](#client-connection)
     9. [Running the demo](#running-the-demo)
     10. [In browser demo](#in-browser-demo)
-4. [How it all works](#how-it-all-works)
+5. [How it all works](#how-it-all-works)
     1. [Applying changes](#applying-changes)
     2. [Applying changes with streams](#applying-changes-with-streams)
     3. [Composition of changes](#composition-of-changes)
@@ -64,8 +67,16 @@ An interoperable ES6 version is available on [dotchain/dotjs](https://github.com
     8. [Branching of streams](#branching-of-streams)
     9. [References](#references)
     10. [Network synchronization and server](#network-synchronization-and-server)
-5. [Broad Issues](#broad-issues)
-6. [Contributing](#contributing)
+6. [Broad Issues](#broad-issues)
+7. [Contributing](#contributing)
+
+## CRDTs
+
+Much of the framework can support operation-based CRDT changes which
+simply appear as commutative operations (and so the merge operation is
+trivial).  A set of types built this way is available in the
+[crdt](https://github.com/dotchain/dot/tree/master/changes/crdt)
+folder.
 
 ## TODO Example
 
