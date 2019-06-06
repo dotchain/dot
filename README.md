@@ -36,7 +36,7 @@ more to do with consistency of the API surface than features:
 5. Strong references support that are automatically updated with changes
 6. Rich builtin undo support for any type and mutation
 7. Folding (committed changes on top of uncommitted changes)
-8. Support for CmRDT types (see [crdt](https://github.com/dotchain/dot/tree/master/changes))
+8. Support for CmRDT types (see [crdt](https://github.com/dotchain/dot/tree/master/changes/crdt))
 
 An interoperable ES6 version is available on [dotchain/dotjs](https://github.com/dotchain/dotjs) with a TODO MVC demo of it [here](https://github.com/dotchain/demos)
 
