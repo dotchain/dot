@@ -49,6 +49,31 @@ func (s Seq) Splice(offset, remove int, replacement []interface{}) (changes.Chan
 	return result, result.ApplyTo(nil, s).(Seq)
 }
 
+// Move shifts the sub sequence (offset, offset +count) by distance
+func (s Seq) Move(offset, count, distance int) (changes.Change, Seq) {
+	ords, keys := s.items()
+	if distance > 0 {
+		ords = s.between(ords, offset+count+distance, 0, count)
+	} else {
+		ords = s.between(ords, offset+distance, 0, count)
+	}
+	result := wrapper{}
+	for kk := 0; kk < count; kk++ {
+		inner, _ := s.Ords.Set(keys[offset+kk], ords[kk])
+		result = append(result, updOrdSeq{inner})
+	}
+	return result, result.ApplyTo(nil, s).(Seq)
+}
+
+// Update takes a change meant for the value at a specific index
+// and wraps it so that it can applied on the Seq
+func (s Seq) Update(idx int, inner changes.Change) (changes.Change, Seq) {
+	_, keys := s.items()
+	c, _ := s.Values.Update(keys[idx], inner)
+	c = wrapper{updValueSeq{c}}
+	return c, c.(changes.Custom).ApplyTo(nil, s).(Seq)
+}
+
 // Apply implements changes.Value
 func (s Seq) Apply(ctx changes.Context, c changes.Change) changes.Value {
 	return c.(changes.Custom).ApplyTo(ctx, s)
