@@ -226,16 +226,19 @@ func (c ChangeSet) ApplyTo(ctx Context, v Value) Value {
 // Simplify converts an empty or single element change-set
 // into a simpler version
 func (c ChangeSet) Simplify() Change {
-	var inner Change
+	result := ChangeSet{}
 	for _, cx := range c {
 		if cx = Simplify(cx); cx != nil {
-			if inner != nil {
-				return c
-			}
-			inner = cx
+			result = append(result, cx)
 		}
 	}
-	return inner
+	switch len(result) {
+	case 0:
+		return nil
+	case 1:
+		return result[0]
+	}
+	return result
 }
 
 // Context defines the context in which a change is being
