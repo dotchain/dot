@@ -45,6 +45,70 @@ func TestTextSetAttrMergeReplace(t *testing.T) {
 	testReverseMerge(t, s, c1, c2)
 }
 
+func TestTextSetAttrMergeSpliceNoConflict(t *testing.T) {
+	s := rich.NewText("hello world")
+	c1 := changes.Splice{
+		Offset: 2,
+		Before: rich.NewText("l"),
+		After:  rich.NewText("---"),
+	}
+	c2 := s.SetAttribute(3, 5, html.FontBold)
+	testMerge(t, s, c1, c2)
+	testReverseMerge(t, s, c1, c2)
+
+	c1 = changes.Splice{
+		Offset: 8,
+		Before: rich.Text{},
+		After:  rich.NewText("---"),
+	}
+	c2 = s.SetAttribute(3, 5, html.FontBold)
+	testMerge(t, s, c1, c2)
+	testReverseMerge(t, s, c1, c2)
+}
+
+func TestTextSetAttrMergeSpliceWithin(t *testing.T) {
+	s := rich.NewText("hello world")
+	c1 := changes.Splice{
+		Offset: 4,
+		Before: rich.NewText("l"),
+		After:  rich.NewText("---"),
+	}
+	c2 := s.SetAttribute(3, 5, html.FontBold)
+
+	result := testMerge(t, s, c1, c2)
+	testReverseMerge(t, s, c1, c2)
+
+	if x := html.Format(result, nil); x != "hel<b>l--- wo</b>rld" {
+		t.Error("Unexpected", x)
+	}
+}
+
+func TestTextSetAttrMergeSpliceConflict(t *testing.T) {
+	s := rich.NewText("hello world")
+	c1 := changes.Splice{
+		Offset: 4,
+		Before: rich.NewText("o wor"),
+		After:  rich.NewText("---"),
+	}
+	c2 := s.SetAttribute(2, 3, html.FontBold)
+
+	result := testMerge(t, s, c1, c2)
+	testReverseMerge(t, s, c1, c2)
+
+	if x := html.Format(result, nil); x != "he<b>ll</b>---ld" {
+		t.Error("Unexpected", x)
+	}
+
+	c2 = s.SetAttribute(7, 3, html.FontBold)
+
+	result = testMerge(t, s, c1, c2)
+	testReverseMerge(t, s, c1, c2)
+
+	if x := html.Format(result, nil); x != "hell---<b>l</b>d" {
+		t.Error("Unexpected", x)
+	}
+}
+
 func TestTextSetAttrMergePathNoConflict(t *testing.T) {
 	s := rich.NewText("hello world")
 	c1 := changes.PathChange{

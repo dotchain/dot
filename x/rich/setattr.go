@@ -61,7 +61,45 @@ func (s setattr) merge(o changes.Change, reverse bool) (ox, sx changes.Change) {
 }
 
 func (s setattr) mergeSplice(o changes.Splice, reverse bool) (ox, sx changes.Change) {
-	return nil, nil
+	non, overlap := s.split(o.Offset, o.Offset+o.Before.Count())
+	if overlap == nil {
+		if s.Offset >= o.Offset {
+			s.Offset += o.After.Count() - o.Before.Count()
+		}
+		return o, s
+	}
+
+	non, _ = o.Merge(non)
+	if x := overlap.(setattr); x.Before.count() == o.Before.Count() && len(x.After) == 1 {
+		return s.mergeSpliceWithin(x, non, o)
+	}
+
+	return changes.ChangeSet{overlap.Revert(), o}, non
+}
+
+func (s setattr) mergeSpliceWithin(x setattr, non changes.Change, o changes.Splice) (oxx, sxx changes.Change) {
+	// full splice is within.  check if full range has single value
+	after := o.After.(Text)
+	sx := setattr{
+		Offset: o.Offset,
+		Name:   s.Name,
+		Before: after.sliceAttr(0, after.Count(), s.Name),
+		After:  values{{x.After[0].Value, after.Count()}},
+	}
+	ox := changes.Splice{
+		Offset: o.Offset,
+		Before: o.Before.ApplyCollection(nil, setattr{
+			Name:   s.Name,
+			Before: o.Before.(Text).sliceAttr(0, o.Before.Count(), s.Name),
+			After:  values{{x.After[0].Value, o.Before.Count()}},
+		}),
+		After: after.ApplyCollection(nil, setattr{
+			Name:   s.Name,
+			Before: sx.Before,
+			After:  sx.After,
+		}),
+	}
+	return ox, (changes.ChangeSet{non, sx}).Simplify()
 }
 
 func (s setattr) mergeMove(o changes.Move, reverse bool) (ox, sx changes.Change) {
