@@ -41,9 +41,9 @@ func (s setattr) merge(o changes.Change, reverse bool) (ox, sx changes.Change) {
 		o.Before = o.Before.Apply(nil, s)
 		return o, nil
 	case changes.Splice:
-		return s.mergeSplice(o, reverse)
+		return s.mergeSplice(o)
 	case changes.Move:
-		return s.mergeMove(o, false)
+		return s.mergeMove(o)
 	case changes.PathChange:
 		if len(o.Path) == 0 {
 			return s.merge(o.Change, reverse)
@@ -60,7 +60,7 @@ func (s setattr) merge(o changes.Change, reverse bool) (ox, sx changes.Change) {
 	return r, l
 }
 
-func (s setattr) mergeSplice(o changes.Splice, reverse bool) (ox, sx changes.Change) {
+func (s setattr) mergeSplice(o changes.Splice) (ox, sx changes.Change) {
 	non, overlap := s.split(o.Offset, o.Offset+o.Before.Count())
 	if overlap == nil {
 		if s.Offset >= o.Offset {
@@ -102,8 +102,38 @@ func (s setattr) mergeSpliceWithin(x setattr, non changes.Change, o changes.Spli
 	return ox, (changes.ChangeSet{non, sx}).Simplify()
 }
 
-func (s setattr) mergeMove(o changes.Move, reverse bool) (ox, sx changes.Change) {
-	return nil, nil
+func (s setattr) mergeMove(o changes.Move) (ox, sx changes.Change) {
+	start, end := o.Offset, o.Offset+o.Count+o.Distance
+	if o.Distance < 0 {
+		start, end = o.Offset+o.Distance, o.Offset+o.Count
+	}
+	non, overlap := s.split(start, end)
+	if overlap == nil {
+		return o, s
+	}
+
+	if non != nil {
+		ox, overlapx := overlap.(setattr).mergeMove(o)
+		return ox, changes.ChangeSet{non, overlapx}
+	}
+
+	out, within := s.split(o.Offset, o.Offset+o.Count)
+
+	if within != nil {
+		w := within.(setattr)
+		w.Offset += o.Distance
+		within = w
+	}
+	if out != nil {
+		outx := out.(setattr)
+		if o.Distance > 0 {
+			outx.Offset -= o.Count
+		} else {
+			outx.Offset += o.Count
+		}
+		out = outx
+	}
+	return o, (changes.ChangeSet{within, out}).Simplify()
 }
 
 func (s setattr) mergePath(o changes.PathChange, reverse bool) (ox, sx changes.Change) {

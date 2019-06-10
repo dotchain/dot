@@ -45,6 +45,35 @@ func TestTextSetAttrMergeReplace(t *testing.T) {
 	testReverseMerge(t, s, c1, c2)
 }
 
+func TestTextSetAttrMergeMoveNoConflict(t *testing.T) {
+	s := rich.NewText("hello world")
+	c1 := changes.Move{Offset: 1, Count: 2, Distance: -1}
+	c2 := s.SetAttribute(3, 5, html.FontBold)
+	testMerge(t, s, c1, c2)
+	testReverseMerge(t, s, c1, c2)
+
+	c1 = changes.Move{Offset: 8, Count: 2, Distance: 1}
+	testMerge(t, s, c1, c2)
+	testReverseMerge(t, s, c1, c2)
+}
+
+func TestTextSetAttrMergeMoveConflict(t *testing.T) {
+	s := rich.NewText("hello world")
+	c1 := changes.Move{Offset: 3, Count: 2, Distance: -2}
+	c2 := s.SetAttribute(3, 5, html.FontBold)
+	testMerge(t, s, c1, c2)
+	testReverseMerge(t, s, c1, c2)
+
+	testMerge(t, s, c1.Normalize(), c2)
+	testReverseMerge(t, s, c1.Normalize(), c2)
+
+	c1 = changes.Move{Offset: 4, Count: 3, Distance: -2}
+	testMerge(t, s, c1, c2)
+	testReverseMerge(t, s, c1, c2)
+	testMerge(t, s, c1.Normalize(), c2)
+	testReverseMerge(t, s, c1.Normalize(), c2)
+}
+
 func TestTextSetAttrMergeSpliceNoConflict(t *testing.T) {
 	s := rich.NewText("hello world")
 	c1 := changes.Splice{
