@@ -29,7 +29,7 @@ type Todo struct {
 // TodoList tracks a collection of todo items
 type TodoList []Todo
 
-// import github.com/dotchain/dot/ops.nw
+// import github.com/dotchain/dot/ops/nw
 
 func init() {
 	nw.Register(Todo{})

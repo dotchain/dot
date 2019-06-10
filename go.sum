@@ -12,6 +12,8 @@ github.com/shurcooL/sanitized_anchor_name v1.0.0 h1:PdmoCO6wvbs+7yrJyMORt4/BmY5I
 github.com/shurcooL/sanitized_anchor_name v1.0.0/go.mod h1:1NzhyTcUVG4SuEtjjoZeVRXNmyL/1OwPU0+IJeTBvfc=
 github.com/tvastar/test v0.0.0-20190408215541-5e6ef1905826 h1:Pf4omLWq+OiRlXv0Cov9HAyef7NSYnqUx/S02gRJjGk=
 github.com/tvastar/test v0.0.0-20190408215541-5e6ef1905826/go.mod h1:I/GZWwc4JDtwUdyYsu/LKbxzFrNkSSTc00zYHKnyq0E=
+github.com/tvastar/toc v0.0.0-20190328211025-65f5d4ff75b4 h1:cqXMOCtv3Hl19GqINnZWHJDJtq4VPy8AkxR9Me3ItEs=
+github.com/tvastar/toc v0.0.0-20190328211025-65f5d4ff75b4/go.mod h1:ybvIOIHvy+Jrn9Vk4quf1lUIP7KbnuBtUJvmcnyfV0Q=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/net v0.0.0-20190311183353-d8887717615a/go.mod h1:t9HGtf8HONx5eT2rtn7q6eTqICYqUVnKs3thJo3Qplg=
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=

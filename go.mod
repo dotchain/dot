@@ -9,6 +9,7 @@ require (
 	github.com/sergi/go-diff v1.0.0
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/tvastar/test v0.0.0-20190408215541-5e6ef1905826
+	github.com/tvastar/toc v0.0.0-20190328211025-65f5d4ff75b4 // indirect
 	golang.org/x/tools v0.0.0-20190420181800-aa740d480789
 	gopkg.in/russross/blackfriday.v2 v2.0.0-00010101000000-000000000000 // indirect
 )
