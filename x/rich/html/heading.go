@@ -39,7 +39,7 @@ func (h Heading) Apply(ctx changes.Context, c changes.Change) changes.Value {
 func (h Heading) get(key interface{}) changes.Value {
 	switch key {
 	case "Level":
-		return changes.Atomic{h.Level}
+		return changes.Atomic{Value: h.Level}
 	case "Text":
 		return *h.Text
 	}
@@ -59,7 +59,7 @@ func (h Heading) set(key interface{}, v changes.Value) changes.Value {
 
 // FormatHTML formats the heading into HTML
 func (h Heading) FormatHTML(b *strings.Builder, f Formatter) {
-	l := int(h.Level)
+	l := h.Level
 	if l < 1 || l > 6 {
 		l = 1
 	}

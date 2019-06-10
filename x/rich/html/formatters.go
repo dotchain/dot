@@ -7,6 +7,8 @@ package html
 import (
 	"strings"
 
+	"golang.org/x/net/html"
+
 	"github.com/dotchain/dot/x/rich"
 )
 
@@ -14,7 +16,7 @@ type textFmt struct{}
 
 func (t textFmt) Open(b *strings.Builder, last, current rich.Attrs, text string) {
 	if text != "" {
-		must(b.WriteString(text))
+		must(b.WriteString(html.EscapeString(text)))
 	}
 }
 func (t textFmt) Close(b *strings.Builder, last, current rich.Attrs, text string) {

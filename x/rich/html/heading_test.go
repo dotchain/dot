@@ -31,8 +31,8 @@ func TestHeadingApply(t *testing.T) {
 	c := changes.PathChange{
 		Path: []interface{}{"Level"},
 		Change: changes.Replace{
-			Before: changes.Atomic{1},
-			After:  changes.Atomic{2},
+			Before: changes.Atomic{Value: 1},
+			After:  changes.Atomic{Value: 2},
 		},
 	}
 	if x := h1.Apply(nil, c).(html.Heading); x.Level != 2 {

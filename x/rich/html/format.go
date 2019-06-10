@@ -43,7 +43,7 @@ func FormatBuilder(b *strings.Builder, t rich.Text, f Formatter) {
 // DefaultFormatter formats standard styles such as plain text string,
 // bold and italics.
 var DefaultFormatter = embedFmt{
-	[]string{"Heading"},
+	[]string{"Heading", "Link"},
 	simpleFmt{
 		[]string{"FontStyle", "FontWeight"},
 		textFmt{},
