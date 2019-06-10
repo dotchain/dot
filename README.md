@@ -133,10 +133,12 @@ type TodoList []Todo
 ### Type registration
 
 To use the types across the network, they have to be registered with
-the codec (which will be `gob` in this example)
+the codec (which will be
+[sjson](http://godoc.org/github.com/dotchain/dot/ops/sjson)
+in this example)
 
 ```go example.global
-// import github.com/dotchain/dot/ops.nw
+// import github.com/dotchain/dot/ops/nw
 
 func init() {
 	nw.Register(Todo{})
@@ -208,7 +210,7 @@ streams. If a single stream instance has multiple edits, the
 
 ### Changing description
 
-The code for Changing description is similar.  The string
+The code for changing the `Description` field is similar.  The string
 `Description` field in `Todo` maps to a `streams.S16` stream. This
 implements an `Update()` method like all streams.
 
@@ -256,15 +258,15 @@ func AddTodo(t *TodoListStream, todo Todo) {
 ```
 
 The use of `Splice` in this example should hint that (just like
-strings) slices support insertion/deletion at arbitrary points within
-via the Splice method. In addition to supporting this, streams also
+strings) collections support insertion/deletion at arbitrary points within
+via the Splice method. In addition to supporting this, collections also
 support the `Move(offset, count, distance)` method to move some items
-around within the slice
+around within the collection
 
 ### Client connection
 
 Setting up the client requires connecting to the URL where the server
-is hosted.  In addition, the code below illustrations how sessions
+is hosted.  In addition, the code below illustrates how sessions
 could be saved and restarted if needed.
 
 ```go example.global
@@ -380,8 +382,8 @@ to be implemented.
 3. **Streams** represent a sequence of changes to a value, except it
 is **convergent** -- if multiple writers modify a value, they each get
 a separate stream instance that only reflects their local change but
-following the *Next* chain will guarantee that both end up with the
-same value.
+following the *Next* chain will guarantee that all versions end up with
+the same final value.
 
 ### Applying changes
 

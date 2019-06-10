@@ -17,9 +17,11 @@ For the TODO MVC app, the following code generates the required Value
 types and Stream implementations.
 
 ```go global
+
 // import fmt
 // import github.com/dotchain/dot/x/dotc
 // import io/ioutil
+
 func main() {
 	code, err := info.Generate()
         if err != nil {
