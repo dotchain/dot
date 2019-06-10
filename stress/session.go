@@ -91,8 +91,8 @@ func (s *Session) MakeSomeRandomChanges(iterations int) {
 			stream = stream.Latest()
 			current = int32(stream.Value.Count) / int32(s.numClients)
 		}
-		s.wg.Add(int(s.last - current))
 		s.last = current
+		s.wg.Add(int(s.last - current))
 	}()
 }
 
