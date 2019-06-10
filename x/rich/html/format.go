@@ -18,25 +18,34 @@ type Formatter interface {
 
 // Format formats rich text into html
 func Format(t rich.Text, f Formatter) string {
+	var b strings.Builder
+	FormatBuilder(&b, t, f)
+	return b.String()
+}
+
+// FormatBuilder formats rich text into html
+func FormatBuilder(b *strings.Builder, t rich.Text, f Formatter) {
 	if f == nil {
 		f = DefaultFormatter
 	}
-	var b strings.Builder
+
 	last := rich.Attrs{}
 	for _, x := range t {
-		f.Close(&b, last, x.Attrs, x.Text)
-		f.Open(&b, last, x.Attrs, x.Text)
+		f.Close(b, last, x.Attrs, x.Text)
+		f.Open(b, last, x.Attrs, x.Text)
 		last = x.Attrs
 	}
 	if !last.Equal(rich.Attrs{}) {
-		f.Close(&b, last, rich.Attrs{}, "")
+		f.Close(b, last, rich.Attrs{}, "")
 	}
-	return b.String()
 }
 
 // DefaultFormatter formats standard styles such as plain text string,
 // bold and italics.
-var DefaultFormatter = simpleFmt{
-	[]string{"FontStyle", "FontWeight"},
-	textFmt{},
+var DefaultFormatter = embedFmt{
+	[]string{"Heading"},
+	simpleFmt{
+		[]string{"FontStyle", "FontWeight"},
+		textFmt{},
+	},
 }

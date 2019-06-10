@@ -47,3 +47,28 @@ func (s simpleFmt) Close(b *strings.Builder, last, current rich.Attrs, text stri
 	}
 	s.base.Close(b, last, current, text)
 }
+
+type htmlFormatter interface {
+	FormatHTML(b *strings.Builder, f Formatter)
+}
+
+type embedFmt struct {
+	keys []string
+	base Formatter
+}
+
+func (s embedFmt) Open(b *strings.Builder, last, current rich.Attrs, text string) {
+	for _, key := range s.keys {
+		if after := current[key]; after != nil {
+			// TODO: DefaultFormatter is locked in here,
+			// should probably prefer to parameterize it
+			after.(htmlFormatter).FormatHTML(b, DefaultFormatter)
+			return
+		}
+	}
+	s.base.Open(b, last, current, text)
+}
+
+func (s embedFmt) Close(b *strings.Builder, last, current rich.Attrs, text string) {
+	s.base.Close(b, last, current, text)
+}
