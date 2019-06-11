@@ -16,8 +16,8 @@ import (
 
 func TestLinkApply(t *testing.T) {
 	s1, s2 := rich.NewText("link1"), rich.NewText("link2")
-	l1 := html.Link{Url: "url1", Text: s1}
-	l2 := html.Link{Url: "url2", Text: s2}
+	l1 := html.Link{Url: "url1", Value: s1}
+	l2 := html.Link{Url: "url2", Value: s2}
 
 	if x := l1.Apply(nil, nil); !reflect.DeepEqual(x, l1) {
 		t.Error("Unexpected apply", x)
@@ -40,13 +40,13 @@ func TestLinkApply(t *testing.T) {
 	}
 
 	c = changes.PathChange{
-		Path: []interface{}{"Text"},
+		Path: []interface{}{"Value"},
 		Change: changes.Replace{
 			Before: s1,
 			After:  s2,
 		},
 	}
-	if x := l1.Apply(nil, c).(html.Link); !reflect.DeepEqual(x.Text, s2) {
-		t.Error("Unexpected change", x.Text)
+	if x := l1.Apply(nil, c).(html.Link); !reflect.DeepEqual(x.Value, s2) {
+		t.Error("Unexpected change", x.Value)
 	}
 }

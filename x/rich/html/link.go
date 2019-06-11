@@ -11,16 +11,14 @@ import (
 )
 
 // NewLink creates a rich text that represents a link element
-func NewLink(url string, contents *rich.Text) *rich.Text {
+func NewLink(url string, contents changes.Value) *rich.Text {
 	return rich.NewText(" ", Link{url, contents})
 }
 
 // Link represents a url link
-//
-// Note that the contents of the link can be any rich text.
 type Link struct {
 	Url string
-	*rich.Text
+	changes.Value
 }
 
 // Name is the key to use with rich.Attrs
@@ -37,14 +35,14 @@ func (l Link) get(key interface{}) changes.Value {
 	if key == "Url" {
 		return types.S16(l.Url)
 	}
-	return l.Text
+	return l.Value
 }
 
 func (l Link) set(key interface{}, v changes.Value) changes.Value {
 	if key == "Url" {
 		l.Url = string(v.(types.S16))
 	} else {
-		l.Text = v.(*rich.Text)
+		l.Value = v
 	}
 	return l
 }

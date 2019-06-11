@@ -12,18 +12,7 @@ import (
 	"github.com/dotchain/dot/x/rich/html"
 )
 
-func TestFormatBold(t *testing.T) {
-	s := rich.NewText("Hello ").
-		Concat(rich.NewText("beautiful", html.FontBold)).
-		Concat(rich.NewText(" world"))
-
-	result := html.Format(s)
-	if result != "Hello <b>beautiful</b> world" {
-		t.Error("Unexpected", result, s)
-	}
-}
-
-func TestFormatBoldAndItalic(t *testing.T) {
+func TestFormatMultiple(t *testing.T) {
 	s := rich.NewText("Hello ").
 		Concat(rich.NewText("bold", html.FontBold)).
 		Concat(rich.NewText("and", html.FontBold, html.FontStyleItalic)).
