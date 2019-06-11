@@ -11,7 +11,7 @@ import (
 
 // Link represents a url link
 type Link struct {
-	Url string
+	URL string
 	changes.Value
 }
 
@@ -26,15 +26,15 @@ func (l Link) Apply(ctx changes.Context, c changes.Change) changes.Value {
 }
 
 func (l Link) get(key interface{}) changes.Value {
-	if key == "Url" {
-		return types.S16(l.Url)
+	if key == "URL" {
+		return types.S16(l.URL)
 	}
 	return l.Value
 }
 
 func (l Link) set(key interface{}, v changes.Value) changes.Value {
-	if key == "Url" {
-		l.Url = string(v.(types.S16))
+	if key == "URL" {
+		l.URL = string(v.(types.S16))
 	} else {
 		l.Value = v
 	}

@@ -16,8 +16,8 @@ import (
 
 func TestLinkApply(t *testing.T) {
 	s1, s2 := rich.NewText("link1"), rich.NewText("link2")
-	l1 := data.Link{Url: "url1", Value: s1}
-	l2 := data.Link{Url: "url2", Value: s2}
+	l1 := data.Link{URL: "url1", Value: s1}
+	l2 := data.Link{URL: "url2", Value: s2}
 
 	if l2.Name() != "Embed" {
 		t.Error("Unexpected name", l2.Name())
@@ -33,13 +33,13 @@ func TestLinkApply(t *testing.T) {
 	}
 
 	c := changes.PathChange{
-		Path: []interface{}{"Url"},
+		Path: []interface{}{"URL"},
 		Change: changes.Splice{
 			Before: types.S16("u"),
 			After:  types.S16("U"),
 		},
 	}
-	if x := l1.Apply(nil, c).(data.Link); x.Url != "Url1" {
+	if x := l1.Apply(nil, c).(data.Link); x.URL != "Url1" {
 		t.Error("Unexpected change", x)
 	}
 

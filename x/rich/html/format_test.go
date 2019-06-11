@@ -115,7 +115,7 @@ func TestFormatImage(t *testing.T) {
 
 func TestFormatLink(t *testing.T) {
 	s := rich.NewText("a < b")
-	l := rich.NewEmbed(data.Link{Url: "quote\"d", Value: s})
+	l := rich.NewEmbed(data.Link{URL: "quote\"d", Value: s})
 
 	if x := html.Format(l); x != "<a href=\"quote&#34;d\">a &lt; b</a>" {
 		t.Error("Unexpected", x)

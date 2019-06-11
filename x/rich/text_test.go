@@ -96,7 +96,7 @@ func TestTextModifyStyleAtIndex(t *testing.T) {
 }
 
 func TestEmbed(t *testing.T) {
-	embed := data.Link{Url: "hello", Value: types.S16("world")}
+	embed := data.Link{URL: "hello", Value: types.S16("world")}
 	s := rich.NewEmbed(embed)
 	if s.PlainText() != " " {
 		t.Error("Unexpected", s.PlainText())

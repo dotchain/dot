@@ -54,7 +54,7 @@ func FormatBuilder(b *strings.Builder, v changes.Value, f Formatter) {
 
 func formatLink(b *strings.Builder, l data.Link, f Formatter) {
 	b.WriteString("<a href=\"")
-	b.WriteString(html.EscapeString(l.Url))
+	b.WriteString(html.EscapeString(l.URL))
 	b.WriteString("\">")
 	f(b, l.Value)
 	b.WriteString("</a>")
