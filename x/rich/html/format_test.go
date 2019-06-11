@@ -9,14 +9,15 @@ import (
 	"testing"
 
 	"github.com/dotchain/dot/x/rich"
+	"github.com/dotchain/dot/x/rich/data"
 	"github.com/dotchain/dot/x/rich/html"
 )
 
 func TestFormatMultiple(t *testing.T) {
 	s := rich.NewText("Hello ").
-		Concat(rich.NewText("bold", html.FontBold)).
-		Concat(rich.NewText("and", html.FontBold, html.FontStyleItalic)).
-		Concat(rich.NewText("italic", html.FontStyleItalic)).
+		Concat(rich.NewText("bold", data.FontBold)).
+		Concat(rich.NewText("and", data.FontBold, data.FontStyleItalic)).
+		Concat(rich.NewText("italic", data.FontStyleItalic)).
 		Concat(rich.NewText(" world"))
 
 	result := html.Format(s)
@@ -26,7 +27,7 @@ func TestFormatMultiple(t *testing.T) {
 }
 
 func TestFormatBlockQuote(t *testing.T) {
-	bq := html.NewBlockQuote(rich.NewText("hello", html.FontBold))
+	bq := rich.NewEmbed(data.BlockQuote{Text: rich.NewText("hello", data.FontBold)})
 
 	if x := html.Format(bq); x != "<blockquote><b>hello</b></blockquote>" {
 		t.Error("Unexpected", x)
@@ -34,10 +35,10 @@ func TestFormatBlockQuote(t *testing.T) {
 }
 
 func TestFormatFontStyle(t *testing.T) {
-	styles := []html.FontStyle{
-		html.FontStyleNormal,
-		html.FontStyleItalic,
-		html.FontStyleOblique,
+	styles := []data.FontStyle{
+		data.FontStyleNormal,
+		data.FontStyleItalic,
+		data.FontStyleOblique,
 	}
 
 	for _, style := range styles {
@@ -47,7 +48,7 @@ func TestFormatFontStyle(t *testing.T) {
 				"<span style=\"font-style: %s\">hello</span>",
 				style,
 			)
-			if style == html.FontStyleItalic {
+			if style == data.FontStyleItalic {
 				expected = "<i>hello</i>"
 			}
 			if x := html.Format(s); x != expected {
@@ -58,16 +59,16 @@ func TestFormatFontStyle(t *testing.T) {
 }
 
 func TestFormatFontWeight(t *testing.T) {
-	weights := []html.FontWeight{
-		html.FontThin,
-		html.FontExtraLight,
-		html.FontLight,
-		html.FontNormal,
-		html.FontMedium,
-		html.FontSemibold,
-		html.FontBold,
-		html.FontExtraBold,
-		html.FontBlack,
+	weights := []data.FontWeight{
+		data.FontThin,
+		data.FontExtraLight,
+		data.FontLight,
+		data.FontNormal,
+		data.FontMedium,
+		data.FontSemibold,
+		data.FontBold,
+		data.FontExtraBold,
+		data.FontBlack,
 	}
 	for _, weight := range weights {
 		str := fmt.Sprintf("%d", weight)
@@ -77,7 +78,7 @@ func TestFormatFontWeight(t *testing.T) {
 				"<span style=\"font-weight: %d\">hello</span>",
 				weight,
 			)
-			if weight == html.FontBold {
+			if weight == data.FontBold {
 				expected = "<b>hello</b>"
 			}
 			if x := html.Format(s); x != expected {
@@ -92,7 +93,10 @@ func TestFormatHeading(t *testing.T) {
 	for l, str := range levels {
 		test := fmt.Sprintf("%s-%d", str, l)
 		t.Run(test, func(t *testing.T) {
-			h := html.NewHeading(l, rich.NewText("x", html.FontBold))
+			h := rich.NewEmbed(data.Heading{
+				Level: l,
+				Text:  rich.NewText("x", data.FontBold),
+			})
 			expected := fmt.Sprintf("<%s><b>x</b></%s>", str, str)
 			if x := html.Format(h); x != expected {
 				t.Error("Unexpected", x, expected)
@@ -102,7 +106,7 @@ func TestFormatHeading(t *testing.T) {
 }
 
 func TestFormatImage(t *testing.T) {
-	i := html.NewImage("quote\"d", "a < b")
+	i := rich.NewEmbed(data.Image{Src: "quote\"d", AltText: "a < b"})
 
 	if x := html.Format(i); x != "<img src=\"quote&#34;d\" alt=\"a &lt; b\"></img>" {
 		t.Error("Unexpected", x)
@@ -111,7 +115,7 @@ func TestFormatImage(t *testing.T) {
 
 func TestFormatLink(t *testing.T) {
 	s := rich.NewText("a < b")
-	l := html.NewLink("quote\"d", s)
+	l := rich.NewEmbed(data.Link{Url: "quote\"d", Value: s})
 
 	if x := html.Format(l); x != "<a href=\"quote&#34;d\">a &lt; b</a>" {
 		t.Error("Unexpected", x)
@@ -129,7 +133,10 @@ func TestFormatList(t *testing.T) {
 	}
 
 	for pair, expected := range tests {
-		l := html.NewList(pair[0], rich.NewText(pair[1]))
+		l := rich.NewEmbed(data.List{
+			Type: pair[0],
+			Text: rich.NewText(pair[1]),
+		})
 
 		if x := html.Format(l); x != expected {
 			t.Error("Unexpected", x, expected)
@@ -137,9 +144,9 @@ func TestFormatList(t *testing.T) {
 	}
 
 	s := rich.NewText("hel").
-		Concat(rich.NewText("lo\nwor", html.FontBold)).
+		Concat(rich.NewText("lo\nwor", data.FontBold)).
 		Concat(rich.NewText("ld"))
-	l := html.NewList("", s)
+	l := rich.NewEmbed(data.List{Type: "", Text: s})
 	expected := "<ul><li>hel<b>lo</b></li><li><b>wor</b>ld</li></ul>"
 	if x := html.Format(l); x != expected {
 		t.Error("Unexpected", x, expected)

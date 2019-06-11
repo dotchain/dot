@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package html_test
+package data_test
 
 import (
 	"reflect"
@@ -11,13 +11,17 @@ import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/x/rich"
-	"github.com/dotchain/dot/x/rich/html"
+	"github.com/dotchain/dot/x/rich/data"
 )
 
 func TestListApply(t *testing.T) {
 	s1, s2 := rich.NewText("list1"), rich.NewText("list2")
-	l1 := html.List{Type: "circle", Text: s1}
-	l2 := html.List{Type: "square", Text: s2}
+	l1 := data.List{Type: "circle", Text: s1}
+	l2 := data.List{Type: "square", Text: s2}
+
+	if l1.Name() != "Embed" {
+		t.Error("Unexpected name", l1.Name())
+	}
 
 	if x := l1.Apply(nil, nil); !reflect.DeepEqual(x, l1) {
 		t.Error("Unexpected apply", x)
@@ -35,7 +39,7 @@ func TestListApply(t *testing.T) {
 			After:  types.S16("square"),
 		},
 	}
-	if x := l1.Apply(nil, c).(html.List); x.Type != "square" {
+	if x := l1.Apply(nil, c).(data.List); x.Type != "square" {
 		t.Error("Unexpected change", x)
 	}
 
@@ -46,7 +50,7 @@ func TestListApply(t *testing.T) {
 			After:  s2,
 		},
 	}
-	if x := l1.Apply(nil, c).(html.List); !reflect.DeepEqual(x.Text, s2) {
+	if x := l1.Apply(nil, c).(data.List); !reflect.DeepEqual(x.Text, s2) {
 		t.Error("Unexpected change", x.Text)
 	}
 }

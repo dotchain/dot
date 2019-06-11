@@ -2,18 +2,13 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package html
+package data
 
 import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/x/rich"
 )
-
-// NewBlockQuote creates a rich text with embedded block quote
-func NewBlockQuote(r *rich.Text) *rich.Text {
-	return rich.NewText(" ", BlockQuote{r})
-}
 
 // BlockQuote represents a block quote with any embedded content
 type BlockQuote struct {

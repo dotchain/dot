@@ -2,18 +2,12 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package html
+package data
 
 import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
-	"github.com/dotchain/dot/x/rich"
 )
-
-// NewLink creates a rich text that represents a link element
-func NewLink(url string, contents changes.Value) *rich.Text {
-	return rich.NewText(" ", Link{url, contents})
-}
 
 // Link represents a url link
 type Link struct {

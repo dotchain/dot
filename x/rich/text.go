@@ -18,6 +18,14 @@ func NewText(s string, attr ...Attr) *Text {
 	return &Text{{Text: s, Attrs: attrs, Size: types.S16(s).Count()}}
 }
 
+// NewEmbed creates a text with an embedded object (such as data.link)
+func NewEmbed(embedded Attr) *Text {
+	if embedded.Name() != "Embed" {
+		panic("embedded objects should have name \"Embed\"")
+	}
+	return NewText(" ", embedded)
+}
+
 // Text represents a rich text
 type Text []attrText
 

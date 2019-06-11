@@ -2,30 +2,34 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package html_test
+package data_test
 
 import (
 	"testing"
 
 	"github.com/dotchain/dot/changes"
-	"github.com/dotchain/dot/x/rich/html"
+	"github.com/dotchain/dot/x/rich/data"
 )
 
 func TestFontWeightApply(t *testing.T) {
-	if x := html.FontThin.Apply(nil, nil); x != html.FontThin {
+	if data.FontThin.Name() != "FontWeight" {
+		t.Error("Unexpected name", data.FontThin.Name())
+	}
+
+	if x := data.FontThin.Apply(nil, nil); x != data.FontThin {
 		t.Error("Unexpected apply", x)
 	}
 
 	replace := changes.Replace{
-		Before: html.FontThin,
-		After:  html.FontBold,
+		Before: data.FontThin,
+		After:  data.FontBold,
 	}
-	if x := html.FontThin.Apply(nil, replace); x != replace.After {
+	if x := data.FontThin.Apply(nil, replace); x != replace.After {
 		t.Error("Unexpected replace", x)
 	}
 
 	c := changes.ChangeSet{replace}
-	if x := html.FontThin.Apply(nil, c); x != replace.After {
+	if x := data.FontThin.Apply(nil, c); x != replace.After {
 		t.Error("Unexpected changeset", x)
 	}
 }

@@ -2,18 +2,13 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package html
+package data
 
 import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/x/rich"
 )
-
-// NewHeading creates a rich text that represents a heading element
-func NewHeading(level int, r *rich.Text) *rich.Text {
-	return rich.NewText(" ", Heading{level, r})
-}
 
 // Heading represents h1 to h6.
 //

@@ -2,18 +2,13 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package html
+package data
 
 import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/x/rich"
 )
-
-// NewList creates a rich text that represents a list element
-func NewList(listType string, contents *rich.Text) *rich.Text {
-	return rich.NewText(" ", List{listType, contents})
-}
 
 // List represents an ordered or unordered list
 //

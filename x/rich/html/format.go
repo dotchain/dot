@@ -12,6 +12,7 @@ import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/x/rich"
+	"github.com/dotchain/dot/x/rich/data"
 )
 
 // Formatter is a generic html formatter
@@ -38,20 +39,20 @@ func FormatBuilder(b *strings.Builder, v changes.Value, f Formatter) {
 		b.WriteString(html.EscapeString(string(v)))
 	case *rich.Text:
 		formatRichText(b, v, f)
-	case Link:
+	case data.Link:
 		formatLink(b, v, f)
-	case BlockQuote:
+	case data.BlockQuote:
 		formatBlockQuote(b, v, f)
-	case Heading:
+	case data.Heading:
 		formatHeading(b, v, f)
-	case Image:
-		formatImage(b, v, f)
-	case List:
+	case data.Image:
+		formatImage(b, v)
+	case data.List:
 		formatList(b, v, f)
 	}
 }
 
-func formatLink(b *strings.Builder, l Link, f Formatter) {
+func formatLink(b *strings.Builder, l data.Link, f Formatter) {
 	b.WriteString("<a href=\"")
 	b.WriteString(html.EscapeString(l.Url))
 	b.WriteString("\">")
@@ -59,13 +60,13 @@ func formatLink(b *strings.Builder, l Link, f Formatter) {
 	b.WriteString("</a>")
 }
 
-func formatBlockQuote(b *strings.Builder, bq BlockQuote, f Formatter) {
+func formatBlockQuote(b *strings.Builder, bq data.BlockQuote, f Formatter) {
 	b.WriteString("<blockquote>")
 	f(b, bq.Text)
 	b.WriteString("</blockquote>")
 }
 
-func formatHeading(b *strings.Builder, h Heading, f Formatter) {
+func formatHeading(b *strings.Builder, h data.Heading, f Formatter) {
 	l := h.Level
 	if l < 1 || l > 6 {
 		l = 1
@@ -79,7 +80,7 @@ func formatHeading(b *strings.Builder, h Heading, f Formatter) {
 	b.WriteString(">")
 }
 
-func formatImage(b *strings.Builder, i Image, f Formatter) {
+func formatImage(b *strings.Builder, i data.Image) {
 	b.WriteString("<img src=\"")
 	b.WriteString(html.EscapeString(i.Src))
 	b.WriteString("\" alt=\"")
@@ -88,7 +89,7 @@ func formatImage(b *strings.Builder, i Image, f Formatter) {
 	b.WriteString("</img>")
 }
 
-func formatList(b *strings.Builder, l List, f Formatter) {
+func formatList(b *strings.Builder, l data.List, f Formatter) {
 	tag := "ol"
 	if l.Type == "disc" || l.Type == "circle" || l.Type == "square" || l.Type == "" {
 		tag = "ul"
@@ -160,16 +161,16 @@ func formatRichText(b *strings.Builder, t *rich.Text, f Formatter) {
 
 func inlineOpen(b *strings.Builder, v changes.Value) {
 	switch t := v.(type) {
-	case FontStyle:
-		if t == FontStyleItalic {
+	case data.FontStyle:
+		if t == data.FontStyleItalic {
 			b.WriteString("<i>")
 		} else {
 			b.WriteString("<span style=\"font-style: ")
 			b.WriteString(html.EscapeString(string(t)))
 			b.WriteString("\">")
 		}
-	case FontWeight:
-		if t == FontBold {
+	case data.FontWeight:
+		if t == data.FontBold {
 			b.WriteString("<b>")
 		} else {
 			b.WriteString("<span style=\"font-weight: ")
@@ -181,14 +182,14 @@ func inlineOpen(b *strings.Builder, v changes.Value) {
 
 func inlineClose(b *strings.Builder, v changes.Value) {
 	switch t := v.(type) {
-	case FontStyle:
-		if t == FontStyleItalic {
+	case data.FontStyle:
+		if t == data.FontStyleItalic {
 			b.WriteString("</i>")
 		} else {
 			b.WriteString("</span>")
 		}
-	case FontWeight:
-		if t == FontBold {
+	case data.FontWeight:
+		if t == data.FontBold {
 			b.WriteString("</b>")
 		} else {
 			b.WriteString("</span>")

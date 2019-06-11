@@ -8,11 +8,12 @@ import (
 	"fmt"
 
 	"github.com/dotchain/dot/x/rich"
+	"github.com/dotchain/dot/x/rich/data"
 	"github.com/dotchain/dot/x/rich/html"
 )
 
 func ExampleFormat() {
-	s := rich.NewText("hello", html.FontBold)
+	s := rich.NewText("hello", data.FontBold)
 	fmt.Println("html =", html.Format(s))
 	// Output:html = <b>hello</b>
 }

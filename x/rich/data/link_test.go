@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package html_test
+package data_test
 
 import (
 	"reflect"
@@ -11,13 +11,17 @@ import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/x/rich"
-	"github.com/dotchain/dot/x/rich/html"
+	"github.com/dotchain/dot/x/rich/data"
 )
 
 func TestLinkApply(t *testing.T) {
 	s1, s2 := rich.NewText("link1"), rich.NewText("link2")
-	l1 := html.Link{Url: "url1", Value: s1}
-	l2 := html.Link{Url: "url2", Value: s2}
+	l1 := data.Link{Url: "url1", Value: s1}
+	l2 := data.Link{Url: "url2", Value: s2}
+
+	if l2.Name() != "Embed" {
+		t.Error("Unexpected name", l2.Name())
+	}
 
 	if x := l1.Apply(nil, nil); !reflect.DeepEqual(x, l1) {
 		t.Error("Unexpected apply", x)
@@ -35,7 +39,7 @@ func TestLinkApply(t *testing.T) {
 			After:  types.S16("U"),
 		},
 	}
-	if x := l1.Apply(nil, c).(html.Link); x.Url != "Url1" {
+	if x := l1.Apply(nil, c).(data.Link); x.Url != "Url1" {
 		t.Error("Unexpected change", x)
 	}
 
@@ -46,7 +50,7 @@ func TestLinkApply(t *testing.T) {
 			After:  s2,
 		},
 	}
-	if x := l1.Apply(nil, c).(html.Link); !reflect.DeepEqual(x.Value, s2) {
+	if x := l1.Apply(nil, c).(data.Link); !reflect.DeepEqual(x.Value, s2) {
 		t.Error("Unexpected change", x.Value)
 	}
 }

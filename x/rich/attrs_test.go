@@ -10,12 +10,12 @@ import (
 
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/x/rich"
-	"github.com/dotchain/dot/x/rich/html"
+	"github.com/dotchain/dot/x/rich/data"
 )
 
 func TestAttrs(t *testing.T) {
-	a1 := rich.Attrs{"FontWeight": html.FontBold}
-	a2 := rich.Attrs{"FontWeight": html.FontThin}
+	a1 := rich.Attrs{"FontWeight": data.FontBold}
+	a2 := rich.Attrs{"FontWeight": data.FontThin}
 	if !a1.Equal(a1) || a2.Equal(a1) {
 		t.Error("Unexpected equality failure")
 	}
@@ -23,8 +23,8 @@ func TestAttrs(t *testing.T) {
 	c := changes.PathChange{
 		Path: []interface{}{"FontWeight"},
 		Change: changes.Replace{
-			Before: html.FontBold,
-			After:  html.FontThin,
+			Before: data.FontBold,
+			After:  data.FontThin,
 		},
 	}
 	if x := a1.Apply(nil, c); !reflect.DeepEqual(x, a2) {

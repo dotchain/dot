@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package html_test
+package data_test
 
 import (
 	"reflect"
@@ -10,12 +10,16 @@ import (
 
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
-	"github.com/dotchain/dot/x/rich/html"
+	"github.com/dotchain/dot/x/rich/data"
 )
 
 func TestImageApply(t *testing.T) {
-	i1 := html.Image{Src: "uri1", AltText: "link1"}
-	i2 := html.Image{Src: "uri2", AltText: "link2"}
+	i1 := data.Image{Src: "uri1", AltText: "link1"}
+	i2 := data.Image{Src: "uri2", AltText: "link2"}
+
+	if i1.Name() != "Embed" {
+		t.Error("Unexpected name", i1.Name())
+	}
 
 	if x := i1.Apply(nil, nil); !reflect.DeepEqual(x, i1) {
 		t.Error("Unexpected apply", x)
@@ -33,7 +37,7 @@ func TestImageApply(t *testing.T) {
 			After:  types.S16("U"),
 		},
 	}
-	if x := i1.Apply(nil, c).(html.Image); x.Src != "Uri1" {
+	if x := i1.Apply(nil, c).(data.Image); x.Src != "Uri1" {
 		t.Error("Unexpected change", x)
 	}
 
@@ -44,7 +48,7 @@ func TestImageApply(t *testing.T) {
 			After:  types.S16("text2"),
 		},
 	}
-	if x := i1.Apply(nil, c).(html.Image); x.AltText != "text2" {
+	if x := i1.Apply(nil, c).(data.Image); x.AltText != "text2" {
 		t.Error("Unexpected change", x.AltText)
 	}
 }
