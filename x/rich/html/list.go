@@ -5,10 +5,6 @@
 package html
 
 import (
-	"strings"
-
-	"golang.org/x/net/html"
-
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/x/rich"
@@ -32,7 +28,7 @@ type List struct {
 
 // Name is the key to use with rich.Attrs
 func (l List) Name() string {
-	return "List"
+	return "Embed"
 }
 
 // Apply implements changes.Value.
@@ -54,41 +50,4 @@ func (l List) set(key interface{}, v changes.Value) changes.Value {
 		l.Text = v.(*rich.Text)
 	}
 	return l
-}
-
-// FormatHTML formats the list into HTML
-func (l List) FormatHTML(b *strings.Builder, f Formatter) {
-	tag := "ol"
-	if l.Type == "disc" || l.Type == "circle" || l.Type == "square" || l.Type == "" {
-		tag = "ul"
-	}
-
-	style := ""
-	if l.Type != "" {
-		style = " style=\"list-style-type: " + html.EscapeString(l.Type) + ";\""
-	}
-	b.WriteString("<" + tag + style + ">")
-	l.writeListEntries(b, f, l.Text)
-	b.WriteString("</" + tag + ">")
-}
-
-func (l List) writeListEntries(b *strings.Builder, f Formatter, t *rich.Text) {
-mainloop:
-	for len(*t) > 0 {
-		seen := 0
-		for _, x := range *t {
-			if idx := strings.Index(x.Text, "\n"); idx >= 0 {
-				b.WriteString("<li>")
-				FormatBuilder(b, t.Slice(0, seen+idx).(*rich.Text), f)
-				b.WriteString("</li>")
-				t = t.Slice(seen+idx+1, t.Count()-seen-idx-1).(*rich.Text)
-				continue mainloop
-			}
-			seen += x.Size
-		}
-		b.WriteString("<li>")
-		FormatBuilder(b, t, f)
-		b.WriteString("</li>")
-		return
-	}
 }

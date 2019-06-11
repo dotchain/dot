@@ -48,11 +48,3 @@ func TestImageApply(t *testing.T) {
 		t.Error("Unexpected change", x.AltText)
 	}
 }
-
-func TestImageEncodings(t *testing.T) {
-	i := html.NewImage("quote\"d", "a < b")
-
-	if x := html.Format(i, nil); x != "<img src=\"quote&#34;d\" alt=\"a &lt; b\"></img>" {
-		t.Error("Unexpected", x)
-	}
-}

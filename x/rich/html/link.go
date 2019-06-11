@@ -5,10 +5,6 @@
 package html
 
 import (
-	"strings"
-
-	"golang.org/x/net/html"
-
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/x/rich"
@@ -29,7 +25,7 @@ type Link struct {
 
 // Name is the key to use with rich.Attrs
 func (l Link) Name() string {
-	return "Link"
+	return "Embed"
 }
 
 // Apply implements changes.Value.
@@ -51,13 +47,4 @@ func (l Link) set(key interface{}, v changes.Value) changes.Value {
 		l.Text = v.(*rich.Text)
 	}
 	return l
-}
-
-// FormatHTML formats the link into HTML
-func (l Link) FormatHTML(b *strings.Builder, f Formatter) {
-	b.WriteString("<a href=\"")
-	b.WriteString(html.EscapeString(l.Url))
-	b.WriteString("\">")
-	FormatBuilder(b, l.Text, f)
-	b.WriteString("</a>")
 }

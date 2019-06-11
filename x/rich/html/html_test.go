@@ -6,7 +6,6 @@ package html_test
 
 import (
 	"fmt"
-	"testing"
 
 	"github.com/dotchain/dot/x/rich"
 	"github.com/dotchain/dot/x/rich/html"
@@ -14,30 +13,6 @@ import (
 
 func ExampleFormat() {
 	s := rich.NewText("hello", html.FontBold)
-	fmt.Println("html =", html.Format(s, nil))
+	fmt.Println("html =", html.Format(s))
 	// Output:html = <b>hello</b>
-}
-
-func TestFormatBold(t *testing.T) {
-	s := rich.NewText("Hello ").
-		Concat(rich.NewText("beautiful", html.FontBold)).
-		Concat(rich.NewText(" world"))
-
-	result := html.Format(s, nil)
-	if result != "Hello <b>beautiful</b> world" {
-		t.Error("Unexpected", result, s)
-	}
-}
-
-func TestFormatBoldAndItalic(t *testing.T) {
-	s := rich.NewText("Hello ").
-		Concat(rich.NewText("bold", html.FontBold)).
-		Concat(rich.NewText("and", html.FontBold, html.FontStyleItalic)).
-		Concat(rich.NewText("italic", html.FontStyleItalic)).
-		Concat(rich.NewText(" world"))
-
-	result := html.Format(s, nil)
-	if result != "Hello <b>bold</b><i><b>and</b></i><i>italic</i> world" {
-		t.Error("Unexpected", result, s)
-	}
 }

@@ -50,31 +50,3 @@ func TestListApply(t *testing.T) {
 		t.Error("Unexpected change", x.Text)
 	}
 }
-
-func TestListFormatHTML(t *testing.T) {
-	tests := map[[2]string]string{
-		{"", "hello"}:        "<ul><li>hello</li></ul>",
-		{"circle", "hello"}:  "<ul style=\"list-style-type: circle;\"><li>hello</li></ul>",
-		{"disc", "hello"}:    "<ul style=\"list-style-type: disc;\"><li>hello</li></ul>",
-		{"square", "hello"}:  "<ul style=\"list-style-type: square;\"><li>hello</li></ul>",
-		{"decimal", "hello"}: "<ol style=\"list-style-type: decimal;\"><li>hello</li></ol>",
-		{"", "hello\nworld"}: "<ul><li>hello</li><li>world</li></ul>",
-	}
-
-	for pair, expected := range tests {
-		l := html.NewList(pair[0], rich.NewText(pair[1]))
-
-		if x := html.Format(l, nil); x != expected {
-			t.Error("Unexpected", x, expected)
-		}
-	}
-
-	s := rich.NewText("hel").
-		Concat(rich.NewText("lo\nwor", html.FontBold)).
-		Concat(rich.NewText("ld"))
-	l := html.NewList("", s)
-	expected := "<ul><li>hel<b>lo</b></li><li><b>wor</b>ld</li></ul>"
-	if x := html.Format(l, nil); x != expected {
-		t.Error("Unexpected", x, expected)
-	}
-}

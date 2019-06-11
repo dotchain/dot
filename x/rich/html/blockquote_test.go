@@ -35,11 +35,3 @@ func TestBlockQuoteApply(t *testing.T) {
 		t.Error("Unexpected change", x)
 	}
 }
-
-func TestBlockQuoteFormatHTML(t *testing.T) {
-	bq := html.NewBlockQuote(rich.NewText("hello", html.FontBold))
-
-	if x := html.Format(bq, nil); x != "<blockquote><b>hello</b></blockquote>" {
-		t.Error("Unexpected", x)
-	}
-}

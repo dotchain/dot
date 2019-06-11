@@ -50,12 +50,3 @@ func TestLinkApply(t *testing.T) {
 		t.Error("Unexpected change", x.Text)
 	}
 }
-
-func TestLinkEncodings(t *testing.T) {
-	s := rich.NewText("a < b")
-	l := html.NewLink("quote\"d", s)
-
-	if x := html.Format(l, nil); x != "<a href=\"quote&#34;d\">a &lt; b</a>" {
-		t.Error("Unexpected", x)
-	}
-}

@@ -5,8 +5,6 @@
 package html
 
 import (
-	"fmt"
-
 	"github.com/dotchain/dot/changes"
 )
 
@@ -35,20 +33,4 @@ func (f FontStyle) Apply(ctx changes.Context, c changes.Change) changes.Value {
 		return c.After
 	}
 	return c.(changes.Custom).ApplyTo(ctx, f)
-}
-
-// OpenTag returns the html tag
-func (f FontStyle) OpenTag() string {
-	if f == FontStyleItalic {
-		return "<i>"
-	}
-	return fmt.Sprintf("<span style=\"font-style: %s\">", string(f))
-}
-
-// CloseTag returns the html tag
-func (f FontStyle) CloseTag() string {
-	if f == FontStyleItalic {
-		return "</i>"
-	}
-	return "</span>"
 }

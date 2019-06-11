@@ -5,7 +5,6 @@
 package html_test
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -48,19 +47,5 @@ func TestHeadingApply(t *testing.T) {
 	}
 	if x := h1.Apply(nil, c).(html.Heading); !reflect.DeepEqual(x.Text, s2) {
 		t.Error("Unexpected change", x.Text)
-	}
-}
-
-func TestHeading(t *testing.T) {
-	levels := []string{"h1", "h1", "h2", "h3", "h4", "h5", "h6", "h1"}
-	for l, str := range levels {
-		test := fmt.Sprintf("%s-%d", str, l)
-		t.Run(test, func(t *testing.T) {
-			h := html.NewHeading(l, rich.NewText("x", html.FontBold))
-			expected := fmt.Sprintf("<%s><b>x</b></%s>", str, str)
-			if x := html.Format(h, nil); x != expected {
-				t.Error("Unexpected", x, expected)
-			}
-		})
 	}
 }

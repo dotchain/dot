@@ -5,8 +5,6 @@
 package html
 
 import (
-	"strings"
-
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/x/rich"
@@ -24,7 +22,7 @@ type BlockQuote struct {
 
 // Name is the key to use with rich.Attrs
 func (bq BlockQuote) Name() string {
-	return "BlockQuote"
+	return "Embed"
 }
 
 // Apply implements changes.Value.
@@ -39,11 +37,4 @@ func (bq BlockQuote) get(key interface{}) changes.Value {
 func (bq BlockQuote) set(key interface{}, v changes.Value) changes.Value {
 	bq.Text = v.(*rich.Text)
 	return bq
-}
-
-// FormatHTML formats the blockQuote into HTML
-func (bq BlockQuote) FormatHTML(b *strings.Builder, f Formatter) {
-	b.WriteString("<blockquote>")
-	FormatBuilder(b, bq.Text, f)
-	b.WriteString("</blockquote>")
 }
