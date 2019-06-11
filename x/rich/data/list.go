@@ -7,7 +7,6 @@ package data
 import (
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
-	"github.com/dotchain/dot/x/rich"
 )
 
 // List represents an ordered or unordered list
@@ -17,8 +16,8 @@ import (
 //
 // (such as disc, circle etc)
 type List struct {
-	Type string
-	*rich.Text
+	Type    string
+	Entries types.A
 }
 
 // Name is the key to use with rich.Attrs
@@ -35,14 +34,14 @@ func (l List) get(key interface{}) changes.Value {
 	if key == "Type" {
 		return types.S16(l.Type)
 	}
-	return l.Text
+	return l.Entries
 }
 
 func (l List) set(key interface{}, v changes.Value) changes.Value {
 	if key == "Type" {
 		l.Type = string(v.(types.S16))
 	} else {
-		l.Text = v.(*rich.Text)
+		l.Entries = v.(types.A)
 	}
 	return l
 }

@@ -16,8 +16,8 @@ import (
 
 func TestListApply(t *testing.T) {
 	s1, s2 := rich.NewText("list1"), rich.NewText("list2")
-	l1 := data.List{Type: "circle", Text: s1}
-	l2 := data.List{Type: "square", Text: s2}
+	l1 := data.List{Type: "circle", Entries: types.A{s1}}
+	l2 := data.List{Type: "square", Entries: types.A{s2}}
 
 	if l1.Name() != "Embed" {
 		t.Error("Unexpected name", l1.Name())
@@ -44,13 +44,13 @@ func TestListApply(t *testing.T) {
 	}
 
 	c = changes.PathChange{
-		Path: []interface{}{"Text"},
+		Path: []interface{}{"Entries"},
 		Change: changes.Replace{
-			Before: s1,
-			After:  s2,
+			Before: types.A{s1},
+			After:  types.A{s2},
 		},
 	}
-	if x := l1.Apply(nil, c).(data.List); !reflect.DeepEqual(x.Text, s2) {
-		t.Error("Unexpected change", x.Text)
+	if x := l1.Apply(nil, c).(data.List); !reflect.DeepEqual(x.Entries, types.A{s2}) {
+		t.Error("Unexpected change", x.Entries)
 	}
 }

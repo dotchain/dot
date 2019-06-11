@@ -39,6 +39,8 @@ func FormatBuilder(b *strings.Builder, v changes.Value, f Formatter) {
 		b.WriteString(html.EscapeString(string(v)))
 	case *rich.Text:
 		formatRichText(b, v, f)
+	case types.A:
+		formatList(b, data.List{Type: "disc", Entries: v}, f)
 	case data.Link:
 		formatLink(b, v, f)
 	case data.BlockQuote:
@@ -100,29 +102,16 @@ func formatList(b *strings.Builder, l data.List, f Formatter) {
 		style = " style=\"list-style-type: " + html.EscapeString(l.Type) + ";\""
 	}
 	b.WriteString("<" + tag + style + ">")
-	writeListEntries(b, l.Text, f)
+	for _, item := range l.Entries {
+		writeListEntries(b, item, f)
+	}
 	b.WriteString("</" + tag + ">")
 }
 
-func writeListEntries(b *strings.Builder, t *rich.Text, f Formatter) {
-mainloop:
-	for len(*t) > 0 {
-		seen := 0
-		for _, x := range *t {
-			if idx := strings.Index(x.Text, "\n"); idx >= 0 {
-				b.WriteString("<li>")
-				f(b, t.Slice(0, seen+idx).(*rich.Text))
-				b.WriteString("</li>")
-				t = t.Slice(seen+idx+1, t.Count()-seen-idx-1).(*rich.Text)
-				continue mainloop
-			}
-			seen += x.Size
-		}
-		b.WriteString("<li>")
-		f(b, t)
-		b.WriteString("</li>")
-		return
-	}
+func writeListEntries(b *strings.Builder, item changes.Value, f Formatter) {
+	b.WriteString("<li>")
+	f(b, item)
+	b.WriteString("</li>")
 }
 
 var inlineStyles = []string{"FontStyle", "FontWeight"}

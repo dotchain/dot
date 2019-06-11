@@ -6,8 +6,10 @@ package html_test
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
+	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/x/rich"
 	"github.com/dotchain/dot/x/rich/data"
 	"github.com/dotchain/dot/x/rich/html"
@@ -133,22 +135,20 @@ func TestFormatList(t *testing.T) {
 	}
 
 	for pair, expected := range tests {
-		l := rich.NewEmbed(data.List{
-			Type: pair[0],
-			Text: rich.NewText(pair[1]),
-		})
+		splits := strings.Split(pair[1], "\n")
+		entries := types.A{}
+		for _, v := range splits {
+			entries = append(entries, types.S16(v))
+		}
+		l := rich.NewEmbed(data.List{Type: pair[0], Entries: entries})
 
 		if x := html.Format(l); x != expected {
 			t.Error("Unexpected", x, expected)
 		}
 	}
 
-	s := rich.NewText("hel").
-		Concat(rich.NewText("lo\nwor", data.FontBold)).
-		Concat(rich.NewText("ld"))
-	l := rich.NewEmbed(data.List{Type: "", Text: s})
-	expected := "<ul><li>hel<b>lo</b></li><li><b>wor</b>ld</li></ul>"
-	if x := html.Format(l); x != expected {
-		t.Error("Unexpected", x, expected)
+	x := html.Format(types.A{types.S16("hello"), types.S16("world")})
+	if x != "<ul style=\"list-style-type: disc;\"><li>hello</li><li>world</li></ul>" {
+		t.Error("Unexpected", x)
 	}
 }
