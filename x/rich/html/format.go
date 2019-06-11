@@ -17,20 +17,20 @@ type Formatter interface {
 }
 
 // Format formats rich text into html
-func Format(t rich.Text, f Formatter) string {
+func Format(t *rich.Text, f Formatter) string {
 	var b strings.Builder
 	FormatBuilder(&b, t, f)
 	return b.String()
 }
 
 // FormatBuilder formats rich text into html
-func FormatBuilder(b *strings.Builder, t rich.Text, f Formatter) {
+func FormatBuilder(b *strings.Builder, t *rich.Text, f Formatter) {
 	if f == nil {
 		f = DefaultFormatter
 	}
 
 	last := rich.Attrs{}
-	for _, x := range t {
+	for _, x := range *t {
 		f.Close(b, last, x.Attrs, x.Text)
 		f.Open(b, last, x.Attrs, x.Text)
 		last = x.Attrs

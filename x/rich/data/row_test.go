@@ -35,7 +35,7 @@ func TestRow(t *testing.T) {
 		},
 	}).(data.Row)
 
-	if row.Cells["col1"].PlainText() != "cell1" {
-		t.Error("Unexpected value", row.Cells["col1"].PlainText())
+	if x := row.Cells["col1"].(*rich.Text).PlainText(); x != "cell1" {
+		t.Error("Unexpected value", x)
 	}
 }

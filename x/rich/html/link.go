@@ -15,8 +15,8 @@ import (
 )
 
 // NewLink creates a rich text that represents a link element
-func NewLink(url string, contents rich.Text) rich.Text {
-	return rich.NewText(" ", Link{url, &contents})
+func NewLink(url string, contents *rich.Text) *rich.Text {
+	return rich.NewText(" ", Link{url, contents})
 }
 
 // Link represents a url link
@@ -38,22 +38,17 @@ func (l Link) Apply(ctx changes.Context, c changes.Change) changes.Value {
 }
 
 func (l Link) get(key interface{}) changes.Value {
-	switch key {
-	case "Url":
+	if key == "Url" {
 		return types.S16(l.Url)
-	case "Text":
-		return *l.Text
 	}
-	return changes.Nil
+	return l.Text
 }
 
 func (l Link) set(key interface{}, v changes.Value) changes.Value {
-	switch key {
-	case "Url":
+	if key == "Url" {
 		l.Url = string(v.(types.S16))
-	case "Text":
-		x := v.(rich.Text)
-		l.Text = &x
+	} else {
+		l.Text = v.(*rich.Text)
 	}
 	return l
 }
@@ -63,6 +58,6 @@ func (l Link) FormatHTML(b *strings.Builder, f Formatter) {
 	b.WriteString("<a href=\"")
 	b.WriteString(html.EscapeString(l.Url))
 	b.WriteString("\">")
-	FormatBuilder(b, *l.Text, f)
+	FormatBuilder(b, l.Text, f)
 	b.WriteString("</a>")
 }

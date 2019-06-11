@@ -16,8 +16,8 @@ import (
 
 func TestListApply(t *testing.T) {
 	s1, s2 := rich.NewText("list1"), rich.NewText("list2")
-	l1 := html.List{Type: "circle", Text: &s1}
-	l2 := html.List{Type: "square", Text: &s2}
+	l1 := html.List{Type: "circle", Text: s1}
+	l2 := html.List{Type: "square", Text: s2}
 
 	if x := l1.Apply(nil, nil); !reflect.DeepEqual(x, l1) {
 		t.Error("Unexpected apply", x)
@@ -46,7 +46,7 @@ func TestListApply(t *testing.T) {
 			After:  s2,
 		},
 	}
-	if x := l1.Apply(nil, c).(html.List); !reflect.DeepEqual(*x.Text, s2) {
+	if x := l1.Apply(nil, c).(html.List); !reflect.DeepEqual(x.Text, s2) {
 		t.Error("Unexpected change", x.Text)
 	}
 }

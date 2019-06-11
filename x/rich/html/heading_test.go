@@ -16,8 +16,8 @@ import (
 
 func TestHeadingApply(t *testing.T) {
 	s1, s2 := rich.NewText("heading1"), rich.NewText("heading2")
-	h1 := html.Heading{Level: 1, Text: &s1}
-	h2 := html.Heading{Level: 2, Text: &s2}
+	h1 := html.Heading{Level: 1, Text: s1}
+	h2 := html.Heading{Level: 2, Text: s2}
 
 	if x := h1.Apply(nil, nil); !reflect.DeepEqual(x, h1) {
 		t.Error("Unexpected apply", x)
@@ -46,7 +46,7 @@ func TestHeadingApply(t *testing.T) {
 			After:  s2,
 		},
 	}
-	if x := h1.Apply(nil, c).(html.Heading); !reflect.DeepEqual(*x.Text, s2) {
+	if x := h1.Apply(nil, c).(html.Heading); !reflect.DeepEqual(x.Text, s2) {
 		t.Error("Unexpected change", x.Text)
 	}
 }

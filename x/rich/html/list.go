@@ -15,8 +15,8 @@ import (
 )
 
 // NewList creates a rich text that represents a list element
-func NewList(listType string, contents rich.Text) rich.Text {
-	return rich.NewText(" ", List{listType, &contents})
+func NewList(listType string, contents *rich.Text) *rich.Text {
+	return rich.NewText(" ", List{listType, contents})
 }
 
 // List represents an ordered or unordered list
@@ -41,22 +41,17 @@ func (l List) Apply(ctx changes.Context, c changes.Change) changes.Value {
 }
 
 func (l List) get(key interface{}) changes.Value {
-	switch key {
-	case "Type":
+	if key == "Type" {
 		return types.S16(l.Type)
-	case "Text":
-		return *l.Text
 	}
-	return changes.Nil
+	return l.Text
 }
 
 func (l List) set(key interface{}, v changes.Value) changes.Value {
-	switch key {
-	case "Type":
+	if key == "Type" {
 		l.Type = string(v.(types.S16))
-	case "Text":
-		x := v.(rich.Text)
-		l.Text = &x
+	} else {
+		l.Text = v.(*rich.Text)
 	}
 	return l
 }
@@ -73,20 +68,20 @@ func (l List) FormatHTML(b *strings.Builder, f Formatter) {
 		style = " style=\"list-style-type: " + html.EscapeString(l.Type) + ";\""
 	}
 	b.WriteString("<" + tag + style + ">")
-	l.writeListEntries(b, f, *l.Text)
+	l.writeListEntries(b, f, l.Text)
 	b.WriteString("</" + tag + ">")
 }
 
-func (l List) writeListEntries(b *strings.Builder, f Formatter, t rich.Text) {
+func (l List) writeListEntries(b *strings.Builder, f Formatter, t *rich.Text) {
 mainloop:
-	for len(t) > 0 {
+	for len(*t) > 0 {
 		seen := 0
-		for _, x := range t {
+		for _, x := range *t {
 			if idx := strings.Index(x.Text, "\n"); idx >= 0 {
 				b.WriteString("<li>")
-				FormatBuilder(b, t.Slice(0, seen+idx).(rich.Text), f)
+				FormatBuilder(b, t.Slice(0, seen+idx).(*rich.Text), f)
 				b.WriteString("</li>")
-				t = t.Slice(seen+idx+1, t.Count()-seen-idx-1).(rich.Text)
+				t = t.Slice(seen+idx+1, t.Count()-seen-idx-1).(*rich.Text)
 				continue mainloop
 			}
 			seen += x.Size

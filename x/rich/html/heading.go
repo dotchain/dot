@@ -5,7 +5,7 @@
 package html
 
 import (
-	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/dotchain/dot/changes"
@@ -14,8 +14,8 @@ import (
 )
 
 // NewHeading creates a rich text that represents a heading element
-func NewHeading(level int, r rich.Text) rich.Text {
-	return rich.NewText(" ", Heading{level, &r})
+func NewHeading(level int, r *rich.Text) *rich.Text {
+	return rich.NewText(" ", Heading{level, r})
 }
 
 // Heading represents h1 to h6.
@@ -41,7 +41,7 @@ func (h Heading) get(key interface{}) changes.Value {
 	case "Level":
 		return changes.Atomic{Value: h.Level}
 	case "Text":
-		return *h.Text
+		return h.Text
 	}
 	return changes.Nil
 }
@@ -51,8 +51,7 @@ func (h Heading) set(key interface{}, v changes.Value) changes.Value {
 	case "Level":
 		h.Level = v.(changes.Atomic).Value.(int)
 	case "Text":
-		x := v.(rich.Text)
-		h.Text = &x
+		h.Text = v.(*rich.Text)
 	}
 	return h
 }
@@ -63,7 +62,11 @@ func (h Heading) FormatHTML(b *strings.Builder, f Formatter) {
 	if l < 1 || l > 6 {
 		l = 1
 	}
-	b.WriteString(fmt.Sprintf("<h%d>", l))
-	FormatBuilder(b, *h.Text, f)
-	b.WriteString(fmt.Sprintf("</h%d>", l))
+	b.WriteString("<h")
+	b.WriteString(strconv.Itoa(l))
+	b.WriteString(">")
+	FormatBuilder(b, h.Text, f)
+	b.WriteString("</h")
+	b.WriteString(strconv.Itoa(l))
+	b.WriteString(">")
 }

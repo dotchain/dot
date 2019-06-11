@@ -16,8 +16,8 @@ import (
 
 func TestLinkApply(t *testing.T) {
 	s1, s2 := rich.NewText("link1"), rich.NewText("link2")
-	l1 := html.Link{Url: "url1", Text: &s1}
-	l2 := html.Link{Url: "url2", Text: &s2}
+	l1 := html.Link{Url: "url1", Text: s1}
+	l2 := html.Link{Url: "url2", Text: s2}
 
 	if x := l1.Apply(nil, nil); !reflect.DeepEqual(x, l1) {
 		t.Error("Unexpected apply", x)
@@ -46,7 +46,7 @@ func TestLinkApply(t *testing.T) {
 			After:  s2,
 		},
 	}
-	if x := l1.Apply(nil, c).(html.Link); !reflect.DeepEqual(*x.Text, s2) {
+	if x := l1.Apply(nil, c).(html.Link); !reflect.DeepEqual(x.Text, s2) {
 		t.Error("Unexpected change", x.Text)
 	}
 }

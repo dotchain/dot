@@ -15,7 +15,7 @@ import (
 )
 
 // NewImage creates a rich text with embedded image
-func NewImage(src, altText string) rich.Text {
+func NewImage(src, altText string) *rich.Text {
 	return rich.NewText(" ", Image{src, altText})
 }
 

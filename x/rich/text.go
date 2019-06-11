@@ -10,12 +10,12 @@ import (
 )
 
 // NewText initializes a new rich text value
-func NewText(s string, attr ...Attr) Text {
+func NewText(s string, attr ...Attr) *Text {
 	attrs := Attrs{}
 	for _, val := range attr {
 		attrs[val.Name()] = val
 	}
-	return Text{{Text: s, Attrs: attrs, Size: types.S16(s).Count()}}
+	return &Text{{Text: s, Attrs: attrs, Size: types.S16(s).Count()}}
 }
 
 // Text represents a rich text
@@ -28,28 +28,28 @@ type attrText struct {
 }
 
 // Count returns the size of the text
-func (t Text) Count() int {
+func (t *Text) Count() int {
 	sum := 0
-	for _, x := range t {
+	for _, x := range *t {
 		sum += x.Size
 	}
 	return sum
 }
 
 // PlainText returns the plain text version of the rich text.
-func (t Text) PlainText() string {
+func (t *Text) PlainText() string {
 	result := ""
-	for _, x := range t {
+	for _, x := range *t {
 		result += x.Text
 	}
 	return result
 }
 
 // Slice returns a text within the specified range
-func (t Text) Slice(offset, count int) changes.Collection {
+func (t *Text) Slice(offset, count int) changes.Collection {
 	seen := 0
 	s := Text{}
-	for _, x := range t {
+	for _, x := range *t {
 		start, end := seen, seen+x.Size
 		if start < offset {
 			start = offset
@@ -63,19 +63,19 @@ func (t Text) Slice(offset, count int) changes.Collection {
 		}
 		seen += x.Size
 	}
-	return s
+	return &s
 }
 
 // Concat joins two rich text values
-func (t Text) Concat(o Text) Text {
-	c := changes.Splice{Offset: t.Count(), Before: Text{}, After: o}
-	return t.Apply(nil, c).(Text)
+func (t *Text) Concat(o *Text) *Text {
+	c := changes.Splice{Offset: t.Count(), Before: &Text{}, After: o}
+	return t.Apply(nil, c).(*Text)
 }
 
 // SetAttribute returns a change which when applied would set all
 // the attributes in the range [offset, offset+count] to the provided
 // value.
-func (t Text) SetAttribute(offset, count int, attr Attr) changes.Change {
+func (t *Text) SetAttribute(offset, count int, attr Attr) changes.Change {
 	before := t.sliceAttr(offset, count, attr.Name())
 	return setattr{offset, attr.Name(), before, values{{attr, count}}}
 
@@ -83,28 +83,28 @@ func (t Text) SetAttribute(offset, count int, attr Attr) changes.Change {
 
 // RemoveAttribute returns a change which when applied would remove the
 // named attributes in the range [offset, offset+count]
-func (t Text) RemoveAttribute(offset, count int, name string) changes.Change {
+func (t *Text) RemoveAttribute(offset, count int, name string) changes.Change {
 	before := t.sliceAttr(offset, count, name)
 	return setattr{offset, name, before, values{{changes.Nil, count}}}
 
 }
 
 // Apply implements changes.Value
-func (t Text) Apply(ctx changes.Context, c changes.Change) changes.Value {
+func (t *Text) Apply(ctx changes.Context, c changes.Change) changes.Value {
 	return (types.Generic{Set: t.set, Get: t.get, Splice: t.splice}).
 		Apply(ctx, c, t)
 }
 
 // ApplyCollection implements changes.Collection
-func (t Text) ApplyCollection(ctx changes.Context, c changes.Change) changes.Collection {
+func (t *Text) ApplyCollection(ctx changes.Context, c changes.Change) changes.Collection {
 	return (types.Generic{Set: t.set, Get: t.get, Splice: t.splice}).
 		ApplyCollection(ctx, c, t)
 }
 
-func (t Text) sliceAttr(offset, count int, name string) values {
+func (t *Text) sliceAttr(offset, count int, name string) values {
 	seen := 0
 	s := values{}
-	for _, x := range t {
+	for _, x := range *t {
 		start, end := seen, seen+x.Size
 		if start < offset {
 			start = offset
@@ -127,16 +127,16 @@ func (t Text) sliceAttr(offset, count int, name string) values {
 	return s
 }
 
-func (t Text) splitString(s string, offset, fullSize int) (left, right string) {
+func (t *Text) splitString(s string, offset, fullSize int) (left, right string) {
 	l := types.S16(s).Slice(0, offset).(types.S16)
 	r := types.S16(s).Slice(offset, fullSize-offset).(types.S16)
 	return string(l), string(r)
 }
 
-func (t Text) applySetAttr(c setattr) Text {
+func (t *Text) applySetAttr(c setattr) *Text {
 	offset, after := c.Offset, c.After
-	result := Text{}
-	for _, x := range t {
+	result := &Text{}
+	for _, x := range *t {
 		text, size := x.Text, x.Size
 		var left string
 
@@ -170,10 +170,10 @@ func (t Text) applySetAttr(c setattr) Text {
 }
 
 // note: get returns the actual attrs for that index
-func (t Text) get(key interface{}) changes.Value {
+func (t *Text) get(key interface{}) changes.Value {
 	idx := key.(int)
 	seen := 0
-	for _, x := range t {
+	for _, x := range *t {
 		if idx >= seen && idx < seen+x.Size {
 			return x.Attrs
 		}
@@ -182,34 +182,37 @@ func (t Text) get(key interface{}) changes.Value {
 	return changes.Nil
 }
 
-func (t Text) set(key interface{}, v changes.Value) changes.Value {
+func (t *Text) set(key interface{}, v changes.Value) changes.Value {
 	idx := key.(int)
-	mid := t.Slice(idx, 1).(Text)
-	mid[0].Attrs = v.(Attrs)
+	mid := t.Slice(idx, 1).(*Text)
+	(*mid)[0].Attrs = v.(Attrs)
 	return t.splice(idx, 1, mid)
 }
 
-func (t Text) splice(offset, remove int, replacement changes.Collection) changes.Collection {
-	left := t.Slice(0, offset).(Text)
-	mid := replacement.(Text)
-	right := t.Slice(offset+remove, t.Count()-offset-remove).(Text)
+func (t *Text) splice(offset, remove int, replacement changes.Collection) changes.Collection {
+	left := t.Slice(0, offset).(*Text)
+	mid := replacement.(*Text)
+	right := t.Slice(offset+remove, t.Count()-offset-remove).(*Text)
 	return left.concat(mid).concat(right)
 }
 
-func (t Text) concat(o Text) Text {
-	if l := len(t); l > 0 && len(o) > 0 && t[l-1].Attrs.Equal(o[0].Attrs) {
-		t[l-1].Size += o[0].Size
-		t[l-1].Text += o[0].Text
-		o = o[1:]
+func (t *Text) concat(o *Text) *Text {
+	if l := len(*t); l > 0 && len(*o) > 0 && (*t)[l-1].Attrs.Equal((*o)[0].Attrs) {
+		(*t)[l-1].Size += (*o)[0].Size
+		(*t)[l-1].Text += (*o)[0].Text
+		x := (*o)[1:]
+		o = &x
 	}
-	return append(t, o...)
+	result := append(*t, *o...)
+	return &result
 }
 
-func (t Text) push(text string, attrs Attrs, size int) Text {
-	if l := len(t); l > 0 && t[l-1].Attrs.Equal(attrs) {
-		t[l-1].Text += text
-		t[l-1].Size += size
+func (t *Text) push(text string, attrs Attrs, size int) *Text {
+	if l := len(*t); l > 0 && (*t)[l-1].Attrs.Equal(attrs) {
+		(*t)[l-1].Text += text
+		(*t)[l-1].Size += size
 		return t
 	}
-	return append(t, attrText{text, attrs, size})
+	result := append(*t, attrText{text, attrs, size})
+	return &result
 }
