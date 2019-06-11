@@ -51,6 +51,8 @@ func FormatBuilder(b *strings.Builder, v changes.Value, f Formatter) {
 		formatImage(b, v)
 	case data.List:
 		formatList(b, v, f)
+	case *data.Table:
+		formatTable(b, v, f)
 	}
 }
 
@@ -106,6 +108,32 @@ func formatList(b *strings.Builder, l data.List, f Formatter) {
 		writeListEntries(b, item, f)
 	}
 	b.WriteString("</" + tag + ">")
+}
+
+func formatTable(b *strings.Builder, t *data.Table, f Formatter) {
+	b.WriteString("<table><thead><tr>")
+	colIDs := t.ColIDs()
+	rowIDs := t.RowIDs()
+
+	for _, colID := range colIDs {
+		b.WriteString("<th>")
+		f(b, t.Cols[colID].Value)
+		b.WriteString("</th>")
+	}
+	b.WriteString("</tr></thead><tbody>")
+	for _, rowID := range rowIDs {
+		b.WriteString("<tr>")
+		for _, colID := range colIDs {
+			b.WriteString("<td>")
+			if cell, ok := t.Rows[rowID].Cells[colID]; ok {
+				f(b, cell)
+			}
+			b.WriteString("</td>")
+		}
+		b.WriteString("</tr>")
+	}
+
+	b.WriteString("</tbody></table>")
 }
 
 func writeListEntries(b *strings.Builder, item changes.Value, f Formatter) {

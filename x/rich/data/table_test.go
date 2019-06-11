@@ -49,6 +49,13 @@ func tableToText(t *data.Table) string {
 	return strings.Join(lines, "\n")
 }
 
+func TestTableName(t *testing.T) {
+	tbl := &data.Table{}
+	if tbl.Name() != "Embed" {
+		t.Error("Unexpected table Name", tbl.Name())
+	}
+}
+
 func TestTableUpdateCol(t *testing.T) {
 	col1 := rich.NewText("col1")
 	tbl := &data.Table{

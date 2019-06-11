@@ -28,6 +28,11 @@ type Table struct {
 	Rows
 }
 
+// Name returns the key for use with rich text Attrs
+func (t *Table) Name() string {
+	return "Embed"
+}
+
 // ColIDs returns all the column IDs sorted in order
 func (t *Table) ColIDs() []interface{} {
 	ids := make([]interface{}, 0, len(t.Cols))

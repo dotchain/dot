@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dotchain/dot/changes/crdt"
 	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/x/rich"
 	"github.com/dotchain/dot/x/rich/data"
@@ -149,6 +150,57 @@ func TestFormatList(t *testing.T) {
 
 	x := html.Format(types.A{types.S16("hello"), types.S16("world")})
 	if x != "<ul style=\"list-style-type: disc;\"><li>hello</li><li>world</li></ul>" {
+		t.Error("Unexpected", x)
+	}
+}
+
+func TestFormatTable(t *testing.T) {
+	tbl := &data.Table{
+		Cols: data.Cols{
+			"col1": &data.Col{
+				ID:    "col1",
+				Ord:   "",
+				Value: rich.NewText("column1"),
+			},
+			"col2": &data.Col{
+				ID:    "col2",
+				Ord:   crdt.NextOrd(""),
+				Value: rich.NewText("column2"),
+			},
+		},
+		Rows: data.Rows{
+			"row1": &data.Row{
+				ID:  "row1",
+				Ord: "",
+				Cells: types.M{
+					"col2": types.S16("1-2"),
+				},
+			},
+			"row2": &data.Row{
+				ID:  "row2",
+				Ord: crdt.NextOrd(""),
+				Cells: types.M{
+					"col1": types.S16("2-1"),
+				},
+			},
+		},
+	}
+
+	x := html.Format(rich.NewEmbed(tbl))
+	expected := `
+<table>
+  <thead>
+     <tr><th>column1</th><th>column2</th></tr>
+  </thead>
+  <tbody>
+     <tr><td></td><td>1-2</td></tr>
+     <tr><td>2-1</td><td></td></tr>
+  </tbody>
+</table>
+`
+	expected = strings.Replace(expected, "\n", "", 100)
+	expected = strings.Replace(expected, " ", "", 100)
+	if x != expected {
 		t.Error("Unexpected", x)
 	}
 }
