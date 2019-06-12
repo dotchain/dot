@@ -2,11 +2,9 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-package html
+package data
 
 import (
-	"fmt"
-
 	"github.com/dotchain/dot/changes"
 )
 
@@ -41,20 +39,4 @@ func (f FontWeight) Apply(ctx changes.Context, c changes.Change) changes.Value {
 		return c.After
 	}
 	return c.(changes.Custom).ApplyTo(ctx, f)
-}
-
-// OpenTag returns the html tag
-func (f FontWeight) OpenTag() string {
-	if f == FontBold {
-		return "<b>"
-	}
-	return fmt.Sprintf("<span style=\"font-weight: %d\">", int(f))
-}
-
-// CloseTag returns the html tag
-func (f FontWeight) CloseTag() string {
-	if f == FontBold {
-		return "</b>"
-	}
-	return "</span>"
 }

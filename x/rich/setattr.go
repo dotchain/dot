@@ -20,7 +20,7 @@ func (s setattr) Revert() changes.Change {
 }
 
 func (s setattr) ApplyTo(ctx changes.Context, c changes.Value) changes.Value {
-	return c.(Text).applySetAttr(s)
+	return c.(*Text).applySetAttr(s)
 }
 
 func (s setattr) Merge(o changes.Change) (ox, sx changes.Change) {
@@ -79,7 +79,7 @@ func (s setattr) mergeSplice(o changes.Splice) (ox, sx changes.Change) {
 
 func (s setattr) mergeSpliceWithin(x setattr, non changes.Change, o changes.Splice) (oxx, sxx changes.Change) {
 	// full splice is within.  check if full range has single value
-	after := o.After.(Text)
+	after := o.After.(*Text)
 	sx := setattr{
 		Offset: o.Offset,
 		Name:   s.Name,
@@ -90,7 +90,7 @@ func (s setattr) mergeSpliceWithin(x setattr, non changes.Change, o changes.Spli
 		Offset: o.Offset,
 		Before: o.Before.ApplyCollection(nil, setattr{
 			Name:   s.Name,
-			Before: o.Before.(Text).sliceAttr(0, o.Before.Count(), s.Name),
+			Before: o.Before.(*Text).sliceAttr(0, o.Before.Count(), s.Name),
 			After:  values{{x.After[0].Value, o.Before.Count()}},
 		}),
 		After: after.ApplyCollection(nil, setattr{

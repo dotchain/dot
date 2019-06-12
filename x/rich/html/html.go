@@ -4,9 +4,3 @@
 
 // Package html implements rich text to HTML conversion
 package html
-
-func must(_ int, err error) {
-	if err != nil {
-		panic(err)
-	}
-}

@@ -19,7 +19,7 @@ func TestCols(t *testing.T) {
 		Path: []interface{}{"col1"},
 		Change: changes.Replace{
 			Before: changes.Nil,
-			After:  data.Col{ID: "col1", Value: &col1},
+			After:  data.Col{ID: "col1", Value: col1},
 		},
 	}).(data.Cols)
 
@@ -27,7 +27,7 @@ func TestCols(t *testing.T) {
 		Path: []interface{}{"col2"},
 		Change: changes.Replace{
 			Before: changes.Nil,
-			After:  data.Col{ID: "col2", Value: &col2},
+			After:  data.Col{ID: "col2", Value: col2},
 		},
 	}).(data.Cols)
 
@@ -42,8 +42,8 @@ func TestCols(t *testing.T) {
 	cols = cols.Apply(nil, changes.PathChange{
 		Path: []interface{}{"col1"},
 		Change: changes.Replace{
-			Before: data.Col{ID: "col1", Value: &col1},
-			After:  data.Col{ID: "col1", Value: &col2},
+			Before: data.Col{ID: "col1", Value: col1},
+			After:  data.Col{ID: "col1", Value: col2},
 		},
 	}).(data.Cols)
 

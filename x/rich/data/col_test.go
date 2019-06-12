@@ -15,7 +15,7 @@ import (
 
 func TestCol(t *testing.T) {
 	v1, v2 := rich.NewText("value1"), rich.NewText("value2")
-	col := data.Col{ID: "col1", Value: &v1}
+	col := data.Col{ID: "col1", Value: v1}
 	col = col.Apply(nil, changes.PathChange{
 		Path: []interface{}{"Ord"},
 		Change: changes.Replace{

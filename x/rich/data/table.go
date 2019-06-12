@@ -28,8 +28,13 @@ type Table struct {
 	Rows
 }
 
+// Name returns the key for use with rich text Attrs
+func (t *Table) Name() string {
+	return "Embed"
+}
+
 // ColIDs returns all the column IDs sorted in order
-func (t Table) ColIDs() []interface{} {
+func (t *Table) ColIDs() []interface{} {
 	ids := make([]interface{}, 0, len(t.Cols))
 	for id := range t.Cols {
 		ids = append(ids, id)
@@ -42,7 +47,7 @@ func (t Table) ColIDs() []interface{} {
 }
 
 // RowIDs returns all the row IDs sorted in order
-func (t Table) RowIDs() []interface{} {
+func (t *Table) RowIDs() []interface{} {
 	ids := make([]interface{}, 0, len(t.Rows))
 	for id := range t.Rows {
 		ids = append(ids, id)
@@ -68,7 +73,7 @@ func (t Table) UpdateCol(colID interface{}, c changes.Change) changes.Change {
 //
 // Note that the cell must exist (i.e the row must have a entry for
 // the colID)
-func (t Table) UpdateCellValue(rowID, colID interface{}, c changes.Change) changes.Change {
+func (t *Table) UpdateCellValue(rowID, colID interface{}, c changes.Change) changes.Change {
 	path := []interface{}{"Rows", rowID, "Cells", colID}
 	return changes.PathChange{Path: path, Change: c}
 }
@@ -76,11 +81,11 @@ func (t Table) UpdateCellValue(rowID, colID interface{}, c changes.Change) chang
 // SetCellValue sets the rich text for a cell. It works for rows which
 // don't have values for specific columns as well as rows where the
 // columns have a value already.
-func (t Table) SetCellValue(rowID, colID interface{}, r rich.Text) changes.Change {
+func (t Table) SetCellValue(rowID, colID interface{}, r *rich.Text) changes.Change {
 	c := changes.Replace{Before: changes.Nil, After: r}
 	row := *t.Rows[rowID]
 	if v, ok := row.Cells[colID]; ok {
-		c.Before = *v
+		c.Before = v
 	}
 	path := []interface{}{"Rows", rowID, "Cells", colID}
 	return changes.PathChange{Path: path, Change: c}
@@ -89,7 +94,7 @@ func (t Table) SetCellValue(rowID, colID interface{}, r rich.Text) changes.Chang
 // AppendCol adds a new column to the end of the sorted list.
 //
 // The column can already exist in which case it is simply moved.
-func (t Table) AppendCol(col Col) changes.Change {
+func (t *Table) AppendCol(col Col) changes.Change {
 	if len(t.Cols) == 0 {
 		col.Ord = ""
 	} else {
@@ -103,7 +108,7 @@ func (t Table) AppendCol(col Col) changes.Change {
 // InsertColBefore inserts a new column before another
 //
 // The column may already exist in which case it is simply moved
-func (t Table) InsertColBefore(col Col, beforeCol Col) changes.Change {
+func (t *Table) InsertColBefore(col Col, beforeCol Col) changes.Change {
 	ids := t.ColIDs()
 	for kk, id := range ids {
 		if id == beforeCol.ID {
@@ -120,7 +125,7 @@ func (t Table) InsertColBefore(col Col, beforeCol Col) changes.Change {
 	return nil
 }
 
-func (t Table) insertOrReorderCol(col Col) changes.Change {
+func (t *Table) insertOrReorderCol(col Col) changes.Change {
 	if before := t.Cols[col.ID]; before != nil {
 		b, a := types.S16(before.Ord), types.S16(col.Ord)
 		c := changes.Replace{Before: b, After: a}
@@ -150,7 +155,7 @@ func (t Table) AppendRow(row Row) changes.Change {
 // InsertRowBefore inserts a new row before another
 //
 // The row may already exist in which case it is simply moved
-func (t Table) InsertRowBefore(row Row, beforeRow Row) changes.Change {
+func (t *Table) InsertRowBefore(row Row, beforeRow Row) changes.Change {
 	ids := t.RowIDs()
 	for kk, id := range ids {
 		if id == beforeRow.ID {
@@ -167,7 +172,7 @@ func (t Table) InsertRowBefore(row Row, beforeRow Row) changes.Change {
 	return nil
 }
 
-func (t Table) insertOrReorderRow(row Row) changes.Change {
+func (t *Table) insertOrReorderRow(row Row) changes.Change {
 	if before := t.Rows[row.ID]; before != nil {
 		b, a := types.S16(before.Ord), types.S16(row.Ord)
 		c := changes.Replace{Before: b, After: a}
@@ -181,7 +186,7 @@ func (t Table) insertOrReorderRow(row Row) changes.Change {
 }
 
 // DeleteCol deletes a column by ID
-func (t Table) DeleteCol(colID interface{}) changes.Change {
+func (t *Table) DeleteCol(colID interface{}) changes.Change {
 	var result changes.Change
 	if col, ok := t.Cols[colID]; ok {
 		c := changes.Replace{Before: *col, After: changes.Nil}
@@ -192,7 +197,7 @@ func (t Table) DeleteCol(colID interface{}) changes.Change {
 }
 
 // DeleteRow deletes a row by ID
-func (t Table) DeleteRow(rowID interface{}) changes.Change {
+func (t *Table) DeleteRow(rowID interface{}) changes.Change {
 	var result changes.Change
 	if r, ok := t.Rows[rowID]; ok {
 		c := changes.Replace{Before: *r, After: changes.Nil}
@@ -203,22 +208,23 @@ func (t Table) DeleteRow(rowID interface{}) changes.Change {
 }
 
 // Apply implements changes.Value
-func (t Table) Apply(ctx changes.Context, c changes.Change) changes.Value {
+func (t *Table) Apply(ctx changes.Context, c changes.Change) changes.Value {
 	return (types.Generic{Set: t.set, Get: t.get}).Apply(ctx, c, t)
 }
 
-func (t Table) get(key interface{}) changes.Value {
+func (t *Table) get(key interface{}) changes.Value {
 	if key == "Cols" {
 		return t.Cols
 	}
 	return t.Rows
 }
 
-func (t Table) set(key interface{}, v changes.Value) changes.Value {
+func (t *Table) set(key interface{}, v changes.Value) changes.Value {
+	clone := *t
 	if key == "Cols" {
-		t.Cols = v.(Cols)
+		clone.Cols = v.(Cols)
 	} else {
-		t.Rows = v.(Rows)
+		clone.Rows = v.(Rows)
 	}
-	return t
+	return &clone
 }

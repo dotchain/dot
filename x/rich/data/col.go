@@ -34,15 +34,14 @@ func (col Col) get(key interface{}) changes.Value {
 	if key == "Ord" {
 		return types.S16(col.Ord)
 	}
-	return *col.Value
+	return col.Value
 }
 
 func (col Col) set(key interface{}, v changes.Value) changes.Value {
 	if key == "Ord" {
 		col.Ord = string(v.(types.S16))
 	} else {
-		x := v.(rich.Text)
-		col.Value = &x
+		col.Value = v.(*rich.Text)
 	}
 	return col
 }

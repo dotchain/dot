@@ -18,9 +18,9 @@ import (
 //
 // The Cells field contains a map of Column.ID to actual cell value
 type Row struct {
-	ID  interface{}
-	Ord string
-	Cells
+	ID    interface{}
+	Ord   string
+	Cells types.M
 }
 
 // Apply implements changes.Value
@@ -39,7 +39,7 @@ func (r Row) set(key interface{}, v changes.Value) changes.Value {
 	if key == "Ord" {
 		r.Ord = string(v.(types.S16))
 	} else {
-		r.Cells = v.(Cells)
+		r.Cells = v.(types.M)
 	}
 	return r
 }
