@@ -54,7 +54,7 @@ func (e *Editor) Apply(ctx changes.Context, c changes.Change) changes.Value {
 	case changes.Replace:
 		return c.After
 	case changes.PathChange:
-		if c.Path == nil {
+		if len(c.Path) == 0 {
 			return e.Apply(ctx, c.Change)
 		}
 		if c.Path[0] == "Text" {

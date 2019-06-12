@@ -5,19 +5,28 @@
 package riched_test
 
 import (
-	"fmt"
+	"testing"
 
+	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/x/rich"
 	"github.com/dotchain/dot/x/rich/data"
-	"github.com/dotchain/dot/x/rich/html"
 	"github.com/dotchain/dot/x/rich/riched"
 )
 
-func ExampleStream() {
-	s := riched.NewStream(rich.NewText("Hello world", data.FontBold))
-	s = s.SetSelection([]interface{}{5}, []interface{}{5})
-	s = s.InsertString(" beautiful")
-	fmt.Println(html.Format(s.Editor.Text))
+func TestEditorApply(t *testing.T) {
+	s := riched.NewEditor(rich.NewText("Hello world", data.FontBold))
 
-	// Output: <b>Hello beautiful world</b>
+	if x := s.Apply(nil, nil); x != s {
+		t.Error("Unexpected nil apply", x)
+	}
+
+	replace := changes.Replace{Before: s, After: types.S16("boo")}
+	if x := s.Apply(nil, replace); x != replace.After {
+		t.Error("Unexpected replace", x)
+	}
+
+	if x := s.Apply(nil, changes.PathChange{Path: nil, Change: replace}); x != replace.After {
+		t.Error("Unexpected replace", x)
+	}
 }
