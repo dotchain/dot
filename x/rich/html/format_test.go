@@ -204,3 +204,18 @@ func TestFormatTable(t *testing.T) {
 		t.Error("Unexpected", x)
 	}
 }
+
+func TestFormatDirRef(t *testing.T) {
+	dir := &data.Dir{
+		Root: types.A{&data.Ref{ID: "boo"}, &data.Ref{ID: "hoo"}, &data.Dir{}},
+		Objects: types.M{
+			"boo": types.S16("ref:boo"),
+			"hoo": types.S16("ref:hoo"),
+		},
+	}
+	x := html.Format(rich.NewEmbed(dir))
+	expected := "<ul style=\"list-style-type: disc;\"><li>ref:boo</li><li>ref:hoo</li><li></li></ul>"
+	if x != expected {
+		t.Error("Unexpected", x)
+	}
+}
