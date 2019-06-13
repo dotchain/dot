@@ -29,11 +29,6 @@ func Format(v changes.Value) string {
 //
 // If a formatter is provided, it is used for embedded objects
 func FormatBuilder(b *strings.Builder, v changes.Value, f Formatter) {
-	if f == nil {
-		f = func(b *strings.Builder, v changes.Value) {
-			FormatBuilder(b, v, nil)
-		}
-	}
 	switch v := v.(type) {
 	case types.S16:
 		b.WriteString(html.EscapeString(string(v)))
@@ -53,6 +48,12 @@ func FormatBuilder(b *strings.Builder, v changes.Value, f Formatter) {
 		formatList(b, v, f)
 	case *data.Table:
 		formatTable(b, v, f)
+	case *data.Dir:
+		formatDir(b, v, f)
+	default:
+		if f != nil {
+			f(b, v)
+		}
 	}
 }
 
@@ -60,13 +61,13 @@ func formatLink(b *strings.Builder, l data.Link, f Formatter) {
 	b.WriteString("<a href=\"")
 	b.WriteString(html.EscapeString(l.URL))
 	b.WriteString("\">")
-	f(b, l.Value)
+	FormatBuilder(b, l.Value, f)
 	b.WriteString("</a>")
 }
 
 func formatBlockQuote(b *strings.Builder, bq data.BlockQuote, f Formatter) {
 	b.WriteString("<blockquote>")
-	f(b, bq.Text)
+	FormatBuilder(b, bq.Text, f)
 	b.WriteString("</blockquote>")
 }
 
@@ -78,7 +79,7 @@ func formatHeading(b *strings.Builder, h data.Heading, f Formatter) {
 	b.WriteString("<h")
 	b.WriteString(strconv.Itoa(l))
 	b.WriteString(">")
-	f(b, h.Text)
+	FormatBuilder(b, h.Text, f)
 	b.WriteString("</h")
 	b.WriteString(strconv.Itoa(l))
 	b.WriteString(">")
@@ -105,9 +106,26 @@ func formatList(b *strings.Builder, l data.List, f Formatter) {
 	}
 	b.WriteString("<" + tag + style + ">")
 	for _, item := range l.Entries {
-		writeListEntries(b, item, f)
+		b.WriteString("<li>")
+		FormatBuilder(b, item, f)
+		b.WriteString("</li>")
 	}
 	b.WriteString("</" + tag + ">")
+}
+
+func formatDir(b *strings.Builder, d *data.Dir, f Formatter) {
+	var fx Formatter
+
+	fx = func(b *strings.Builder, v changes.Value) {
+		ref, ok := v.(*data.Ref)
+		if ok && d.Objects[ref.ID] != nil {
+			FormatBuilder(b, d.Objects[ref.ID], fx)
+		} else if f != nil {
+			f(b, v)
+		}
+	}
+
+	FormatBuilder(b, d.Root, fx)
 }
 
 func formatTable(b *strings.Builder, t *data.Table, f Formatter) {
@@ -117,7 +135,7 @@ func formatTable(b *strings.Builder, t *data.Table, f Formatter) {
 
 	for _, colID := range colIDs {
 		b.WriteString("<th>")
-		f(b, t.Cols[colID].Value)
+		FormatBuilder(b, t.Cols[colID].Value, f)
 		b.WriteString("</th>")
 	}
 	b.WriteString("</tr></thead><tbody>")
@@ -126,7 +144,7 @@ func formatTable(b *strings.Builder, t *data.Table, f Formatter) {
 		for _, colID := range colIDs {
 			b.WriteString("<td>")
 			if cell, ok := t.Rows[rowID].Cells[colID]; ok {
-				f(b, cell)
+				FormatBuilder(b, cell, f)
 			}
 			b.WriteString("</td>")
 		}
@@ -134,12 +152,6 @@ func formatTable(b *strings.Builder, t *data.Table, f Formatter) {
 	}
 
 	b.WriteString("</tbody></table>")
-}
-
-func writeListEntries(b *strings.Builder, item changes.Value, f Formatter) {
-	b.WriteString("<li>")
-	f(b, item)
-	b.WriteString("</li>")
 }
 
 var inlineStyles = []string{"FontStyle", "FontWeight"}
@@ -160,9 +172,9 @@ func formatRichText(b *strings.Builder, t *rich.Text, f Formatter) {
 		}
 
 		if attr, ok := x.Attrs["Embed"]; ok {
-			f(b, attr)
+			FormatBuilder(b, attr, f)
 		} else {
-			f(b, types.S16(x.Text))
+			FormatBuilder(b, types.S16(x.Text), f)
 		}
 
 		last = x.Attrs
