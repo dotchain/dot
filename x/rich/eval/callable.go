@@ -50,20 +50,78 @@ var Dot Callable = func(s Scope, args []changes.Value) changes.Value {
 	return receiver
 }
 
+// NumLess compares if numbers are in ascending order
+var NumLess Callable = compare(func(x, y int) bool {
+	return x < y
+})
+
+// NumLessThanEqual is like NumEqual but with equality allowed
+var NumLessThanEqual Callable = compare(func(x, y int) bool {
+	return x <= y
+})
+
+// NumMore compares if numbers are in descending order
+var NumMore Callable = compare(func(x, y int) bool {
+	return x > y
+})
+
+// NumMoreThanEqual compares if numbers are in descending order
+var NumMoreThanEqual Callable = compare(func(x, y int) bool {
+	return x >= y
+})
+
+// Equal compares if value are all the same
+var Equal Callable = equality(func(x, y changes.Value) bool {
+	// TODO: do deep comparison
+	return x == y
+})
+
+// NotEqual compares if values are all different
+var NotEqual Callable = equality(func(x, y changes.Value) bool {
+	// TODO: do deep difference
+	return x != y
+})
+
+func compare(fn func(x, y int) bool) func(s Scope, args []changes.Value) changes.Value {
+	return func(s Scope, args []changes.Value) changes.Value {
+		args = evalArray(s, args).(types.A)
+		for kk, current := range args[1:] {
+			before, ok1 := args[kk].(changes.Atomic)
+			b, ok2 := before.Value.(int)
+			after, ok3 := current.(changes.Atomic)
+			a, ok4 := after.Value.(int)
+			if !ok1 || !ok2 || !ok3 || !ok4 || !fn(b, a) {
+				return changes.Atomic{Value: false}
+			}
+		}
+		return changes.Atomic{Value: true}
+	}
+}
+
+func equality(fn func(x, y changes.Value) bool) func(s Scope, args []changes.Value) changes.Value {
+	return func(s Scope, args []changes.Value) changes.Value {
+		args = evalArray(s, args).(types.A)
+		for kk, current := range args[1:] {
+			if !fn(args[kk], current) {
+				return changes.Atomic{Value: false}
+			}
+		}
+		return changes.Atomic{Value: true}
+	}
+}
+
+var errUnknownField = errors.New("unknown field")
+
 func dot(s Scope, receiver, field changes.Value) changes.Value {
 	receiver = Eval(s, receiver)
 	field = Eval(s, field)
 	if r, ok := receiver.(types.A); ok {
-		switch field {
-		case types.S16("count"):
-			return changes.Atomic{Value: r.Count()}
-		case types.S16("map"):
-			return Callable(array(r).forEach)
-		case types.S16("reduce"):
-			return Callable(array(r).reduce)
-		default:
-			return changes.Atomic{Value: errors.New("unknown field")}
-		}
+		return array(r).getField(field)
 	}
+
+	if d, ok := receiver.(types.M); ok {
+		return dict(d).getField(field)
+	}
+
 	return changes.Atomic{Value: errors.New("unknown receiver")}
 }

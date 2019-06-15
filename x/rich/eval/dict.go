@@ -6,28 +6,28 @@
 package eval
 
 import (
-	"errors"
-
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/x/rich/data"
 )
 
-var errInvalidArgs = errors.New("invalid arguments")
+type dict types.M
 
-type array types.A
-
-func (a array) forEach(s Scope, args []changes.Value) changes.Value {
+func (d dict) forEach(s Scope, args []changes.Value) changes.Value {
 	if len(args) != 1 {
 		return changes.Atomic{Value: errInvalidArgs}
 	}
 
-	result := make(types.A, len(a))
-	for kk, elt := range a {
-		result[kk] = Eval(s, &data.Dir{
+	result := types.M{}
+	for key, elt := range d {
+		k, ok := key.(changes.Value)
+		if !ok {
+			k = changes.Atomic{Value: key}
+		}
+		result[key] = Eval(s, &data.Dir{
 			Root: args[0],
 			Objects: types.M{
-				types.S16("index"): changes.Atomic{Value: kk},
+				types.S16("key"):   k,
 				types.S16("value"): elt,
 			},
 		})
@@ -35,42 +35,50 @@ func (a array) forEach(s Scope, args []changes.Value) changes.Value {
 	return result
 }
 
-func (a array) filter(s Scope, args []changes.Value) changes.Value {
+func (d dict) filter(s Scope, args []changes.Value) changes.Value {
 	if len(args) != 1 {
 		return changes.Atomic{Value: errInvalidArgs}
 	}
 
-	result := make(types.A, 0, len(a))
-	for kk, elt := range a {
+	result := types.M{}
+	for key, elt := range d {
 		// TODO: elt eval should be lazy?
 		elt = Eval(s, elt)
+		k, ok := key.(changes.Value)
+		if !ok {
+			k = changes.Atomic{Value: key}
+		}
 		v := Eval(s, &data.Dir{
 			Root: args[0],
 			Objects: types.M{
-				types.S16("index"): changes.Atomic{Value: kk},
+				types.S16("key"):   k,
 				types.S16("value"): elt,
 			},
 		})
 		a, _ := v.(changes.Atomic)
 		b, _ := a.Value.(bool)
 		if b {
-			result = append(result, elt)
+			result[key] = elt
 		}
 	}
 	return result
 }
 
-func (a array) reduce(s Scope, args []changes.Value) changes.Value {
+func (d dict) reduce(s Scope, args []changes.Value) changes.Value {
 	if len(args) != 2 {
 		return changes.Atomic{Value: errInvalidArgs}
 	}
 
 	result := Eval(s, args[0])
-	for kk, elt := range a {
+	for key, elt := range d {
+		k, ok := key.(changes.Value)
+		if !ok {
+			k = changes.Atomic{Value: key}
+		}
 		result = Eval(s, &data.Dir{
 			Root: args[1],
 			Objects: types.M{
-				types.S16("index"): changes.Atomic{Value: kk},
+				types.S16("key"):   k,
 				types.S16("value"): elt,
 				types.S16("last"):  result,
 			},
@@ -79,16 +87,20 @@ func (a array) reduce(s Scope, args []changes.Value) changes.Value {
 	return result
 }
 
-func (a array) getField(field changes.Value) changes.Value {
+func (d dict) getField(field changes.Value) changes.Value {
+	if v, ok := d[field]; ok {
+		return v
+	}
+
 	switch field {
 	case types.S16("count"):
-		return changes.Atomic{Value: len(a)}
-	case types.S16("map"):
-		return Callable(a.forEach)
-	case types.S16("reduce"):
-		return Callable(a.reduce)
+		return changes.Atomic{Value: len(d)}
 	case types.S16("filter"):
-		return Callable(a.filter)
+		return Callable(d.filter)
+	case types.S16("map"):
+		return Callable(d.forEach)
+	case types.S16("reduce"):
+		return Callable(d.reduce)
 	}
 
 	return changes.Atomic{Value: errUnknownField}

@@ -24,12 +24,28 @@ func Parse(s Scope, code string) changes.Value {
 	var err error
 	p := parser{
 		Operators: map[string]*opInfo{
-			",": {Priority: 2, New: combineArgs},
-			"+": {Priority: 11, Prefix: 0, New: simpleCall("+")},
+			",": {Priority: 1, New: combineArgs},
+			"=": {Priority: 2, New: assign},
 
-			"(": {Priority: 20, BeginGroup: true},
+			// logical ops 1x priorities
+			"|": {Priority: 10, New: simpleCall("|")},
+			"&": {Priority: 11, New: simpleCall("&")},
+
+			// comparison ops 2x priorities
+			"<":  {Priority: 20, New: simpleCall("<")},
+			">":  {Priority: 20, New: simpleCall(">")},
+			"<=": {Priority: 20, New: simpleCall("<=")},
+			">=": {Priority: 20, New: simpleCall(">=")},
+			"==": {Priority: 20, New: simpleCall("==")},
+			"!=": {Priority: 20, New: simpleCall("!=")},
+
+			// arithmetic ops 3x priorities
+			"+": {Priority: 30, Prefix: 0, New: simpleCall("+")},
+
+			// grouping ops 4x priorities
+			"(": {Priority: 40, BeginGroup: true},
 			")": {
-				Priority: 20,
+				Priority: 40,
 				EndGroup: func(b *opInfo, term changes.Value, start, end int) changes.Value {
 					// FIX: a.(x) will now incorrectly
 					// get evaluated to a.x.
@@ -38,6 +54,8 @@ func Parse(s Scope, code string) changes.Value {
 					return term
 				},
 			},
+
+			// dot: max priority
 			".": {
 				Priority: 100,
 				New: func(l, r changes.Value) changes.Value {
@@ -55,7 +73,10 @@ func Parse(s Scope, code string) changes.Value {
 			return types.S16(s)
 		},
 		NumericTerm: func(s string) changes.Value {
-			n, _ := strconv.Atoi(s)
+			n, err := strconv.Atoi(strings.TrimSpace(s))
+			if err != nil {
+				panic(err)
+			}
 			return changes.Atomic{Value: n}
 		},
 		NameTerm: func(s string) changes.Value {
@@ -65,6 +86,14 @@ func Parse(s Scope, code string) changes.Value {
 			a, ok := args.(types.A)
 			if !ok {
 				a = types.A{args}
+			}
+			if name, ok := fn.(*data.Ref); ok {
+				switch name.ID {
+				case types.S16("do"):
+					return callDo(a)
+				case types.S16("obj"):
+					return callObject(a)
+				}
 			}
 			return &Call{A: append(types.A{fn}, a...)}
 		},
@@ -78,6 +107,30 @@ func Parse(s Scope, code string) changes.Value {
 		panic(err)
 	}
 	return v
+}
+
+func callDo(args types.A) changes.Value {
+	dir := &data.Dir{Objects: types.M{}}
+	for _, arg := range args {
+		if v, ok := arg.(vardef); ok {
+			dir.Objects[v.key.ID] = v.value
+		} else {
+			dir.Root = arg
+		}
+	}
+	return dir
+}
+
+func callObject(args types.A) changes.Value {
+	obj := types.M{}
+	for _, arg := range args {
+		obj[arg.(vardef).key.ID] = arg.(vardef).value
+	}
+	return obj
+}
+
+func assign(l, r changes.Value) changes.Value {
+	return vardef{l.(*data.Ref), r}
 }
 
 func simpleCall(op string) func(l, r changes.Value) changes.Value {
