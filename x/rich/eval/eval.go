@@ -7,26 +7,28 @@
 // Expression syntax
 //
 // The language used by eval is a very simple infix expression.  The
-// terms can be numbers or quoted strings or "variables".
+// terms can be numbers or quoted strings or names.
 //
 // Arrays and objects can be specified like so:
 //
 //      (1, 2, 3)
 //      (x  = 42, y = 23)
 //
-// Objects automatically create local scopes:
+// Empty arrays can be specified like: ()
+//
+// Arrays with single items can be expressed via (x,).  Just doing (x)
+// will only work for function call args -- everywhere else, it is
+// treated as a grouping operator
+//
+// Empty objects can be found via the global "nil"
+//
+// Object definitions automatically create local lexical scopes:
 //
 //      (x = y + 100, y = 23) == (x = 123, y = 23)
 //
 //
-// Scoping is lexical and the order of definitions is not important
-// (i.e. it is similar to JS hoisting).  Recursive references are not
-// allowed.
-//
-// Explicit scopes (without objects) can be created via a call to
-// `do`:
-//
-//       do(x + y, x = 23, y = 43) ==  66
+// Scoping is lexical (nesting appropriately) and the order of
+// definitions is not important all all expressions are immutable.
 //
 // Fields and methods can be accessed via dot:
 //
@@ -141,7 +143,7 @@ func (s *dirScope) lookup(id interface{}) changes.Value {
 	}
 
 	if s.inProgress[id] {
-		panic("recursion detected")
+		panic(errRecursion)
 	}
 	if s.inProgress == nil {
 		s.inProgress = map[interface{}]bool{}
