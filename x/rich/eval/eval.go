@@ -2,7 +2,48 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
-// Package eval implements expression values.
+// Package eval implements expression values that can be evaluated
+//
+// Expression syntax
+//
+// The language used by eval is a very simple infix expression.  The
+// terms can be numbers or quoted strings or "variables".
+//
+// Arrays and objects can be specified like so:
+//
+//      (1, 2, 3)
+//      (x  = 42, y = 23)
+//
+// Objects automatically create local scopes:
+//
+//      (x = y + 100, y = 23) == (x = 123, y = 23)
+//
+//
+// Scoping is lexical and the order of definitions is not important
+// (i.e. it is similar to JS hoisting).  Recursive references are not
+// allowed.
+//
+// Explicit scopes (without objects) can be created via a call to
+// `do`:
+//
+//       do(x + y, x = 23, y = 43) ==  66
+//
+// Fields and methods can be accessed via dot:
+//
+//       (1, 2, 3).count == 3
+//
+// Arrays and maps support filter, map and reduce:
+//
+//      (1, 2, 3).filter(value <= 2)
+//
+// The expression within filter and map can refer to "value" and
+// "key/index". These are dynamically scoped to a specific array
+// element. Reduce also provides a "last" variable to track cumulative
+// result.
+//
+//      (1, 2, 3).reduce(100, last + value) == 106
+//
+// The Parser
 //
 // An expression value can be produced by use of Parse:
 //
@@ -25,15 +66,15 @@
 //       &data.Call{A: types.A{plus, value, two}},
 //   }}
 //
-// The scope contains the "globals" for evaluation, including all the
-// operators. But methods on objects (such as "map" on arrays) are not
-// part of the globals.
+//
+// Evaluation
 //
 // An expression can be evaluated with Eval(). Eval converts call
 // expression to the actual evaluated values using the provided
 // scope.  Eval also walks the contents of any containers, replacing
-// any expressions with their evaluated values.  Eval also honors
-// references via Dir (so this is an easy way to create scopes).
+// any expressions with their evaluated values.  Eval honors
+// references via Dir (so this is an easy way to create local
+// scopes).
 package eval
 
 import (
@@ -63,6 +104,8 @@ func Eval(s Scope, v changes.Value) changes.Value {
 		return s(v.ID)
 	case types.A:
 		return evalArray(s, v)
+	case types.M:
+		return evalObject(s, v)
 	case *data.Dir:
 		return Eval((&dirScope{s, v.Objects, nil}).lookup, v.Root)
 	}
@@ -71,6 +114,14 @@ func Eval(s Scope, v changes.Value) changes.Value {
 
 func evalArray(s Scope, v types.A) changes.Value {
 	result := make(types.A, len(v))
+	for kk, elt := range v {
+		result[kk] = Eval(s, elt)
+	}
+	return result
+}
+
+func evalObject(s Scope, v types.M) changes.Value {
+	result := types.M{}
 	for kk, elt := range v {
 		result[kk] = Eval(s, elt)
 	}

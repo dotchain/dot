@@ -20,16 +20,12 @@ type Call struct {
 
 // Eval evaluates a call expression in the provided scope
 func (cx *Call) Eval(s Scope) changes.Value {
-	if len(cx.A) == 0 {
-		return changes.Nil
-	}
-
 	v := Eval(s, cx.A[0])
 	if fn, ok := v.(Callable); ok {
 		return fn(s, cx.A[1:])
 	}
 
-	return changes.Nil
+	return changes.Atomic{Value: errNotCallable}
 }
 
 // Apply implements changes.Value.

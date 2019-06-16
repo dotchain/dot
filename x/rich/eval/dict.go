@@ -20,14 +20,10 @@ func (d dict) forEach(s Scope, args []changes.Value) changes.Value {
 
 	result := types.M{}
 	for key, elt := range d {
-		k, ok := key.(changes.Value)
-		if !ok {
-			k = changes.Atomic{Value: key}
-		}
 		result[key] = Eval(s, &data.Dir{
 			Root: args[0],
 			Objects: types.M{
-				types.S16("key"):   k,
+				types.S16("key"):   d.valueOf(key),
 				types.S16("value"): elt,
 			},
 		})
@@ -44,14 +40,10 @@ func (d dict) filter(s Scope, args []changes.Value) changes.Value {
 	for key, elt := range d {
 		// TODO: elt eval should be lazy?
 		elt = Eval(s, elt)
-		k, ok := key.(changes.Value)
-		if !ok {
-			k = changes.Atomic{Value: key}
-		}
 		v := Eval(s, &data.Dir{
 			Root: args[0],
 			Objects: types.M{
-				types.S16("key"):   k,
+				types.S16("key"):   d.valueOf(key),
 				types.S16("value"): elt,
 			},
 		})
@@ -71,14 +63,10 @@ func (d dict) reduce(s Scope, args []changes.Value) changes.Value {
 
 	result := Eval(s, args[0])
 	for key, elt := range d {
-		k, ok := key.(changes.Value)
-		if !ok {
-			k = changes.Atomic{Value: key}
-		}
 		result = Eval(s, &data.Dir{
 			Root: args[1],
 			Objects: types.M{
-				types.S16("key"):   k,
+				types.S16("key"):   d.valueOf(key),
 				types.S16("value"): elt,
 				types.S16("last"):  result,
 			},
@@ -104,4 +92,11 @@ func (d dict) getField(field changes.Value) changes.Value {
 	}
 
 	return changes.Atomic{Value: errUnknownField}
+}
+
+func (d dict) valueOf(v interface{}) changes.Value {
+	if key, ok := v.(changes.Value); ok {
+		return key
+	}
+	return changes.Atomic{Value: v}
 }

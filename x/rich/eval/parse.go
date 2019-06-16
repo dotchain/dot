@@ -47,6 +47,11 @@ func Parse(s Scope, code string) changes.Value {
 			")": {
 				Priority: 40,
 				EndGroup: func(b *opInfo, term changes.Value, start, end int) changes.Value {
+					if term == nil {
+						// no term: pretend its an empty array
+						return types.A{}
+					}
+
 					// FIX: a.(x) will now incorrectly
 					// get evaluated to a.x.
 					// Fix is a bit intricate
@@ -73,10 +78,7 @@ func Parse(s Scope, code string) changes.Value {
 			return types.S16(s)
 		},
 		NumericTerm: func(s string) changes.Value {
-			n, err := strconv.Atoi(strings.TrimSpace(s))
-			if err != nil {
-				panic(err)
-			}
+			n, _ := strconv.Atoi(strings.TrimSpace(s))
 			return changes.Atomic{Value: n}
 		},
 		NameTerm: func(s string) changes.Value {
@@ -122,11 +124,15 @@ func callDo(args types.A) changes.Value {
 }
 
 func callObject(args types.A) changes.Value {
+	dir := &data.Dir{Objects: types.M{}}
 	obj := types.M{}
+	dir.Root = obj
 	for _, arg := range args {
-		obj[arg.(vardef).key.ID] = arg.(vardef).value
+		v := arg.(vardef)
+		dir.Objects[v.key.ID] = v.value
+		obj[v.key.ID] = v.key
 	}
-	return obj
+	return dir
 }
 
 func assign(l, r changes.Value) changes.Value {
@@ -136,7 +142,7 @@ func assign(l, r changes.Value) changes.Value {
 func simpleCall(op string) func(l, r changes.Value) changes.Value {
 	fn := &data.Ref{ID: types.S16(op)}
 	return func(l, r changes.Value) changes.Value {
-		return &Call{A: append(types.A{fn}, combineArgs(l, r).(types.A)...)}
+		return &Call{A: types.A{fn, l, r}}
 	}
 }
 

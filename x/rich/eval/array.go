@@ -6,14 +6,10 @@
 package eval
 
 import (
-	"errors"
-
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
 	"github.com/dotchain/dot/x/rich/data"
 )
-
-var errInvalidArgs = errors.New("invalid arguments")
 
 type array types.A
 

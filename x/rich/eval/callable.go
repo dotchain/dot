@@ -5,8 +5,6 @@
 package eval
 
 import (
-	"errors"
-
 	"github.com/dotchain/dot/changes"
 	"github.com/dotchain/dot/changes/types"
 )
@@ -110,11 +108,10 @@ func equality(fn func(x, y changes.Value) bool) func(s Scope, args []changes.Val
 	}
 }
 
-var errUnknownField = errors.New("unknown field")
-
 func dot(s Scope, receiver, field changes.Value) changes.Value {
 	receiver = Eval(s, receiver)
 	field = Eval(s, field)
+
 	if r, ok := receiver.(types.A); ok {
 		return array(r).getField(field)
 	}
@@ -123,5 +120,9 @@ func dot(s Scope, receiver, field changes.Value) changes.Value {
 		return dict(d).getField(field)
 	}
 
-	return changes.Atomic{Value: errors.New("unknown receiver")}
+	if s, ok := receiver.(types.S16); ok {
+		return str(s).getField(field)
+	}
+
+	return changes.Atomic{Value: errUnknownReceiver}
 }
