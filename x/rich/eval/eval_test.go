@@ -31,38 +31,42 @@ func TestEval(t *testing.T) {
 		types.S16("!="):     eval.NotEqual,
 		types.S16("true"):   changes.Atomic{Value: true},
 		types.S16("false"):  changes.Atomic{Value: false},
+		types.S16("nil"):    types.M{},
 		types.S16("list"):   eval.Parse(scope, "(1, 2, 3)"),
-		types.S16("dict"):   eval.Parse(scope, "obj(x = 1, y = 5)"),
+		types.S16("dict"):   eval.Parse(scope, "(x = 1, y = 5)"),
 		types.S16("intmap"): types.M{5: types.S16("five")},
 	}
 
 	// map of code => expected result
 	tests := map[string]string{
-		"list.map(value+10)":           "(11, 12, 13)",
-		"list.reduce(100, value+last)": "106",
-		"list.filter(value >= 2)":      "(2, 3)",
-		"list.count":                   "3",
-		"dict.x + dict.y":              "6",
-		"dict.count":                   "2",
-		"dict.map(value+10).x":         "11",
-		"dict.reduce(100,value+last)":  "106",
-		"dict.filter(value >= 2)":      "obj(y=5)",
-		"1 < 2":                        "true",
-		"1 <= 2":                       "true",
-		"1 < 0":                        "false",
-		"1 <= 0":                       "false",
-		"2 == 2":                       "true",
-		"2 != 2":                       "false",
-		"2 > 1":                        "true",
-		"2 >= 2":                       "true",
-		"0 > 1":                        "false",
-		"0 >= 1":                       "false",
-		"do(z + 2, z = list.count)":    "5",
+		"(+1)":                          "1",
+		"(1,)":                          "(1, 2).filter(value < 2)",
+		"(1,2,)":                        "(1, 2, 3).filter(value < 3)",
+		"list.map(value+10)":            "(11, 12, 13)",
+		"list.reduce(100, value+last)":  "106",
+		"list.filter(value >= 2)":       "(2, 3)",
+		"list.count":                    "3",
+		"dict.x + dict.y":               "6",
+		"dict.count":                    "2",
+		"dict.map(value+10).x":          "11",
+		"dict.reduce(100,value+last)":   "106",
+		"dict.filter(value >= 2)":       "(y=5)",
+		"1 < 2":                         "true",
+		"1 <= 2":                        "true",
+		"1 < 0":                         "false",
+		"1 <= 0":                        "false",
+		"2 == 2":                        "true",
+		"2 != 2":                        "false",
+		"2 > 1":                         "true",
+		"2 >= 2":                        "true",
+		"0 > 1":                         "false",
+		"0 >= 1":                        "false",
+		"(v = z + 2, z = list.count).v": "5",
 
 		"'hello'.count":            "5",
 		"'hello'.concat(' world')": "'hello world'",
 
-		"intmap.filter(key != 5)": "obj()",
+		"intmap.filter(key != 5)": "nil",
 	}
 
 	for code, result := range tests {
@@ -90,10 +94,10 @@ func TestEvalErrors(t *testing.T) {
 		"(1, 2, 3).boo",
 		"(1, 2, 3)()",
 		"(1, 2, 3).count.boo",
-		"obj(x = 5).map()",
-		"obj(x = 5).filter()",
-		"obj(x = 5).reduce(100)",
-		"obj(x = 5).boo",
+		"(x = 5).map()",
+		"(x = 5).filter()",
+		"(x = 5).reduce(100)",
+		"(x = 5).boo",
 		"'boo'.boo",
 	}
 
@@ -125,18 +129,22 @@ func TestEvalPanics(t *testing.T) {
 		panic(string(v.(types.S16)))
 	})
 
-	v := catch(func() {
-		eval.Eval(s, eval.Parse(nil, "do(x, x = y, y = x)"))
-	})
-	if v != "recursion detected" {
-		t.Error("Unexpected recursion fail", v)
+	tests := map[string]string{
+		"(x = y, y = x).x": "recursion detected",
+		"x = = 23":         "4: unexpected op",
+		"53)":              "2: unexpected character",
+		"'boo":             "0: incomplete quote",
 	}
 
-	v = catch(func() {
-		eval.Eval(s, eval.Parse(nil, "obj(x = y, y = x).x"))
-	})
-
-	if v != "recursion detected" {
-		t.Error("Unexpected recursion fail", v)
+	for name, expected := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := catch(func() {
+				eval.Eval(s, eval.Parse(nil, name))
+			})
+			err, ok := v.(error)
+			if !ok || err.Error() != expected {
+				t.Error("Unexpected failulre", v)
+			}
+		})
 	}
 }
