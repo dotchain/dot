@@ -1,12 +1,13 @@
 language: go
 sudo: false
+env:
+- GO111MODULE=on
 services:
 - mysql
 - mongodb
 addons:
   postgresql: "9.5"
 before_script:
-- go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 - psql -c 'CREATE DATABASE dot_test;' -U postgres
 - mongo dot_test --eval 'db.createUser({user:"root",pwd:"test",roles:["readWrite"]});'
 - bash ./x/lint.sh
