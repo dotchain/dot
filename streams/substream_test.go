@@ -42,7 +42,7 @@ func (s subsuite) ChangingIndex(t *testing.T) {
 
 	// now child should affect index 7
 	c := changes.Replace{Before: types.S16("b"), After: types.S16("a")}
-	child = child.Append(c)
+	child.Append(c)
 	parent, cx = parent.Next()
 	if !reflect.DeepEqual(parent, changes.PathChange{Path: []interface{}{7}, Change: c}) {
 		t.Error("Index did not change", cx)
